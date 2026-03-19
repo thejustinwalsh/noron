@@ -23,10 +23,7 @@ export class ThermalTimeoutError extends BenchdError {
 		public readonly currentTemp: number,
 		public readonly targetTemp: number,
 	) {
-		super(
-			`Thermal timeout: ${currentTemp}°C > ${targetTemp}°C target`,
-			"thermal.timeout",
-		);
+		super(`Thermal timeout: ${currentTemp}°C > ${targetTemp}°C target`, "thermal.timeout");
 		this.name = "ThermalTimeoutError";
 	}
 }

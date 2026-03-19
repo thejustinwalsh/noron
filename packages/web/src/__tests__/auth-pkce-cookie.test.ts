@@ -1,10 +1,6 @@
-import { describe, test, expect } from "bun:test";
-import {
-	generateCodeVerifier,
-	generateCodeChallenge,
-	getAuthorizationUrl,
-} from "../github-oauth";
-import { extractToken, extractBearerToken, parseCookie } from "../auth-middleware";
+import { describe, expect, test } from "bun:test";
+import { extractBearerToken, extractToken, parseCookie } from "../auth-middleware";
+import { generateCodeChallenge, generateCodeVerifier, getAuthorizationUrl } from "../github-oauth";
 
 describe("PKCE", () => {
 	test("generateCodeVerifier returns string of correct length", () => {

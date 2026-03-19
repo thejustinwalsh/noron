@@ -1,17 +1,17 @@
-import { Hono, type Context } from "hono";
-import { html, raw } from "hono/html";
 import type { Database } from "bun:sqlite";
-import * as z from "@zod/mini";
 import { DEFAULT_WEB_PORT } from "@noron/shared";
-import {
-	getAuthorizationUrl,
-	exchangeCode,
-	getGithubUser,
-	generateCodeVerifier,
-	generateCodeChallenge,
-} from "../github-oauth";
-import { validateInvite, markInviteUsed } from "../invite";
+import * as z from "@zod/mini";
+import { type Context, Hono } from "hono";
+import { html, raw } from "hono/html";
 import { encryptToken } from "../crypto";
+import {
+	exchangeCode,
+	generateCodeChallenge,
+	generateCodeVerifier,
+	getAuthorizationUrl,
+	getGithubUser,
+} from "../github-oauth";
+import { markInviteUsed, validateInvite } from "../invite";
 
 /** Session duration: 30 days (matches cookie Max-Age) */
 const SESSION_DURATION_MS = 30 * 24 * 3600_000;
@@ -31,10 +31,7 @@ function setSessionCookie(c: Context, token: string): void {
 
 function clearSessionCookie(c: Context): void {
 	const secure = isSecureContext() ? "; Secure" : "";
-	c.header(
-		"Set-Cookie",
-		`bench_session=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0${secure}`,
-	);
+	c.header("Set-Cookie", `bench_session=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0${secure}`);
 }
 
 const DevicePollBody = z.object({
@@ -58,7 +55,8 @@ export function authRoutes(db: Database): Hono {
 			[deviceCode, userCode, now, expiresAt],
 		);
 
-		const baseUrl = process.env.PUBLIC_URL ?? `http://localhost:${process.env.PORT ?? DEFAULT_WEB_PORT}`;
+		const baseUrl =
+			process.env.PUBLIC_URL ?? `http://localhost:${process.env.PORT ?? DEFAULT_WEB_PORT}`;
 		return c.json({
 			deviceCode,
 			userCode,
@@ -71,9 +69,7 @@ export function authRoutes(db: Database): Hono {
 		const parsed = z.safeParse(DevicePollBody, await c.req.json());
 		if (!parsed.success) return c.json({ error: "Invalid request body" }, 400);
 		const body = parsed.data;
-		const row = db
-			.query("SELECT * FROM device_codes WHERE code = ?")
-			.get(body.deviceCode) as {
+		const row = db.query("SELECT * FROM device_codes WHERE code = ?").get(body.deviceCode) as {
 			code: string;
 			expires_at: number;
 			user_id: string | null;
@@ -216,12 +212,7 @@ export function authRoutes(db: Database): Hono {
 	return app;
 }
 
-async function handleDeviceCallback(
-	db: Database,
-	c: Context,
-	code: string,
-	state: string,
-) {
+async function handleDeviceCallback(db: Database, c: Context, code: string, state: string) {
 	const userCode = state.slice("device:".length);
 
 	const row = db
@@ -243,9 +234,9 @@ async function handleDeviceCallback(
 	const accessToken = await exchangeCode(code, row.code_verifier ?? undefined);
 	const ghUser = await getGithubUser(accessToken);
 
-	const user = db
-		.query("SELECT id FROM users WHERE github_id = ?")
-		.get(ghUser.id) as { id: string } | null;
+	const user = db.query("SELECT id FROM users WHERE github_id = ?").get(ghUser.id) as {
+		id: string;
+	} | null;
 
 	if (!user) {
 		return c.html(html`
@@ -260,12 +251,18 @@ async function handleDeviceCallback(
 
 	const token = crypto.randomUUID();
 	const sessionExpiresAt = Date.now() + SESSION_DURATION_MS;
-	db.run(
-		"UPDATE device_codes SET token = ?, user_id = ?, session_expires_at = ? WHERE code = ?",
-		[token, user.id, sessionExpiresAt, row.code],
-	);
+	db.run("UPDATE device_codes SET token = ?, user_id = ?, session_expires_at = ? WHERE code = ?", [
+		token,
+		user.id,
+		sessionExpiresAt,
+		row.code,
+	]);
 	const encryptedToken = await encryptToken(accessToken);
-	db.run("UPDATE users SET last_seen_at = ?, github_token = ? WHERE id = ?", [Date.now(), encryptedToken, user.id]);
+	db.run("UPDATE users SET last_seen_at = ?, github_token = ? WHERE id = ?", [
+		Date.now(),
+		encryptedToken,
+		user.id,
+	]);
 
 	return c.html(html`
 		<!DOCTYPE html>
@@ -277,12 +274,7 @@ async function handleDeviceCallback(
 	`);
 }
 
-async function handleDashboardCallback(
-	db: Database,
-	c: Context,
-	code: string,
-	state: string,
-) {
+async function handleDashboardCallback(db: Database, c: Context, code: string, state: string) {
 	const nonce = state.slice("dashboard:".length);
 
 	const row = db
@@ -298,9 +290,9 @@ async function handleDashboardCallback(
 	const accessToken = await exchangeCode(code, row.code_verifier ?? undefined);
 	const ghUser = await getGithubUser(accessToken);
 
-	const user = db
-		.query("SELECT id FROM users WHERE github_id = ?")
-		.get(ghUser.id) as { id: string } | null;
+	const user = db.query("SELECT id FROM users WHERE github_id = ?").get(ghUser.id) as {
+		id: string;
+	} | null;
 
 	if (!user) {
 		// Clean up
@@ -310,24 +302,25 @@ async function handleDashboardCallback(
 
 	const token = crypto.randomUUID();
 	const sessionExpiresAt = Date.now() + SESSION_DURATION_MS;
-	db.run(
-		"UPDATE device_codes SET token = ?, user_id = ?, session_expires_at = ? WHERE code = ?",
-		[token, user.id, sessionExpiresAt, nonce],
-	);
+	db.run("UPDATE device_codes SET token = ?, user_id = ?, session_expires_at = ? WHERE code = ?", [
+		token,
+		user.id,
+		sessionExpiresAt,
+		nonce,
+	]);
 	const encryptedToken = await encryptToken(accessToken);
-	db.run("UPDATE users SET last_seen_at = ?, github_token = ? WHERE id = ?", [Date.now(), encryptedToken, user.id]);
+	db.run("UPDATE users SET last_seen_at = ?, github_token = ? WHERE id = ?", [
+		Date.now(),
+		encryptedToken,
+		user.id,
+	]);
 
 	// Set HttpOnly session cookie instead of passing token in URL
 	setSessionCookie(c, token);
 	return c.redirect("/dashboard/");
 }
 
-async function handleUpgradeCallback(
-	db: Database,
-	c: Context,
-	code: string,
-	state: string,
-) {
+async function handleUpgradeCallback(db: Database, c: Context, code: string, state: string) {
 	const nonce = state.slice("upgrade:".length);
 
 	const row = db
@@ -343,9 +336,9 @@ async function handleUpgradeCallback(
 	const accessToken = await exchangeCode(code, row.code_verifier ?? undefined);
 	const ghUser = await getGithubUser(accessToken);
 
-	const user = db
-		.query("SELECT id FROM users WHERE github_id = ?")
-		.get(ghUser.id) as { id: string } | null;
+	const user = db.query("SELECT id FROM users WHERE github_id = ?").get(ghUser.id) as {
+		id: string;
+	} | null;
 
 	if (!user) {
 		db.run("DELETE FROM device_codes WHERE code = ?", [nonce]);
@@ -362,22 +355,19 @@ async function handleUpgradeCallback(
 	// Reuse the nonce as a session token so user stays logged in
 	const token = crypto.randomUUID();
 	const sessionExpiresAt = Date.now() + SESSION_DURATION_MS;
-	db.run(
-		"UPDATE device_codes SET token = ?, user_id = ?, session_expires_at = ? WHERE code = ?",
-		[token, user.id, sessionExpiresAt, nonce],
-	);
+	db.run("UPDATE device_codes SET token = ?, user_id = ?, session_expires_at = ? WHERE code = ?", [
+		token,
+		user.id,
+		sessionExpiresAt,
+		nonce,
+	]);
 
 	// Set HttpOnly session cookie instead of passing token in URL
 	setSessionCookie(c, token);
 	return c.redirect("/dashboard/?upgraded=1");
 }
 
-async function handleInviteCallback(
-	db: Database,
-	c: Context,
-	code: string,
-	state: string,
-) {
+async function handleInviteCallback(db: Database, c: Context, code: string, state: string) {
 	const invite = validateInvite(db, state);
 	if (!invite.valid) {
 		return c.text(`Invite is ${invite.reason}`, 400);
@@ -405,9 +395,9 @@ async function handleInviteCallback(
 	markInviteUsed(db, invite.id, userId);
 
 	// Get the actual user ID (may have been an upsert)
-	const actualUser = db
-		.query("SELECT id FROM users WHERE github_id = ?")
-		.get(ghUser.id) as { id: string };
+	const actualUser = db.query("SELECT id FROM users WHERE github_id = ?").get(ghUser.id) as {
+		id: string;
+	};
 
 	// Generate a dashboard token so the user is logged in immediately
 	const token = crypto.randomUUID();
@@ -415,7 +405,15 @@ async function handleInviteCallback(
 	const sessionExpiresAt = now + SESSION_DURATION_MS;
 	db.run(
 		"INSERT INTO device_codes (code, user_code, created_at, expires_at, token, user_id, session_expires_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
-		[crypto.randomUUID(), `inv-${crypto.randomUUID().slice(0, 8)}`, now, now + 30 * 24 * 3600_000, token, actualUser.id, sessionExpiresAt],
+		[
+			crypto.randomUUID(),
+			`inv-${crypto.randomUUID().slice(0, 8)}`,
+			now,
+			now + 30 * 24 * 3600_000,
+			token,
+			actualUser.id,
+			sessionExpiresAt,
+		],
 	);
 
 	// Set HttpOnly session cookie instead of passing token in URL

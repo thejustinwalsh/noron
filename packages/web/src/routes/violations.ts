@@ -1,6 +1,6 @@
-import { Hono } from "hono";
 import type { Database } from "bun:sqlite";
 import { VIOLATION_STRIKE_LIMIT, VIOLATION_WINDOW_MS } from "@noron/shared";
+import { Hono } from "hono";
 import { extractToken, getUserByToken } from "../auth-middleware";
 
 /**
@@ -23,16 +23,18 @@ export function recordViolation(
 	);
 
 	// Link to runner if one exists for this repo
-	const runner = db.query("SELECT id FROM runners WHERE repo = ?").get(repo) as { id: string } | null;
+	const runner = db.query("SELECT id FROM runners WHERE repo = ?").get(repo) as {
+		id: string;
+	} | null;
 	if (runner) {
 		db.run("UPDATE violations SET runner_id = ? WHERE id = ?", [runner.id, id]);
 	}
 
 	// Count recent violations for this repo
 	const windowStart = now - VIOLATION_WINDOW_MS;
-	const count = db.query(
-		"SELECT COUNT(*) as count FROM violations WHERE repo = ? AND created_at > ?",
-	).get(repo, windowStart) as { count: number };
+	const count = db
+		.query("SELECT COUNT(*) as count FROM violations WHERE repo = ? AND created_at > ?")
+		.get(repo, windowStart) as { count: number };
 
 	const result = { recorded: true, strikeCount: count.count, disabled: false };
 
@@ -40,7 +42,11 @@ export function recordViolation(
 	if (count.count >= VIOLATION_STRIKE_LIMIT && runner) {
 		db.run(
 			"UPDATE runners SET status = 'disabled', disabled_at = ?, disabled_reason = ? WHERE id = ? AND (status != 'disabled' OR disabled_at IS NULL)",
-			[now, `${VIOLATION_STRIKE_LIMIT} violations in ${VIOLATION_WINDOW_MS / 86400000} days`, runner.id],
+			[
+				now,
+				`${VIOLATION_STRIKE_LIMIT} violations in ${VIOLATION_WINDOW_MS / 86400000} days`,
+				runner.id,
+			],
 		);
 		result.disabled = true;
 		console.warn(`[violations] Runner for ${repo} disabled after ${count.count} violations`);
@@ -69,14 +75,14 @@ export function violationRoutes(db: Database) {
 
 		const repo = c.req.query("repo");
 		if (repo) {
-			const violations = db.query(
-				"SELECT * FROM violations WHERE repo = ? ORDER BY created_at DESC LIMIT 100",
-			).all(repo);
+			const violations = db
+				.query("SELECT * FROM violations WHERE repo = ? ORDER BY created_at DESC LIMIT 100")
+				.all(repo);
 			return c.json({ violations });
 		}
-		const violations = db.query(
-			"SELECT * FROM violations ORDER BY created_at DESC LIMIT 100",
-		).all();
+		const violations = db
+			.query("SELECT * FROM violations ORDER BY created_at DESC LIMIT 100")
+			.all();
 		return c.json({ violations });
 	});
 
@@ -94,7 +100,9 @@ export function violationRoutes(db: Database) {
 		db.run("DELETE FROM violations WHERE repo = ?", [body.repo]);
 
 		// Re-enable the runner if it was disabled
-		const runner = db.query("SELECT id FROM runners WHERE repo = ?").get(body.repo) as { id: string } | null;
+		const runner = db.query("SELECT id FROM runners WHERE repo = ?").get(body.repo) as {
+			id: string;
+		} | null;
 		if (runner) {
 			db.run(
 				"UPDATE runners SET status = 'offline', disabled_at = NULL, disabled_reason = NULL WHERE id = ?",
@@ -118,11 +126,22 @@ export function violationRoutes(db: Database) {
 
 		// Validate: null clears override (uses global default), number sets it
 		const timeoutMs = body.jobTimeoutMs;
-		if (timeoutMs !== null && (typeof timeoutMs !== "number" || timeoutMs < 60_000 || timeoutMs > 86_400_000)) {
-			return c.json({ error: "jobTimeoutMs must be between 60000 (1 min) and 86400000 (24 hours), or null to use default" }, 400);
+		if (
+			timeoutMs !== null &&
+			(typeof timeoutMs !== "number" || timeoutMs < 60_000 || timeoutMs > 86_400_000)
+		) {
+			return c.json(
+				{
+					error:
+						"jobTimeoutMs must be between 60000 (1 min) and 86400000 (24 hours), or null to use default",
+				},
+				400,
+			);
 		}
 
-		const runner = db.query("SELECT id FROM runners WHERE id = ?").get(runnerId) as { id: string } | null;
+		const runner = db.query("SELECT id FROM runners WHERE id = ?").get(runnerId) as {
+			id: string;
+		} | null;
 		if (!runner) return c.json({ error: "Runner not found" }, 404);
 
 		db.run("UPDATE runners SET job_timeout_ms = ? WHERE id = ?", [timeoutMs, runnerId]);

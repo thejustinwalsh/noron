@@ -1,7 +1,7 @@
-import React, { useState } from "react";
+import { DEFAULT_WEB_PORT } from "@noron/shared";
 import { Box, Text, useInput } from "ink";
 import TextInput from "ink-text-input";
-import { DEFAULT_WEB_PORT } from "@noron/shared";
+import React, { useState } from "react";
 import type { SetupConfig } from "../generate";
 
 interface OAuthProps {
@@ -39,8 +39,7 @@ export function OAuth({ config, onUpdate, onNext }: OAuthProps) {
 		<Box flexDirection="column" gap={1}>
 			<Text bold>GitHub OAuth App</Text>
 			<Text color="gray">
-				Users sign in via GitHub OAuth. Create an OAuth App at
-				github.com/settings/developers.
+				Users sign in via GitHub OAuth. Create an OAuth App at github.com/settings/developers.
 			</Text>
 			<Text color="gray">
 				Homepage URL: http://{"<hostname>"}:{config.webPort ?? DEFAULT_WEB_PORT}
@@ -51,9 +50,7 @@ export function OAuth({ config, onUpdate, onNext }: OAuthProps) {
 
 			<Box flexDirection="column" paddingLeft={2}>
 				<Box>
-					<Text color={field === "clientId" ? "green" : "gray"}>
-						Client ID:{" "}
-					</Text>
+					<Text color={field === "clientId" ? "green" : "gray"}>Client ID: </Text>
 					{field === "clientId" ? (
 						<TextInput value={clientId} onChange={setClientId} onSubmit={handleSubmitClientId} />
 					) : (
@@ -61,11 +58,14 @@ export function OAuth({ config, onUpdate, onNext }: OAuthProps) {
 					)}
 				</Box>
 				<Box>
-					<Text color={field === "clientSecret" ? "green" : "gray"}>
-						Client Secret:{" "}
-					</Text>
+					<Text color={field === "clientSecret" ? "green" : "gray"}>Client Secret: </Text>
 					{field === "clientSecret" ? (
-						<TextInput value={clientSecret} onChange={setClientSecret} onSubmit={handleSubmitClientSecret} mask="*" />
+						<TextInput
+							value={clientSecret}
+							onChange={setClientSecret}
+							onSubmit={handleSubmitClientSecret}
+							mask="*"
+						/>
 					) : (
 						<Text color="gray">{"(press Enter on Client ID first)"}</Text>
 					)}

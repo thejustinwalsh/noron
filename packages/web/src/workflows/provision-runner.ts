@@ -1,5 +1,12 @@
-import { loadConfig, DEFAULT_CONFIG } from "@noron/shared";
-import { ow, getGithubToken, updateRunnerStatus, updateRunnerStatusWithMessage, getWorkflowDb, withGate } from "./index";
+import { DEFAULT_CONFIG, loadConfig } from "@noron/shared";
+import {
+	getGithubToken,
+	getWorkflowDb,
+	ow,
+	updateRunnerStatus,
+	updateRunnerStatusWithMessage,
+	withGate,
+} from "./index";
 
 export interface ProvisionInput {
 	runnerId: string;
@@ -84,7 +91,17 @@ const provisionRunner = ow.defineWorkflow<ProvisionInput, ProvisionOutput>(
 						const label = (loadConfig() ?? DEFAULT_CONFIG).runnerLabel;
 						// Trim defensively — workflow serialization could introduce whitespace
 						const proc = Bun.spawn(
-							["sudo", "runner-ctl", "provision", input.name.trim(), input.repo.trim(), data.token, callbackUrl, callbackToken, label],
+							[
+								"sudo",
+								"runner-ctl",
+								"provision",
+								input.name.trim(),
+								input.repo.trim(),
+								data.token,
+								callbackUrl,
+								callbackToken,
+								label,
+							],
 							{ stdout: "pipe", stderr: "pipe" },
 						);
 						const exitCode = await proc.exited;
@@ -118,7 +135,11 @@ const provisionRunner = ow.defineWorkflow<ProvisionInput, ProvisionOutput>(
 			}
 
 			// Exhausted all attempts — registration never completed
-			updateRunnerStatusWithMessage(input.runnerId, "failed", "Runner did not register within 3 minutes");
+			updateRunnerStatusWithMessage(
+				input.runnerId,
+				"failed",
+				"Runner did not register within 3 minutes",
+			);
 			throw new Error("Runner did not register within 3 minutes");
 		} catch (err) {
 			// Mark runner as failed so the dashboard shows the error state

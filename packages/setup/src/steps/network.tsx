@@ -1,6 +1,6 @@
-import React, { useState } from "react";
 import { Box, Text, useInput } from "ink";
 import TextInput from "ink-text-input";
+import React, { useState } from "react";
 import type { HardwareProfile } from "../detect";
 import type { SetupConfig } from "../generate";
 
@@ -61,9 +61,7 @@ export function Network({ hardware, config, onUpdate, onNext }: NetworkProps) {
 
 			<Box flexDirection="column" paddingLeft={2}>
 				<Box>
-					<Text color={field === "hostname" ? "green" : "gray"}>
-						Hostname:{" "}
-					</Text>
+					<Text color={field === "hostname" ? "green" : "gray"}>Hostname: </Text>
 					{field === "hostname" ? (
 						<TextInput value={hostname} onChange={setHostname} onSubmit={handleSubmitHostname} />
 					) : (
@@ -71,9 +69,7 @@ export function Network({ hardware, config, onUpdate, onNext }: NetworkProps) {
 					)}
 				</Box>
 				<Box marginTop={1}>
-					<Text color={field === "tailscale" ? "green" : "gray"}>
-						Tailscale Auth Key:{" "}
-					</Text>
+					<Text color={field === "tailscale" ? "green" : "gray"}>Tailscale Auth Key: </Text>
 					{field === "tailscale" ? (
 						<TextInput
 							value={tailscaleKey}
@@ -89,8 +85,7 @@ export function Network({ hardware, config, onUpdate, onNext }: NetworkProps) {
 
 			{field === "tailscale" && (
 				<Text color="gray">
-					Tailscale provides secure mesh VPN. Leave blank to skip.
-					Press Enter to continue...
+					Tailscale provides secure mesh VPN. Leave blank to skip. Press Enter to continue...
 				</Text>
 			)}
 		</Box>

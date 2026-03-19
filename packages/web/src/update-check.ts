@@ -36,17 +36,16 @@ export async function checkForUpdate(db: Database, config: BenchdConfig): Promis
 
 	// Don't start a new update if one is already in progress
 	const pending = db
-		.query("SELECT id FROM updates WHERE state IN ('pending', 'downloading', 'applying', 'verifying') LIMIT 1")
+		.query(
+			"SELECT id FROM updates WHERE state IN ('pending', 'downloading', 'applying', 'verifying') LIMIT 1",
+		)
 		.get();
 	if (pending) return;
 
 	try {
-		const res = await fetch(
-			`https://api.github.com/repos/${config.updateRepo}/releases/latest`,
-			{
-				headers: { Accept: "application/vnd.github+json" },
-			},
-		);
+		const res = await fetch(`https://api.github.com/repos/${config.updateRepo}/releases/latest`, {
+			headers: { Accept: "application/vnd.github+json" },
+		});
 
 		if (!res.ok) {
 			if (res.status === 404) return; // No releases yet

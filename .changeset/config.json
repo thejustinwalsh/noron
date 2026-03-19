@@ -21,10 +21,5 @@
 		"version": true,
 		"tag": true
 	},
-	"ignore": [
-		"@noron/dashboard",
-		"@noron/setup",
-		"@noron/benchmark",
-		"@noron/dev"
-	]
+	"ignore": ["@noron/dashboard", "@noron/setup", "@noron/benchmark", "@noron/dev"]
 }

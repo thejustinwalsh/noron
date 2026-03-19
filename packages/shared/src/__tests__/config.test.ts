@@ -1,10 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import {
-	parseToml,
-	serializeToml,
-	DEFAULT_CONFIG,
-	type BenchdConfig,
-} from "../config";
+import { type BenchdConfig, DEFAULT_CONFIG, parseToml, serializeToml } from "../config";
 
 describe("TOML parsing", () => {
 	test("parses integer values", () => {

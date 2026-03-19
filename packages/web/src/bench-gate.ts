@@ -189,7 +189,10 @@ export class BenchGate {
 		};
 	}
 
-	private _emit<K extends keyof GateEventMap>(event: K, ...args: Parameters<GateEventMap[K]>): void {
+	private _emit<K extends keyof GateEventMap>(
+		event: K,
+		...args: Parameters<GateEventMap[K]>
+	): void {
 		const listeners = this._listeners[event];
 		if (!listeners) return;
 		for (const handler of listeners) {

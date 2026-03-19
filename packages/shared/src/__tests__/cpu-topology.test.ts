@@ -121,9 +121,7 @@ describe("big.LITTLE capacity grouping logic", () => {
 
 		const housekeeping =
 			onlineCores.find((c) => capacities.get(c) === minCap) ?? onlineCores[0] ?? 0;
-		const isolated = onlineCores.filter(
-			(c) => capacities.get(c) === maxCap && c !== housekeeping,
-		);
+		const isolated = onlineCores.filter((c) => capacities.get(c) === maxCap && c !== housekeeping);
 		return { housekeeping, isolated };
 	}
 
@@ -131,8 +129,14 @@ describe("big.LITTLE capacity grouping logic", () => {
 		// Simulates a 4+4 big.LITTLE: cores 0-3 are LITTLE (512), cores 4-7 are big (1024)
 		const cores = [0, 1, 2, 3, 4, 5, 6, 7];
 		const caps = new Map([
-			[0, 512], [1, 512], [2, 512], [3, 512],
-			[4, 1024], [5, 1024], [6, 1024], [7, 1024],
+			[0, 512],
+			[1, 512],
+			[2, 512],
+			[3, 512],
+			[4, 1024],
+			[5, 1024],
+			[6, 1024],
+			[7, 1024],
 		]);
 		const { housekeeping, isolated } = groupByCapacity(cores, caps);
 		expect(housekeeping).toBe(0); // first LITTLE core
@@ -141,7 +145,12 @@ describe("big.LITTLE capacity grouping logic", () => {
 
 	test("homogeneous capacities: housekeeping is first core, all others isolated", () => {
 		const cores = [0, 1, 2, 3];
-		const caps = new Map([[0, 1024], [1, 1024], [2, 1024], [3, 1024]]);
+		const caps = new Map([
+			[0, 1024],
+			[1, 1024],
+			[2, 1024],
+			[3, 1024],
+		]);
 		const { housekeeping, isolated } = groupByCapacity(cores, caps);
 		// When min === max, housekeeping = first core with minCap = core 0
 		// isolated = cores where cap === maxCap AND c !== housekeeping = [1, 2, 3]
@@ -152,8 +161,14 @@ describe("big.LITTLE capacity grouping logic", () => {
 	test("2+6 mixed layout: one efficiency core, six performance cores", () => {
 		const cores = [0, 1, 2, 3, 4, 5, 6, 7];
 		const caps = new Map([
-			[0, 256], [1, 256],
-			[2, 1024], [3, 1024], [4, 1024], [5, 1024], [6, 1024], [7, 1024],
+			[0, 256],
+			[1, 256],
+			[2, 1024],
+			[3, 1024],
+			[4, 1024],
+			[5, 1024],
+			[6, 1024],
+			[7, 1024],
 		]);
 		const { housekeeping, isolated } = groupByCapacity(cores, caps);
 		expect(housekeeping).toBe(0); // first efficiency core
@@ -164,8 +179,11 @@ describe("big.LITTLE capacity grouping logic", () => {
 		// Simulates a tri-cluster SoC: 2 LITTLE (256), 3 medium (680), 1 big (1024)
 		const cores = [0, 1, 2, 3, 4, 5];
 		const caps = new Map([
-			[0, 256], [1, 256],
-			[2, 680], [3, 680], [4, 680],
+			[0, 256],
+			[1, 256],
+			[2, 680],
+			[3, 680],
+			[4, 680],
 			[5, 1024],
 		]);
 		const { housekeeping, isolated } = groupByCapacity(cores, caps);

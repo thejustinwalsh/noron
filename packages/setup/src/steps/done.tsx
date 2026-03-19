@@ -1,5 +1,5 @@
-import React from "react";
 import { Box, Text, useInput } from "ink";
+import React from "react";
 import type { SetupConfig } from "../generate";
 
 interface DoneProps {
@@ -26,43 +26,46 @@ export function Done({ config, needsReboot, inviteUrl }: DoneProps) {
 			<Box flexDirection="column" paddingLeft={2}>
 				<Text>
 					<Text color="gray">Dashboard: </Text>
-					<Text bold color="blue">{dashboardUrl}</Text>
+					<Text bold color="blue">
+						{dashboardUrl}
+					</Text>
 				</Text>
 				<Text>
-					<Text color="gray">Config:    </Text>
+					<Text color="gray">Config: </Text>
 					<Text>/etc/benchd/config.toml</Text>
 				</Text>
 				<Text>
-					<Text color="gray">Logs:      </Text>
+					<Text color="gray">Logs: </Text>
 					<Text>journalctl -u benchd -f</Text>
 				</Text>
 			</Box>
 
 			{inviteUrl && (
 				<Box flexDirection="column" paddingLeft={2}>
-					<Text bold color="yellow">Admin Invite (expires in 7 days):</Text>
-					<Text bold color="cyan">{inviteUrl}</Text>
+					<Text bold color="yellow">
+						Admin Invite (expires in 7 days):
+					</Text>
+					<Text bold color="cyan">
+						{inviteUrl}
+					</Text>
 					<Text color="gray">Open this URL to register as the first admin via GitHub.</Text>
 				</Box>
 			)}
 
 			<Box flexDirection="column" paddingLeft={2}>
 				<Text bold>Next steps:</Text>
-				<Text>  1. Open the admin invite URL above</Text>
-				<Text>  2. Sign in with GitHub to become the first admin</Text>
-				<Text>  3. Generate invite links for your team</Text>
-				<Text>  4. Team members register repos for benchmarking</Text>
+				<Text> 1. Open the admin invite URL above</Text>
+				<Text> 2. Sign in with GitHub to become the first admin</Text>
+				<Text> 3. Generate invite links for your team</Text>
+				<Text> 4. Team members register repos for benchmarking</Text>
 			</Box>
 
 			{needsReboot && (
 				<Box flexDirection="column">
 					<Text bold color="yellow">
-						A reboot is required for kernel parameter changes
-						(isolcpus, nohz_full).
+						A reboot is required for kernel parameter changes (isolcpus, nohz_full).
 					</Text>
-					<Text color="yellow">
-						Run: sudo reboot
-					</Text>
+					<Text color="yellow">Run: sudo reboot</Text>
 				</Box>
 			)}
 

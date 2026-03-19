@@ -1,5 +1,5 @@
-import { connect, type Socket } from "node:net";
 import { existsSync } from "node:fs";
+import { type Socket, connect } from "node:net";
 import { SOCKET_PATH } from "./constants";
 import type {
 	BaseRequest,

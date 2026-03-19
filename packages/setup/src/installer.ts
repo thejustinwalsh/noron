@@ -1,19 +1,19 @@
-import { existsSync, mkdirSync, writeFileSync, chmodSync, readFileSync } from "node:fs";
 import { execSync } from "node:child_process";
+import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import type { SetupConfig } from "./generate";
 import {
-	generateBenchdConfig,
-	generateBenchmarkSlice,
-	generateBenchdService,
 	generateBenchWebService,
-	generateSysctlConfig,
-	generateIrqPinScript,
-	generateSudoersConfig,
-	generateGrubAppend,
-	generateIrqPinService,
-	generateDisableTurboService,
-	generateTmpfsMount,
+	generateBenchdConfig,
+	generateBenchdService,
+	generateBenchmarkSlice,
 	generateCpuGovernorService,
+	generateDisableTurboService,
+	generateGrubAppend,
+	generateIrqPinScript,
+	generateIrqPinService,
+	generateSudoersConfig,
+	generateSysctlConfig,
+	generateTmpfsMount,
 	recommendTmpfsSize,
 } from "./generate";
 
@@ -55,7 +55,9 @@ export async function runInstall(
 	onProgress("Installing system packages", "running");
 	try {
 		run("apt-get update -qq");
-		run("apt-get install -y -qq podman sqlite3 lm-sensors cpufrequtils util-linux sudo htop curl ca-certificates openssh-server");
+		run(
+			"apt-get install -y -qq podman sqlite3 lm-sensors cpufrequtils util-linux sudo htop curl ca-certificates openssh-server",
+		);
 		onProgress("Installing system packages", "done");
 	} catch (err) {
 		onProgress("Installing system packages", "error", String(err));
@@ -85,8 +87,16 @@ export async function runInstall(
 	// 2. Create system users
 	onProgress("Creating system users", "running");
 	try {
-		try { run("useradd -r -s /usr/sbin/nologin bench"); } catch { /* user may exist */ }
-		try { run("useradd -r -s /bin/bash -G bench runner"); } catch { /* user may exist */ }
+		try {
+			run("useradd -r -s /usr/sbin/nologin bench");
+		} catch {
+			/* user may exist */
+		}
+		try {
+			run("useradd -r -s /bin/bash -G bench runner");
+		} catch {
+			/* user may exist */
+		}
 		ensureDir("/var/lib/bench");
 		run("chown bench:bench /var/lib/bench");
 		onProgress("Creating system users", "done");
@@ -123,7 +133,10 @@ export async function runInstall(
 		if (tmpfsSize) {
 			const tmpfsPath = "/mnt/bench-tmpfs";
 			const unitName = tmpfsPath.slice(1).replace(/\//g, "-"); // mnt-bench-tmpfs
-			writeFileSync(`/etc/systemd/system/${unitName}.mount`, generateTmpfsMount(tmpfsPath, tmpfsSize));
+			writeFileSync(
+				`/etc/systemd/system/${unitName}.mount`,
+				generateTmpfsMount(tmpfsPath, tmpfsSize),
+			);
 			ensureDir(tmpfsPath);
 		}
 
@@ -189,10 +202,7 @@ export async function runInstall(
 		ensureDir("/usr/local/lib/benchd/hooks");
 
 		// Copy hook binaries (compiled alongside setup binary)
-		const hookSources = [
-			"/usr/local/share/bench/hooks",
-			`${import.meta.dir}/../../../hooks`,
-		];
+		const hookSources = ["/usr/local/share/bench/hooks", `${import.meta.dir}/../../../hooks`];
 		for (const hookDir of hookSources) {
 			if (existsSync(`${hookDir}/job-started`)) {
 				run(`cp ${hookDir}/job-started /usr/local/lib/benchd/hooks/job-started`);
@@ -260,10 +270,7 @@ export async function runInstall(
 			} else if (isArm()) {
 				// ARM: update /boot/cmdline.txt or /boot/firmware/cmdline.txt
 				const append = generateGrubAppend(config);
-				const cmdlinePaths = [
-					"/boot/firmware/cmdline.txt",
-					"/boot/cmdline.txt",
-				];
+				const cmdlinePaths = ["/boot/firmware/cmdline.txt", "/boot/cmdline.txt"];
 				for (const cmdlinePath of cmdlinePaths) {
 					if (existsSync(cmdlinePath)) {
 						let cmdline = readFileSync(cmdlinePath, "utf-8").trim();
@@ -294,8 +301,12 @@ export async function runInstall(
 		const now = Date.now();
 		const expiresAt = now + 7 * 24 * 3600_000; // 7 days
 		// Use sqlite3 CLI to create the invite — avoids pulling bun:sqlite into the setup binary
-		run(`sqlite3 "${dbPath}" "CREATE TABLE IF NOT EXISTS invites (id TEXT PRIMARY KEY, token TEXT UNIQUE NOT NULL, created_at INTEGER NOT NULL, expires_at INTEGER NOT NULL, used_at INTEGER, used_by TEXT)"`);
-		run(`sqlite3 "${dbPath}" "INSERT INTO invites (id, token, created_at, expires_at) VALUES ('${crypto.randomUUID()}', '${token}', ${now}, ${expiresAt})"`);
+		run(
+			`sqlite3 "${dbPath}" "CREATE TABLE IF NOT EXISTS invites (id TEXT PRIMARY KEY, token TEXT UNIQUE NOT NULL, created_at INTEGER NOT NULL, expires_at INTEGER NOT NULL, used_at INTEGER, used_by TEXT)"`,
+		);
+		run(
+			`sqlite3 "${dbPath}" "INSERT INTO invites (id, token, created_at, expires_at) VALUES ('${crypto.randomUUID()}', '${token}', ${now}, ${expiresAt})"`,
+		);
 		run(`chown bench:bench "${dbPath}"`);
 		chmodSync(dbPath, 0o640);
 		const baseUrl = `http://${config.hostname}:${config.webPort}`;

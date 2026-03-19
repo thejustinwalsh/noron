@@ -1,8 +1,8 @@
 const GITHUB_CLIENT_ID = process.env.GITHUB_CLIENT_ID ?? "";
 const GITHUB_CLIENT_SECRET = process.env.GITHUB_CLIENT_SECRET ?? "";
 
-import * as z from "@zod/mini";
 import { DEFAULT_WEB_PORT } from "@noron/shared";
+import * as z from "@zod/mini";
 
 const GitHubTokenResponse = z.object({
 	access_token: z.optional(z.string()),
@@ -86,9 +86,7 @@ export async function exchangeCode(code: string, codeVerifier?: string): Promise
 	return parsed.data.access_token;
 }
 
-export async function getGithubUser(
-	token: string,
-): Promise<{ id: number; login: string }> {
+export async function getGithubUser(token: string): Promise<{ id: number; login: string }> {
 	const res = await fetch("https://api.github.com/user", {
 		headers: {
 			Authorization: `Bearer ${token}`,

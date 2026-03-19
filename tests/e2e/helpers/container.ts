@@ -35,7 +35,9 @@ export class TestContainer {
 		const envArgs = Object.entries(env).flatMap(([k, v]) => ["-e", `${k}=${v}`]);
 		const portArgs = ports.flatMap(([host, container]) => ["-p", `${host}:${container}`]);
 		execSync(
-			[this.runtime, "run", "-d", "--rm", "--name", this.name, ...envArgs, ...portArgs, image].join(" "),
+			[this.runtime, "run", "-d", "--rm", "--name", this.name, ...envArgs, ...portArgs, image].join(
+				" ",
+			),
 			{ stdio: "pipe" },
 		);
 	}

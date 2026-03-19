@@ -1,21 +1,21 @@
+import { BenchdClient, CONFIG_PATH, DEFAULT_CONFIG, SOCKET_PATH, loadConfig } from "@noron/shared";
 import { Hono } from "hono";
 import { serveStatic } from "hono/bun";
-import { initDb } from "./db";
-import { inviteRoutes } from "./routes/invite";
-import { authRoutes } from "./routes/auth";
-import { statusRoutes } from "./routes/status";
-import { adminRoutes } from "./routes/admin";
-import { workflowRoutes } from "./routes/workflows";
-import { wsStatusHandler, validateWsConnection } from "./routes/ws-status";
-import { ow, setWorkflowDb, setGate, purgeOldWorkflowRuns } from "./workflows";
 import { BenchGate } from "./bench-gate";
 import { BenchScheduler } from "./bench-scheduler";
+import { initDb } from "./db";
 import { checkRunners } from "./health-check";
-import { BenchdClient, SOCKET_PATH, loadConfig, CONFIG_PATH, DEFAULT_CONFIG } from "@noron/shared";
 import { createRateLimiter } from "./rate-limit";
-import { checkForUpdate } from "./update-check";
+import { adminRoutes } from "./routes/admin";
+import { authRoutes } from "./routes/auth";
+import { inviteRoutes } from "./routes/invite";
+import { statusRoutes } from "./routes/status";
 import { updateRoutes } from "./routes/update";
-import { violationRoutes, recordViolation } from "./routes/violations";
+import { recordViolation, violationRoutes } from "./routes/violations";
+import { workflowRoutes } from "./routes/workflows";
+import { validateWsConnection, wsStatusHandler } from "./routes/ws-status";
+import { checkForUpdate } from "./update-check";
+import { ow, purgeOldWorkflowRuns, setGate, setWorkflowDb } from "./workflows";
 // Import workflows so they register with OpenWorkflow
 import "./workflows/provision-runner";
 import "./workflows/deprovision-runner";
@@ -45,8 +45,7 @@ gate.on("stateChange", (from, to) => {
 gate.on("drainTimeout", (level, activeOps) => {
 	if (level === "soft")
 		console.warn(`[bench-gate] Drain soft deadline — ${activeOps} ops still in-flight`);
-	else
-		console.error(`[bench-gate] Drain hard deadline — force-closing ${activeOps} ops`);
+	else console.error(`[bench-gate] Drain hard deadline — force-closing ${activeOps} ops`);
 });
 
 // Connect to benchd for lock state changes (non-blocking — server starts regardless)
@@ -75,15 +74,17 @@ gate.on("drainTimeout", (level, activeOps) => {
 
 				// Push per-repo timeout override if configured
 				const owner = update.lock!.owner;
-				const override = db.query(
-					"SELECT job_timeout_ms FROM runners WHERE repo = ?",
-				).get(owner) as { job_timeout_ms: number | null } | null;
+				const override = db
+					.query("SELECT job_timeout_ms FROM runners WHERE repo = ?")
+					.get(owner) as { job_timeout_ms: number | null } | null;
 				if (override?.job_timeout_ms) {
-					gateClient.request({
-						type: "lock.setTimeout",
-						requestId: crypto.randomUUID(),
-						timeoutMs: override.job_timeout_ms,
-					}).catch(() => {}); // best-effort
+					gateClient
+						.request({
+							type: "lock.setTimeout",
+							requestId: crypto.randomUUID(),
+							timeoutMs: override.job_timeout_ms,
+						})
+						.catch(() => {}); // best-effort
 				}
 			} else if (!isLocked && wasLocked) {
 				gate.openGate();
@@ -133,7 +134,9 @@ if (config.updateRepo) {
 		intervalMs: config.updateCheckIntervalHours * 3600_000,
 		initialDelayMs: 5 * 60_000,
 	});
-	console.log(`[bench-scheduler] Update check scheduled (${config.updateCheckIntervalHours}h), repo: ${config.updateRepo}`);
+	console.log(
+		`[bench-scheduler] Update check scheduled (${config.updateCheckIntervalHours}h), repo: ${config.updateRepo}`,
+	);
 }
 scheduler.register({
 	name: "session-cleanup",
@@ -142,12 +145,15 @@ scheduler.register({
 			"DELETE FROM device_codes WHERE token IS NOT NULL AND session_expires_at IS NOT NULL AND session_expires_at < ?",
 			[Date.now()],
 		);
-		if (result.changes > 0) console.log(`[session-cleanup] Purged ${result.changes} expired sessions`);
+		if (result.changes > 0)
+			console.log(`[session-cleanup] Purged ${result.changes} expired sessions`);
 	},
 	intervalMs: 24 * 3600_000, // daily
 	initialDelayMs: 60_000,
 });
-console.log("[bench-scheduler] Health check (5min), workflow purge (daily), session cleanup (daily)");
+console.log(
+	"[bench-scheduler] Health check (5min), workflow purge (daily), session cleanup (daily)",
+);
 
 // Dashboard SPA (served from built React app)
 const dashboardDir = process.env.DASHBOARD_DIR ?? "../dashboard/dist";

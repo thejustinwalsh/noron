@@ -1,6 +1,6 @@
-import { describe, test, expect, beforeEach } from "bun:test";
 import { Database } from "bun:sqlite";
-import { validateInvite, generateInvite, markInviteUsed } from "../invite";
+import { beforeEach, describe, expect, test } from "bun:test";
+import { generateInvite, markInviteUsed, validateInvite } from "../invite";
 
 function createTestDb(): Database {
 	const db = new Database(":memory:");
@@ -37,10 +37,12 @@ describe("validateInvite", () => {
 		const id = crypto.randomUUID();
 		const token = crypto.randomUUID();
 		const past = Date.now() - 1000;
-		db.run(
-			"INSERT INTO invites (id, token, created_at, expires_at) VALUES (?, ?, ?, ?)",
-			[id, token, past - 86400_000, past],
-		);
+		db.run("INSERT INTO invites (id, token, created_at, expires_at) VALUES (?, ?, ?, ?)", [
+			id,
+			token,
+			past - 86400_000,
+			past,
+		]);
 
 		const result = validateInvite(db, token);
 		expect(result.valid).toBe(false);
@@ -49,9 +51,7 @@ describe("validateInvite", () => {
 	test("returns generic reason for already-used token", () => {
 		const token = generateInvite(db, 24);
 		// Find the invite and mark it used
-		const row = db
-			.query("SELECT id FROM invites WHERE token = ?")
-			.get(token) as { id: string };
+		const row = db.query("SELECT id FROM invites WHERE token = ?").get(token) as { id: string };
 		markInviteUsed(db, row.id, "some-user");
 
 		const result = validateInvite(db, token);
@@ -62,16 +62,18 @@ describe("validateInvite", () => {
 		// Create expired invite
 		const expiredId = crypto.randomUUID();
 		const expiredToken = crypto.randomUUID();
-		db.run(
-			"INSERT INTO invites (id, token, created_at, expires_at) VALUES (?, ?, ?, ?)",
-			[expiredId, expiredToken, Date.now() - 86400_000, Date.now() - 1000],
-		);
+		db.run("INSERT INTO invites (id, token, created_at, expires_at) VALUES (?, ?, ?, ?)", [
+			expiredId,
+			expiredToken,
+			Date.now() - 86400_000,
+			Date.now() - 1000,
+		]);
 
 		// Create used invite
 		const usedToken = generateInvite(db, 24);
-		const usedRow = db
-			.query("SELECT id FROM invites WHERE token = ?")
-			.get(usedToken) as { id: string };
+		const usedRow = db.query("SELECT id FROM invites WHERE token = ?").get(usedToken) as {
+			id: string;
+		};
 		markInviteUsed(db, usedRow.id, "some-user");
 
 		// Not-found token

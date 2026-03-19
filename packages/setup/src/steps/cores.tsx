@@ -1,5 +1,5 @@
-import React from "react";
 import { Box, Text, useInput } from "ink";
+import React from "react";
 import type { HardwareProfile } from "../detect";
 import type { SetupConfig } from "../generate";
 
@@ -34,7 +34,13 @@ export function Cores({ hardware, config, onNext }: CoresProps) {
 						Core {housekeeping} (OS, runner, interrupts)
 						{hardware.cpu.coreCapacities && (
 							<Text color="gray">
-								{" "}[{hardware.cpu.coreCapacities.get(housekeeping) === Math.min(...hardware.cpu.coreCapacities.values()) ? "efficiency" : "performance"}]
+								{" "}
+								[
+								{hardware.cpu.coreCapacities.get(housekeeping) ===
+								Math.min(...hardware.cpu.coreCapacities.values())
+									? "efficiency"
+									: "performance"}
+								]
 							</Text>
 						)}
 					</Text>

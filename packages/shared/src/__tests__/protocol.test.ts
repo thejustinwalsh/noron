@@ -2,10 +2,10 @@ import { describe, expect, test } from "bun:test";
 import type {
 	LockAcquireRequest,
 	LockAcquiredResponse,
-	ThermalWaitRequest,
-	StatusUpdate,
 	Request,
 	Response,
+	StatusUpdate,
+	ThermalWaitRequest,
 } from "../protocol";
 
 describe("Protocol types", () => {

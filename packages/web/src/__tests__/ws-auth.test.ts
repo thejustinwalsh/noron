@@ -1,9 +1,14 @@
-import { describe, test, expect, beforeEach, afterEach } from "bun:test";
 import { Database } from "bun:sqlite";
-import { validateWsConnection, activeConnections, MAX_PER_IP_CONNECTIONS, MAX_TOTAL_CONNECTIONS } from "../routes/ws-status";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { Hono } from "hono";
-import { statusRoutes } from "../routes/status";
 import { getUserByToken } from "../auth-middleware";
+import { statusRoutes } from "../routes/status";
+import {
+	MAX_PER_IP_CONNECTIONS,
+	MAX_TOTAL_CONNECTIONS,
+	activeConnections,
+	validateWsConnection,
+} from "../routes/ws-status";
 
 // --- Helpers ---
 
@@ -260,7 +265,15 @@ describe("Session expiry", () => {
 		);
 		db.run(
 			"INSERT INTO device_codes (code, user_code, created_at, expires_at, user_id, token, session_expires_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
-			[crypto.randomUUID(), "FUTR-1234", Date.now(), Date.now() + 3600_000, userId, token, Date.now() + 86400_000],
+			[
+				crypto.randomUUID(),
+				"FUTR-1234",
+				Date.now(),
+				Date.now() + 3600_000,
+				userId,
+				token,
+				Date.now() + 86400_000,
+			],
 		);
 
 		const user = getUserByToken(db, token);
@@ -277,7 +290,15 @@ describe("Session expiry", () => {
 		);
 		db.run(
 			"INSERT INTO device_codes (code, user_code, created_at, expires_at, user_id, token, session_expires_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
-			[crypto.randomUUID(), "EXPD-1234", Date.now(), Date.now() + 3600_000, userId, token, Date.now() - 1000],
+			[
+				crypto.randomUUID(),
+				"EXPD-1234",
+				Date.now(),
+				Date.now() + 3600_000,
+				userId,
+				token,
+				Date.now() - 1000,
+			],
 		);
 
 		const user = getUserByToken(db, token);

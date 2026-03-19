@@ -1,5 +1,5 @@
-import React from "react";
 import { Box, Text, useInput } from "ink";
+import React from "react";
 import type { SetupConfig } from "../generate";
 import { recommendTmpfsSize } from "../generate";
 
@@ -20,57 +20,66 @@ export function Review({ config, onConfirm, onBack }: ReviewProps) {
 			<Text bold>Review Configuration</Text>
 
 			<Box flexDirection="column" paddingLeft={2}>
-				<Text bold color="blue">CPU Cores</Text>
+				<Text bold color="blue">
+					CPU Cores
+				</Text>
 				<Text>
-					<Text color="gray">  Housekeeping: </Text>
+					<Text color="gray"> Housekeeping: </Text>
 					<Text>Core {config.housekeepingCore}</Text>
 				</Text>
 				<Text>
-					<Text color="gray">  Isolated:     </Text>
+					<Text color="gray"> Isolated: </Text>
 					<Text>
-						{config.isolatedCores.length > 0
-							? `Cores ${config.isolatedCores.join(", ")}`
-							: "None"}
+						{config.isolatedCores.length > 0 ? `Cores ${config.isolatedCores.join(", ")}` : "None"}
 					</Text>
 				</Text>
 			</Box>
 
 			<Box flexDirection="column" paddingLeft={2}>
-				<Text bold color="blue">GitHub OAuth</Text>
+				<Text bold color="blue">
+					GitHub OAuth
+				</Text>
 				<Text>
-					<Text color="gray">  Client ID: </Text>
+					<Text color="gray"> Client ID: </Text>
 					<Text>{config.githubClientId}</Text>
 				</Text>
 				<Text>
-					<Text color="gray">  Secret:    </Text>
-					<Text>{config.githubClientSecret.slice(0, 4)}{"****"}</Text>
+					<Text color="gray"> Secret: </Text>
+					<Text>
+						{config.githubClientSecret.slice(0, 4)}
+						{"****"}
+					</Text>
 				</Text>
 			</Box>
 
 			<Box flexDirection="column" paddingLeft={2}>
-				<Text bold color="blue">Network</Text>
+				<Text bold color="blue">
+					Network
+				</Text>
 				<Text>
-					<Text color="gray">  Hostname:  </Text>
+					<Text color="gray"> Hostname: </Text>
 					<Text>{config.hostname}</Text>
 				</Text>
 				<Text>
-					<Text color="gray">  Web Port:  </Text>
+					<Text color="gray"> Web Port: </Text>
 					<Text>{config.webPort}</Text>
 				</Text>
 				<Text>
-					<Text color="gray">  Tailscale: </Text>
+					<Text color="gray"> Tailscale: </Text>
 					<Text>{config.tailscaleAuthKey ? "Enabled" : "Disabled"}</Text>
 				</Text>
 			</Box>
 
 			<Box flexDirection="column" paddingLeft={2}>
-				<Text bold color="blue">Performance</Text>
+				<Text bold color="blue">
+					Performance
+				</Text>
 				<Text>
-					<Text color="gray">  Memory:    </Text>
+					<Text color="gray"> Memory: </Text>
 					<Text>{config.totalMemoryMB} MB</Text>
 				</Text>
 				<Text>
-					<Text color="gray">  Tmpfs:     </Text>
+					<Text color="gray"> Tmpfs: </Text>
 					<Text>
 						{(() => {
 							const size = recommendTmpfsSize(config.totalMemoryMB);
@@ -80,24 +89,30 @@ export function Review({ config, onConfirm, onBack }: ReviewProps) {
 					</Text>
 				</Text>
 				<Text>
-					<Text color="gray">  Governor:  </Text>
+					<Text color="gray"> Governor: </Text>
 					<Text>performance (all cores)</Text>
 				</Text>
 			</Box>
 
 			<Box flexDirection="column" paddingLeft={2}>
-				<Text bold color="blue">Runner</Text>
+				<Text bold color="blue">
+					Runner
+				</Text>
 				<Text>
-					<Text color="gray">  Label:     </Text>
+					<Text color="gray"> Label: </Text>
 					<Text>{config.runnerLabel}</Text>
 				</Text>
 			</Box>
 
 			<Box flexDirection="column" paddingLeft={2}>
-				<Text bold color="blue">Services</Text>
+				<Text bold color="blue">
+					Services
+				</Text>
 				<Text>
-					<Text color="gray">  Dashboard: </Text>
-					<Text>http://{config.hostname}:{config.webPort}/dashboard/</Text>
+					<Text color="gray"> Dashboard: </Text>
+					<Text>
+						http://{config.hostname}:{config.webPort}/dashboard/
+					</Text>
 				</Text>
 			</Box>
 

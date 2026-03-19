@@ -1,4 +1,4 @@
-import { describe, test, expect, afterEach } from "bun:test";
+import { afterEach, describe, expect, test } from "bun:test";
 import { BenchGate } from "../bench-gate";
 import { BenchScheduler } from "../bench-scheduler";
 

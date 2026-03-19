@@ -1,7 +1,7 @@
 import { Database as SqliteDatabase } from "bun:sqlite";
+import type { Database } from "bun:sqlite";
 import { OpenWorkflow } from "openworkflow";
 import { BackendSqlite } from "openworkflow/sqlite";
-import type { Database } from "bun:sqlite";
 import type { BenchGate } from "../bench-gate";
 import { decryptToken } from "../crypto";
 
@@ -66,9 +66,17 @@ export function updateRunnerStatus(runnerId: string, status: string): void {
 }
 
 /** Update a runner's status and human-readable error message in the app DB. */
-export function updateRunnerStatusWithMessage(runnerId: string, status: string, message: string): void {
+export function updateRunnerStatusWithMessage(
+	runnerId: string,
+	status: string,
+	message: string,
+): void {
 	const db = getWorkflowDb();
-	db.run("UPDATE runners SET status = ?, status_message = ? WHERE id = ?", [status, message, runnerId]);
+	db.run("UPDATE runners SET status = ?, status_message = ? WHERE id = ?", [
+		status,
+		message,
+		runnerId,
+	]);
 }
 
 /** Delete a runner record from the app DB. */
@@ -100,4 +108,3 @@ export function purgeOldWorkflowRuns(): number {
 		wfDb.close();
 	}
 }
-

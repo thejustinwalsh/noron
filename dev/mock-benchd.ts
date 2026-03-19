@@ -1,4 +1,5 @@
 #!/usr/bin/env bun
+import { unlinkSync } from "node:fs";
 /**
  * Mock benchd daemon for testing the CLI TUI.
  *
@@ -11,8 +12,7 @@
  *   bun packages/cli/src/index.ts monitor --socket /tmp/benchd-mock.sock
  *   bun packages/cli/src/index.ts status  --socket /tmp/benchd-mock.sock
  */
-import { createServer, type Socket } from "node:net";
-import { unlinkSync } from "node:fs";
+import { type Socket, createServer } from "node:net";
 
 const SOCKET_PATH = process.env.MOCK_SOCKET ?? "/tmp/benchd-mock.sock";
 const TICK_MS = 1000;
@@ -61,7 +61,9 @@ function tick() {
 		lockHolder = {
 			jobId: `job-${Math.random().toString(36).slice(2, 8)}`,
 			runId: `run-${Math.floor(Math.random() * 9000 + 1000)}`,
-			owner: ["acme/benchmark-suite", "myorg/perf-tests", "demo/load-test"][Math.floor(Math.random() * 3)],
+			owner: ["acme/benchmark-suite", "myorg/perf-tests", "demo/load-test"][
+				Math.floor(Math.random() * 3)
+			],
 			acquiredAt: Date.now(),
 		};
 	}
@@ -122,7 +124,10 @@ function send(socket: Socket, msg: object) {
 	}
 }
 
-function handleMessage(socket: Socket, msg: { type: string; requestId: string; [k: string]: unknown }) {
+function handleMessage(
+	socket: Socket,
+	msg: { type: string; requestId: string; [k: string]: unknown },
+) {
 	switch (msg.type) {
 		case "status.subscribe":
 			subscribers.push({ requestId: msg.requestId, socket });

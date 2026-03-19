@@ -1,6 +1,6 @@
-import { Hono } from "hono";
 import type { Database } from "bun:sqlite";
 import type { BenchdConfig } from "@noron/shared";
+import { Hono } from "hono";
 import { extractToken, getUserByToken } from "../auth-middleware";
 import { checkForUpdate } from "../update-check";
 
@@ -66,9 +66,7 @@ export function updateRoutes(db: Database, config: BenchdConfig) {
 		return c.json({
 			checked: true,
 			currentVersion: NORON_VERSION,
-			latest: latest
-				? { version: latest.version, state: latest.state }
-				: null,
+			latest: latest ? { version: latest.version, state: latest.state } : null,
 		});
 	});
 

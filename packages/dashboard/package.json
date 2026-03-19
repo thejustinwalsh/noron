@@ -3,7 +3,7 @@
 	"version": "0.1.0",
 	"private": true,
 	"type": "module",
-"scripts": {
+	"scripts": {
 		"dev": "vite",
 		"dev:mock": "BENCH_MOCK=true vite",
 		"build": "vite build",

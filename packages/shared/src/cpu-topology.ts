@@ -1,4 +1,4 @@
-import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { cpus } from "node:os";
 
 export interface CpuTopology {
@@ -112,7 +112,8 @@ function detectThermalZones(): ThermalZoneInfo[] {
  */
 export function detectCpuTopology(): CpuTopology {
 	// Try Linux sysfs first, fall back to os.cpus()
-	const onlineCores = readOnlineCoresFromSysfs() ?? Array.from({ length: cpus().length }, (_, i) => i);
+	const onlineCores =
+		readOnlineCoresFromSysfs() ?? Array.from({ length: cpus().length }, (_, i) => i);
 	const totalCores = onlineCores.length;
 	const coreCapacities = readCoreCapacities(onlineCores);
 

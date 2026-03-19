@@ -1,18 +1,18 @@
-import { describe, test, expect } from "bun:test";
+import { describe, expect, test } from "bun:test";
 import {
-	generateGrubAppend,
-	generateBenchmarkSlice,
-	generateBenchdService,
-	generateBenchWebService,
-	generateSysctlConfig,
-	generateIrqPinScript,
-	generateSudoersConfig,
-	generateIrqPinService,
-	generateDisableTurboService,
-	recommendTmpfsSize,
-	generateTmpfsMount,
-	generateCpuGovernorService,
 	type SetupConfig,
+	generateBenchWebService,
+	generateBenchdService,
+	generateBenchmarkSlice,
+	generateCpuGovernorService,
+	generateDisableTurboService,
+	generateGrubAppend,
+	generateIrqPinScript,
+	generateIrqPinService,
+	generateSudoersConfig,
+	generateSysctlConfig,
+	generateTmpfsMount,
+	recommendTmpfsSize,
 } from "../generate";
 
 const baseConfig: SetupConfig = {

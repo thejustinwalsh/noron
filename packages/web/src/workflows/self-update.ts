@@ -1,5 +1,5 @@
-import { ow, getWorkflowDb, withGate } from "./index";
 import { BenchdClient, SOCKET_PATH } from "@noron/shared";
+import { getWorkflowDb, ow, withGate } from "./index";
 
 export interface SelfUpdateInput {
 	updateId: string;
@@ -75,13 +75,7 @@ const selfUpdate = ow.defineWorkflow<SelfUpdateInput, SelfUpdateOutput>(
 					const mkdir = await runCmd(["mkdir", "-p", updateDir]);
 					if (!mkdir.ok) throw new Error(`mkdir failed: ${mkdir.output}`);
 
-					const extract = await runCmd([
-						"tar",
-						"-xzf",
-						`${updateDir}.tar.gz`,
-						"-C",
-						updateDir,
-					]);
+					const extract = await runCmd(["tar", "-xzf", `${updateDir}.tar.gz`, "-C", updateDir]);
 					if (!extract.ok) throw new Error(`tar extract failed: ${extract.output}`);
 
 					// Clean up tarball
@@ -93,9 +87,7 @@ const selfUpdate = ow.defineWorkflow<SelfUpdateInput, SelfUpdateOutput>(
 		for (let i = 0; i < 30; i++) {
 			const idle = await step.run({ name: `check-idle-${i}` }, async () => {
 				try {
-					const client = new BenchdClient(
-						process.env.BENCHD_SOCKET ?? SOCKET_PATH,
-					);
+					const client = new BenchdClient(process.env.BENCHD_SOCKET ?? SOCKET_PATH);
 					await client.connect();
 					const status = await client.request({
 						type: "lock.status",
@@ -125,12 +117,7 @@ const selfUpdate = ow.defineWorkflow<SelfUpdateInput, SelfUpdateOutput>(
 		// Step 5: Apply update — this restarts bench-web, so workflow state
 		// must be persisted before this point. OpenWorkflow handles this via SQLite.
 		await step.run({ name: "apply-update" }, async () => {
-			const result = await runCmd([
-				"sudo",
-				"bench-updater",
-				"apply",
-				updateDir,
-			]);
+			const result = await runCmd(["sudo", "bench-updater", "apply", updateDir]);
 			if (!result.ok) {
 				throw new Error(`Apply failed: ${result.output}`);
 			}
@@ -143,32 +130,27 @@ const selfUpdate = ow.defineWorkflow<SelfUpdateInput, SelfUpdateOutput>(
 
 		let healthy = false;
 		for (let attempt = 0; attempt < 3; attempt++) {
-			healthy = await step.run(
-				{ name: `verify-health-${attempt}` },
-				async () => {
-					try {
-						// Check benchd is reachable
-						const client = new BenchdClient(
-							process.env.BENCHD_SOCKET ?? SOCKET_PATH,
-						);
-						await client.connect();
-						const config = await client.request({
-							type: "config.get",
-							requestId: crypto.randomUUID(),
-						});
-						client.close();
-						if (config.type !== "config.get") return false;
+			healthy = await step.run({ name: `verify-health-${attempt}` }, async () => {
+				try {
+					// Check benchd is reachable
+					const client = new BenchdClient(process.env.BENCHD_SOCKET ?? SOCKET_PATH);
+					await client.connect();
+					const config = await client.request({
+						type: "config.get",
+						requestId: crypto.randomUUID(),
+					});
+					client.close();
+					if (config.type !== "config.get") return false;
 
-						// Check version file matches expected
-						const versionFile = await Bun.file(VERSION_FILE).text();
-						if (versionFile.trim() !== input.version) return false;
+					// Check version file matches expected
+					const versionFile = await Bun.file(VERSION_FILE).text();
+					if (versionFile.trim() !== input.version) return false;
 
-						return true;
-					} catch {
-						return false;
-					}
-				},
-			);
+					return true;
+				} catch {
+					return false;
+				}
+			});
 
 			if (healthy) break;
 			await step.sleep(`health-retry-${attempt}`, "30s");
@@ -219,12 +201,7 @@ const selfUpdate = ow.defineWorkflow<SelfUpdateInput, SelfUpdateOutput>(
 			for (const runner of runners) {
 				// Deprovision then re-provision happens via the existing heal workflow
 				// triggered by health-check when the container is stopped
-				const result = await runCmd([
-					"sudo",
-					"runner-ctl",
-					"deprovision",
-					runner.name,
-				]);
+				const result = await runCmd(["sudo", "runner-ctl", "deprovision", runner.name]);
 				if (!result.ok) {
 					console.error(
 						`[self-update] Failed to deprovision runner ${runner.name}: ${result.output}`,
@@ -249,9 +226,7 @@ const selfUpdate = ow.defineWorkflow<SelfUpdateInput, SelfUpdateOutput>(
 	},
 );
 
-export async function startSelfUpdateWorkflow(
-	input: SelfUpdateInput,
-): Promise<string> {
+export async function startSelfUpdateWorkflow(input: SelfUpdateInput): Promise<string> {
 	const handle = await selfUpdate.run(input, {
 		idempotencyKey: `update:${input.version}`,
 	});

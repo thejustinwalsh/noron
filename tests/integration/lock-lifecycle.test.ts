@@ -1,10 +1,14 @@
-import { describe, test, expect, beforeAll, afterAll } from "bun:test";
+import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { BenchdClient, DEFAULT_CONFIG } from "../../packages/shared/src/index";
-import type { LockAcquiredResponse, LockQueuedResponse, ConfigGetResponse } from "../../packages/shared/src/protocol";
-import type { CpuTopology } from "../../packages/shared/src/cpu-topology";
 import { BenchdServer } from "../../packages/benchd/src/server";
+import type { CpuTopology } from "../../packages/shared/src/cpu-topology";
+import { BenchdClient, DEFAULT_CONFIG } from "../../packages/shared/src/index";
+import type {
+	ConfigGetResponse,
+	LockAcquiredResponse,
+	LockQueuedResponse,
+} from "../../packages/shared/src/protocol";
 
 const testTopology: CpuTopology = {
 	totalCores: 4,

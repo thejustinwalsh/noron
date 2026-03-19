@@ -1,10 +1,10 @@
-import { describe, test, expect, beforeAll, afterAll } from "bun:test";
 import { Database } from "bun:sqlite";
+import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { BenchdClient } from "../../packages/shared/src/ipc-client";
 import type { LockAcquiredResponse } from "../../packages/shared/src/protocol";
-import { TestServices } from "./helpers/services";
 import { uniquePaths } from "./helpers/fixtures";
 import { findAvailablePort } from "./helpers/ports";
+import { TestServices } from "./helpers/services";
 
 /** Seed a test user + session token into the bench-web DB. */
 function seedTestUser(dbPath: string): string {
@@ -96,7 +96,9 @@ describe("Benchmark lifecycle e2e", () => {
 			timeout: 2000,
 		});
 		if (thermal.type === "thermal.ready") {
-			console.log(`  [e2e] Thermal: ready at ${(thermal as { currentTemp: number }).currentTemp}°C`);
+			console.log(
+				`  [e2e] Thermal: ready at ${(thermal as { currentTemp: number }).currentTemp}°C`,
+			);
 		} else if (thermal.type === "thermal.timeout") {
 			console.log(`  [e2e] Thermal: timed out (no sensor or temp too high) — proceeding`);
 		}

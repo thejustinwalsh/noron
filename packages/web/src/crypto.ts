@@ -10,7 +10,7 @@
  *   3. Auto-generated on first use and written to /etc/benchd/encryption.key (mode 0o600)
  */
 
-import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 
 const KEY_FILE_PATH = "/etc/benchd/encryption.key";
 const IV_LENGTH = 12; // 96-bit IV for AES-GCM
@@ -46,7 +46,7 @@ async function getKey(): Promise<CryptoKey> {
 		} catch (err) {
 			console.warn(
 				`Could not write encryption key to ${KEY_FILE_PATH}: ${err}. ` +
-				`Set BENCH_ENCRYPTION_KEY env var or ensure /etc/benchd is writable.`,
+					`Set BENCH_ENCRYPTION_KEY env var or ensure /etc/benchd is writable.`,
 			);
 		}
 	}
@@ -54,7 +54,7 @@ async function getKey(): Promise<CryptoKey> {
 	if (!rawHex || rawHex.length !== 64) {
 		throw new Error(
 			"BENCH_ENCRYPTION_KEY must be a 64-character hex string (32 bytes). " +
-			`Got ${rawHex?.length ?? 0} characters.`,
+				`Got ${rawHex?.length ?? 0} characters.`,
 		);
 	}
 
@@ -76,11 +76,7 @@ export async function encryptToken(plaintext: string): Promise<string> {
 	const iv = crypto.getRandomValues(new Uint8Array(IV_LENGTH));
 	const encoded = new TextEncoder().encode(plaintext);
 
-	const ciphertext = await crypto.subtle.encrypt(
-		{ name: "AES-GCM", iv },
-		key,
-		encoded,
-	);
+	const ciphertext = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, encoded);
 
 	const combined = new Uint8Array(IV_LENGTH + ciphertext.byteLength);
 	combined.set(iv, 0);
@@ -103,11 +99,7 @@ export async function decryptToken(value: string | null): Promise<string | null>
 	const iv = combined.subarray(0, IV_LENGTH);
 	const ciphertext = combined.subarray(IV_LENGTH);
 
-	const plaintext = await crypto.subtle.decrypt(
-		{ name: "AES-GCM", iv },
-		key,
-		ciphertext,
-	);
+	const plaintext = await crypto.subtle.decrypt({ name: "AES-GCM", iv }, key, ciphertext);
 
 	return new TextDecoder().decode(plaintext);
 }

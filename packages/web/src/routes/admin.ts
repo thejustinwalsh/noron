@@ -1,7 +1,7 @@
-import { Hono } from "hono";
 import type { Database } from "bun:sqlite";
-import * as z from "@zod/mini";
 import { BenchdClient, SOCKET_PATH, TOKEN_EXPIRY_HOURS } from "@noron/shared";
+import * as z from "@zod/mini";
+import { Hono } from "hono";
 import { extractToken, getUserByToken } from "../auth-middleware";
 import { decryptToken } from "../crypto";
 
@@ -90,9 +90,12 @@ export function adminRoutes(db: Database): Hono {
 		const now = Date.now();
 		const expiresAt = now + TOKEN_EXPIRY_HOURS * 3600_000;
 
-		db.query(
-			"INSERT INTO invites (id, token, created_at, expires_at) VALUES (?, ?, ?, ?)",
-		).run(id, inviteToken, now, expiresAt);
+		db.query("INSERT INTO invites (id, token, created_at, expires_at) VALUES (?, ?, ?, ?)").run(
+			id,
+			inviteToken,
+			now,
+			expiresAt,
+		);
 
 		return c.json({
 			id,

@@ -82,11 +82,7 @@ function findCpuThermalZone(): string | null {
 			if (existsSync(typePath)) {
 				const type = readFileSync(typePath, "utf-8").trim();
 				// Prefer x86_pkg_temp or coretemp zones for CPU temp
-				if (
-					type.includes("x86_pkg") ||
-					type.includes("coretemp") ||
-					type.includes("cpu")
-				) {
+				if (type.includes("x86_pkg") || type.includes("coretemp") || type.includes("cpu")) {
 					return `${base}/${zone}/temp`;
 				}
 			}

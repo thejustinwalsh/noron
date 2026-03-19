@@ -1,7 +1,7 @@
-import { type Subprocess } from "bun";
-import { unlinkSync, existsSync } from "node:fs";
+import { existsSync, unlinkSync } from "node:fs";
+import type { Subprocess } from "bun";
 import { BenchdServer } from "../../../packages/benchd/src/server";
-import { testTopology, makeTestConfig } from "./fixtures";
+import { makeTestConfig, testTopology } from "./fixtures";
 
 export interface TestServicesOptions {
 	socketPath: string;
@@ -55,7 +55,9 @@ export class TestServices {
 
 		// Best-effort sync cleanup on unexpected exit
 		services.exitHandler = () => {
-			try { webProc.kill("SIGKILL"); } catch {}
+			try {
+				webProc.kill("SIGKILL");
+			} catch {}
 		};
 		process.on("exit", services.exitHandler);
 
@@ -95,7 +97,9 @@ export class TestServices {
 			this.webProc.kill("SIGTERM");
 			// Wait up to 3 seconds for graceful shutdown
 			const timeout = setTimeout(() => {
-				try { this.webProc.kill("SIGKILL"); } catch {}
+				try {
+					this.webProc.kill("SIGKILL");
+				} catch {}
 			}, 3000);
 			await this.webProc.exited;
 			clearTimeout(timeout);
@@ -115,7 +119,9 @@ export class TestServices {
 			`${this.opts.workflowDbPath}-wal`,
 			`${this.opts.workflowDbPath}-shm`,
 		]) {
-			try { if (existsSync(path)) unlinkSync(path); } catch {}
+			try {
+				if (existsSync(path)) unlinkSync(path);
+			} catch {}
 		}
 	}
 }

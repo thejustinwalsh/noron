@@ -1,16 +1,16 @@
-import React, { useState } from "react";
-import { Box, Text } from "ink";
 import { DEFAULT_WEB_PORT } from "@noron/shared";
-import { detectHardware, type HardwareProfile } from "./detect";
+import { Box, Text } from "ink";
+import React, { useState } from "react";
+import { type HardwareProfile, detectHardware } from "./detect";
 import type { SetupConfig } from "./generate";
-import { Welcome } from "./steps/welcome";
 import { Cores } from "./steps/cores";
-import { OAuth } from "./steps/oauth";
-import { Network } from "./steps/network";
-import { Label } from "./steps/label";
-import { Review } from "./steps/review";
-import { Install } from "./steps/install";
 import { Done } from "./steps/done";
+import { Install } from "./steps/install";
+import { Label } from "./steps/label";
+import { Network } from "./steps/network";
+import { OAuth } from "./steps/oauth";
+import { Review } from "./steps/review";
+import { Welcome } from "./steps/welcome";
 
 type Step = "welcome" | "cores" | "oauth" | "network" | "label" | "review" | "install" | "done";
 
@@ -41,9 +41,7 @@ export function Wizard() {
 				<Text color="gray"> — Step: {step}</Text>
 			</Box>
 
-			{step === "welcome" && (
-				<Welcome hardware={hardware} onNext={() => setStep("cores")} />
-			)}
+			{step === "welcome" && <Welcome hardware={hardware} onNext={() => setStep("cores")} />}
 			{step === "cores" && (
 				<Cores
 					hardware={hardware}
@@ -53,11 +51,7 @@ export function Wizard() {
 				/>
 			)}
 			{step === "oauth" && (
-				<OAuth
-					config={config}
-					onUpdate={updateConfig}
-					onNext={() => setStep("network")}
-				/>
+				<OAuth config={config} onUpdate={updateConfig} onNext={() => setStep("network")} />
 			)}
 			{step === "network" && (
 				<Network
@@ -68,11 +62,7 @@ export function Wizard() {
 				/>
 			)}
 			{step === "label" && (
-				<Label
-					config={config}
-					onUpdate={updateConfig}
-					onNext={() => setStep("review")}
-				/>
+				<Label config={config} onUpdate={updateConfig} onNext={() => setStep("review")} />
 			)}
 			{step === "review" && (
 				<Review

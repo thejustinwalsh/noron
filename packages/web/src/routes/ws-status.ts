@@ -1,7 +1,7 @@
-import { Hono } from "hono";
-import { createBunWebSocket } from "hono/bun";
 import type { Database } from "bun:sqlite";
 import { BenchdClient, SOCKET_PATH } from "@noron/shared";
+import { Hono } from "hono";
+import { createBunWebSocket } from "hono/bun";
 import { getUserByToken } from "../auth-middleware";
 
 const MAX_TOTAL_CONNECTIONS = 50;

@@ -1,4 +1,7 @@
 #!/usr/bin/env bun
+import { existsSync, unlinkSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 /**
  * Local development test script.
  *
@@ -11,13 +14,10 @@
  *   bun dev/local-test.ts --bench-only # run a benchmark against already-running services
  */
 import { parseArgs } from "node:util";
-import { existsSync, unlinkSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
-import { BenchdClient } from "../packages/shared/src/ipc-client";
 import { BenchdServer } from "../packages/benchd/src/server";
 import { DEFAULT_CONFIG } from "../packages/shared/src/config";
 import { detectCpuTopology } from "../packages/shared/src/cpu-topology";
+import { BenchdClient } from "../packages/shared/src/ipc-client";
 
 const { values: flags } = parseArgs({
 	args: Bun.argv.slice(2),
@@ -98,16 +98,33 @@ console.log(`  Dashboard: http://localhost:${PORT}/dashboard/\n`);
 // Cleanup handler
 async function cleanup() {
 	console.log("\n  Shutting down...");
-	try { webProc.kill("SIGTERM"); } catch {}
+	try {
+		webProc.kill("SIGTERM");
+	} catch {}
 	await server.shutdown();
-	for (const p of [DB_PATH, `${DB_PATH}-wal`, `${DB_PATH}-shm`, WF_DB_PATH, `${WF_DB_PATH}-wal`, `${WF_DB_PATH}-shm`]) {
-		try { if (existsSync(p)) unlinkSync(p); } catch {}
+	for (const p of [
+		DB_PATH,
+		`${DB_PATH}-wal`,
+		`${DB_PATH}-shm`,
+		WF_DB_PATH,
+		`${WF_DB_PATH}-wal`,
+		`${WF_DB_PATH}-shm`,
+	]) {
+		try {
+			if (existsSync(p)) unlinkSync(p);
+		} catch {}
 	}
 	console.log("  Clean.\n");
 }
 
-process.on("SIGINT", async () => { await cleanup(); process.exit(0); });
-process.on("SIGTERM", async () => { await cleanup(); process.exit(0); });
+process.on("SIGINT", async () => {
+	await cleanup();
+	process.exit(0);
+});
+process.on("SIGTERM", async () => {
+	await cleanup();
+	process.exit(0);
+});
 
 if (flags.serve) {
 	console.log("  Running in serve mode — Ctrl+C to stop.");
@@ -175,7 +192,9 @@ async function runBenchmark() {
 	const output = await new Response(proc.stdout).text();
 	await proc.exited;
 	const result = JSON.parse(output.trim());
-	console.log(`  [3/5] ${result.benchmark}: mean=${result.mean_ns}ns min=${result.min_ns}ns max=${result.max_ns}ns ✓`);
+	console.log(
+		`  [3/5] ${result.benchmark}: mean=${result.mean_ns}ns min=${result.min_ns}ns max=${result.max_ns}ns ✓`,
+	);
 
 	// Step 4: Hold lock briefly so dashboard shows the state
 	console.log("  [4/5] Holding lock for 3s (watch the dashboard)...");

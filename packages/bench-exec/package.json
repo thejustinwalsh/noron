@@ -8,7 +8,7 @@
 		"typecheck": "tsc --noEmit",
 		"test": "bun test"
 	},
-"dependencies": {
+	"dependencies": {
 		"@noron/shared": "workspace:*"
 	}
 }

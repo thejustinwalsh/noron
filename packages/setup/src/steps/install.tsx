@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from "react";
 import { Box, Text } from "ink";
 import Spinner from "ink-spinner";
+import React, { useEffect, useState } from "react";
 import type { SetupConfig } from "../generate";
-import { runInstall, type InstallStep } from "../installer";
+import { type InstallStep, runInstall } from "../installer";
 
 interface InstallProps {
 	config: SetupConfig;
@@ -33,11 +33,7 @@ export function Install({ config, onDone }: InstallProps) {
 		setStarted(true);
 
 		runInstall(config, (stepName, status, error) => {
-			setSteps((prev) =>
-				prev.map((s) =>
-					s.name === stepName ? { ...s, status, error } : s,
-				),
-			);
+			setSteps((prev) => prev.map((s) => (s.name === stepName ? { ...s, status, error } : s)));
 		}).then(({ needsReboot, inviteUrl }) => {
 			onDone(needsReboot, inviteUrl);
 		});
@@ -73,9 +69,7 @@ export function Install({ config, onDone }: InstallProps) {
 						>
 							{step.name}
 						</Text>
-						{step.error && (
-							<Text color="red"> — {step.error.slice(0, 80)}</Text>
-						)}
+						{step.error && <Text color="red"> — {step.error.slice(0, 80)}</Text>}
 					</Box>
 				))}
 			</Box>

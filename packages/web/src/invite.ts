@@ -1,19 +1,18 @@
 import type { Database } from "bun:sqlite";
 import { TOKEN_EXPIRY_HOURS } from "@noron/shared";
 
-export function generateInvite(
-	db: Database,
-	expiryHours = TOKEN_EXPIRY_HOURS,
-): string {
+export function generateInvite(db: Database, expiryHours = TOKEN_EXPIRY_HOURS): string {
 	const id = crypto.randomUUID();
 	const token = crypto.randomUUID();
 	const now = Date.now();
 	const expiresAt = now + expiryHours * 3600_000;
 
-	db.run(
-		"INSERT INTO invites (id, token, created_at, expires_at) VALUES (?, ?, ?, ?)",
-		[id, token, now, expiresAt],
-	);
+	db.run("INSERT INTO invites (id, token, created_at, expires_at) VALUES (?, ?, ?, ?)", [
+		id,
+		token,
+		now,
+		expiresAt,
+	]);
 
 	return token;
 }
@@ -32,11 +31,7 @@ export function validateInvite(
 	return { valid: true, id: row.id };
 }
 
-export function markInviteUsed(
-	db: Database,
-	inviteId: string,
-	userId: string,
-): void {
+export function markInviteUsed(db: Database, inviteId: string, userId: string): void {
 	db.run("UPDATE invites SET used_at = ?, used_by = ? WHERE id = ?", [
 		Date.now(),
 		userId,

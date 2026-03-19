@@ -8,7 +8,7 @@
 		"build": "bun build ./src/main.ts --compile --outfile dist/bench-setup --target ${BUN_TARGET:-bun-linux-x64}",
 		"typecheck": "tsc --noEmit"
 	},
-"dependencies": {
+	"dependencies": {
 		"@noron/shared": "workspace:*",
 		"ink": "^5",
 		"ink-spinner": "^5",

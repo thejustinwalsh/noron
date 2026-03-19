@@ -1,7 +1,7 @@
-import { describe, test, expect, beforeEach, afterEach } from "bun:test";
 import { Database } from "bun:sqlite";
-import { recordViolation } from "../routes/violations";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { VIOLATION_STRIKE_LIMIT } from "@noron/shared";
+import { recordViolation } from "../routes/violations";
 
 function createTestDb(): Database {
 	const db = new Database(":memory:");
@@ -72,10 +72,11 @@ describe("recordViolation", () => {
 	test("after VIOLATION_STRIKE_LIMIT violations, returns disabled=true and updates runner status", () => {
 		// Insert a runner for the repo
 		const runnerId = crypto.randomUUID();
-		db.run(
-			"INSERT INTO runners (id, repo, status) VALUES (?, ?, ?)",
-			[runnerId, "org/repo", "online"],
-		);
+		db.run("INSERT INTO runners (id, repo, status) VALUES (?, ?, ?)", [
+			runnerId,
+			"org/repo",
+			"online",
+		]);
 
 		// Record violations up to the limit
 		for (let i = 1; i < VIOLATION_STRIKE_LIMIT; i++) {
@@ -96,7 +97,9 @@ describe("recordViolation", () => {
 		expect(result.disabled).toBe(true);
 
 		// Verify the runner was actually disabled in the DB
-		const runner = db.query("SELECT status, disabled_reason FROM runners WHERE id = ?").get(runnerId) as {
+		const runner = db
+			.query("SELECT status, disabled_reason FROM runners WHERE id = ?")
+			.get(runnerId) as {
 			status: string;
 			disabled_reason: string;
 		};
@@ -115,14 +118,17 @@ describe("recordViolation", () => {
 
 	test("links violation to runner when runner exists", () => {
 		const runnerId = crypto.randomUUID();
-		db.run(
-			"INSERT INTO runners (id, repo, status) VALUES (?, ?, ?)",
-			[runnerId, "org/repo", "online"],
-		);
+		db.run("INSERT INTO runners (id, repo, status) VALUES (?, ?, ?)", [
+			runnerId,
+			"org/repo",
+			"online",
+		]);
 
 		recordViolation(db, "org/repo", "job-1", "run-1", "test reason");
 
-		const violation = db.query("SELECT runner_id FROM violations WHERE repo = ?").get("org/repo") as {
+		const violation = db
+			.query("SELECT runner_id FROM violations WHERE repo = ?")
+			.get("org/repo") as {
 			runner_id: string | null;
 		};
 		expect(violation.runner_id).toBe(runnerId);

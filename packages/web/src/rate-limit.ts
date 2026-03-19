@@ -1,4 +1,4 @@
-import type { Context, Next, MiddlewareHandler } from "hono";
+import type { Context, MiddlewareHandler, Next } from "hono";
 
 interface RateLimiterOptions {
 	/** Time window in milliseconds */

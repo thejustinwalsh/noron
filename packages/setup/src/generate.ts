@@ -1,4 +1,4 @@
-import { serializeToml, type BenchdConfig, DEFAULT_CONFIG } from "@noron/shared";
+import { type BenchdConfig, DEFAULT_CONFIG, serializeToml } from "@noron/shared";
 
 export interface SetupConfig {
 	isolatedCores: number[];

@@ -1,6 +1,6 @@
-import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { execSync } from "node:child_process";
-import { detectCpuTopology, type CpuTopology, type ThermalZoneInfo } from "@noron/shared";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { type CpuTopology, type ThermalZoneInfo, detectCpuTopology } from "@noron/shared";
 
 export interface HardwareProfile {
 	cpu: CpuTopology;
@@ -68,7 +68,11 @@ function detectPlatform(): "sbc" | "desktop" | "server" | "vm" | "unknown" {
 	// Check DMI for server indicators
 	try {
 		const product = readFileSync("/sys/class/dmi/id/product_name", "utf-8").trim().toLowerCase();
-		if (product.includes("server") || product.includes("poweredge") || product.includes("proliant")) {
+		if (
+			product.includes("server") ||
+			product.includes("poweredge") ||
+			product.includes("proliant")
+		) {
 			return "server";
 		}
 	} catch {

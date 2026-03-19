@@ -5,7 +5,7 @@
  * This catches regressions where a new asset is added to the ISO scripts
  * but not to a package's build output.
  */
-import { describe, test, expect } from "bun:test";
+import { describe, expect, test } from "bun:test";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 

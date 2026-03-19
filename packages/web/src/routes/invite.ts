@@ -1,8 +1,8 @@
+import type { Database } from "bun:sqlite";
 import { Hono } from "hono";
 import { html } from "hono/html";
-import type { Database } from "bun:sqlite";
-import { validateInvite } from "../invite";
 import { getAuthorizationUrl } from "../github-oauth";
+import { validateInvite } from "../invite";
 
 export function inviteRoutes(db: Database): Hono {
 	const app = new Hono();

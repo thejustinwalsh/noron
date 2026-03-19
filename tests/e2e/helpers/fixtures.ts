@@ -1,6 +1,6 @@
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { DEFAULT_CONFIG, type BenchdConfig } from "../../../packages/shared/src/config";
+import { type BenchdConfig, DEFAULT_CONFIG } from "../../../packages/shared/src/config";
 import type { CpuTopology } from "../../../packages/shared/src/cpu-topology";
 
 export const testTopology: CpuTopology = {

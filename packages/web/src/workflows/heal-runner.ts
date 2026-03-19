@@ -1,5 +1,11 @@
-import { loadConfig, DEFAULT_CONFIG } from "@noron/shared";
-import { ow, getGithubToken, updateRunnerStatusWithMessage, getWorkflowDb, withGate } from "./index";
+import { DEFAULT_CONFIG, loadConfig } from "@noron/shared";
+import {
+	getGithubToken,
+	getWorkflowDb,
+	ow,
+	updateRunnerStatusWithMessage,
+	withGate,
+} from "./index";
 
 export interface HealInput {
 	runnerId: string;
@@ -34,7 +40,9 @@ const healRunner = ow.defineWorkflow<HealInput, HealOutput>(
 			// Step 1: Mark as healing in DB
 			await step.run({ name: "mark-healing" }, async () => {
 				const db = getWorkflowDb();
-				db.run("UPDATE runners SET status = 'healing', status_message = NULL WHERE id = ?", [input.runnerId]);
+				db.run("UPDATE runners SET status = 'healing', status_message = NULL WHERE id = ?", [
+					input.runnerId,
+				]);
 			});
 
 			// Step 2: Generate a one-time callback token for secure container → web callback
@@ -76,7 +84,17 @@ const healRunner = ow.defineWorkflow<HealInput, HealOutput>(
 						const callbackUrl = `http://localhost:${port}/api/runners/${input.runnerId}/callback`;
 						const label = (loadConfig() ?? DEFAULT_CONFIG).runnerLabel;
 						const proc = Bun.spawn(
-							["sudo", "runner-ctl", "provision", input.name.trim(), input.repo.trim(), data.token, callbackUrl, callbackToken, label],
+							[
+								"sudo",
+								"runner-ctl",
+								"provision",
+								input.name.trim(),
+								input.repo.trim(),
+								data.token,
+								callbackUrl,
+								callbackToken,
+								label,
+							],
 							{ stdout: "pipe", stderr: "pipe" },
 						);
 						const exitCode = await proc.exited;
@@ -105,7 +123,11 @@ const healRunner = ow.defineWorkflow<HealInput, HealOutput>(
 				if (status === "failed") throw new Error("Runner reported failure during registration");
 			}
 
-			updateRunnerStatusWithMessage(input.runnerId, "failed", "Runner did not re-register within 3 minutes after heal");
+			updateRunnerStatusWithMessage(
+				input.runnerId,
+				"failed",
+				"Runner did not re-register within 3 minutes after heal",
+			);
 			throw new Error("Runner did not re-register within 3 minutes after heal");
 		} catch (err) {
 			const message = err instanceof Error ? err.message : String(err);

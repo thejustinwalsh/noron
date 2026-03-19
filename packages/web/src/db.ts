@@ -177,12 +177,17 @@ export function initDb(path: string): Database {
 		const token = crypto.randomUUID();
 		const now = Date.now();
 		const expiresAt = now + 7 * 24 * 3600_000; // 7 days for bootstrap
-		db.run(
-			"INSERT INTO invites (id, token, created_at, expires_at) VALUES (?, ?, ?, ?)",
-			[crypto.randomUUID(), token, now, expiresAt],
+		db.run("INSERT INTO invites (id, token, created_at, expires_at) VALUES (?, ?, ?, ?)", [
+			crypto.randomUUID(),
+			token,
+			now,
+			expiresAt,
+		]);
+		const baseUrl =
+			process.env.PUBLIC_URL ?? `http://localhost:${process.env.PORT ?? DEFAULT_WEB_PORT}`;
+		console.log(
+			`\n  Bootstrap invite: ${baseUrl}/invite/${token}\n  Use this to register the first admin account.\n`,
 		);
-		const baseUrl = process.env.PUBLIC_URL ?? `http://localhost:${process.env.PORT ?? DEFAULT_WEB_PORT}`;
-		console.log(`\n  Bootstrap invite: ${baseUrl}/invite/${token}\n  Use this to register the first admin account.\n`);
 	}
 
 	return db;

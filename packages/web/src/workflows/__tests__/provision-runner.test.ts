@@ -1,10 +1,17 @@
-import { describe, test, expect, beforeEach, afterEach, spyOn } from "bun:test";
 import { Database } from "bun:sqlite";
+import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
 import { OpenWorkflow } from "openworkflow";
 import { BackendSqlite } from "openworkflow/sqlite";
-import { setWorkflowDb, getGithubToken, updateRunnerStatus, deleteRunner, setGate, withGate } from "../index";
 import { BenchGate } from "../../bench-gate";
 import { encryptToken } from "../../crypto";
+import {
+	deleteRunner,
+	getGithubToken,
+	setGate,
+	setWorkflowDb,
+	updateRunnerStatus,
+	withGate,
+} from "../index";
 
 // --- Test DB ---
 
@@ -147,11 +154,13 @@ describe("Provision Runner Workflow", () => {
 		await seedUser("user-1", "ghp_test_token");
 		seedRunner("runner-1", "test-runner", "owner/repo", "user-1");
 
-		const fetchSpy = spyOn(global, "fetch")
-			.mockResolvedValueOnce(Response.json({ token: "AABCDEF123" }));
+		const fetchSpy = spyOn(global, "fetch").mockResolvedValueOnce(
+			Response.json({ token: "AABCDEF123" }),
+		);
 
-		const spawnSpy = spyOn(Bun, "spawn")
-			.mockReturnValueOnce(fakeProc() as ReturnType<typeof Bun.spawn>);
+		const spawnSpy = spyOn(Bun, "spawn").mockReturnValueOnce(
+			fakeProc() as ReturnType<typeof Bun.spawn>,
+		);
 
 		const workflow = ow.defineWorkflow<
 			{ runnerId: string; name: string; repo: string; userId: string },
@@ -171,7 +180,15 @@ describe("Provision Runner Workflow", () => {
 					if (!res.ok) throw new Error(`GitHub API ${res.status}`);
 					const data = (await res.json()) as { token: string };
 					const proc = Bun.spawn(
-						["sudo", "runner-ctl", "provision", input.name, input.repo, data.token, "http://localhost:3000/api/runners/" + input.runnerId + "/callback"],
+						[
+							"sudo",
+							"runner-ctl",
+							"provision",
+							input.name,
+							input.repo,
+							data.token,
+							"http://localhost:3000/api/runners/" + input.runnerId + "/callback",
+						],
 						{ stdout: "pipe", stderr: "pipe" },
 					);
 					if ((await proc.exited) !== 0) throw new Error("provision failed");
@@ -183,23 +200,37 @@ describe("Provision Runner Workflow", () => {
 				// In production this is step.sleep("registration-window", "3m") — here we
 				// skip it and go straight to verify since the callback already fired above.
 				const finalStatus = await step.run({ name: "verify-registration" }, async () => {
-					const row = db.query("SELECT status FROM runners WHERE id = ?").get(input.runnerId) as { status: string } | null;
+					const row = db.query("SELECT status FROM runners WHERE id = ?").get(input.runnerId) as {
+						status: string;
+					} | null;
 					if (!row) throw new Error("Runner deleted");
 					if (row.status === "online") return "online" as const;
 					throw new Error("Not online");
 				});
 				return { status: finalStatus };
 			} catch (err) {
-				try { updateRunnerStatus(input.runnerId, "failed"); } catch { /* */ }
-				return { status: "failed" as const, error: err instanceof Error ? err.message : String(err) };
+				try {
+					updateRunnerStatus(input.runnerId, "failed");
+				} catch {
+					/* */
+				}
+				return {
+					status: "failed" as const,
+					error: err instanceof Error ? err.message : String(err),
+				};
 			}
 		});
 
 		const worker = ow.newWorker({ concurrency: 1 });
 		await worker.start();
-		const result = await (await workflow.run({
-			runnerId: "runner-1", name: "test-runner", repo: "owner/repo", userId: "user-1",
-		})).result({ timeoutMs: 10000 });
+		const result = await (
+			await workflow.run({
+				runnerId: "runner-1",
+				name: "test-runner",
+				repo: "owner/repo",
+				userId: "user-1",
+			})
+		).result({ timeoutMs: 10000 });
 		await worker.stop();
 
 		expect(result.status).toBe("online");
@@ -215,8 +246,9 @@ describe("Provision Runner Workflow", () => {
 		await seedUser("user-1", "ghp_bad");
 		seedRunner("runner-1", "test-runner", "owner/repo", "user-1");
 
-		const fetchSpy = spyOn(global, "fetch")
-			.mockResolvedValueOnce(new Response('{"message":"Bad credentials"}', { status: 401 }));
+		const fetchSpy = spyOn(global, "fetch").mockResolvedValueOnce(
+			new Response('{"message":"Bad credentials"}', { status: 401 }),
+		);
 
 		const workflow = ow.defineWorkflow<
 			{ runnerId: string; name: string; repo: string; userId: string },
@@ -240,16 +272,28 @@ describe("Provision Runner Workflow", () => {
 				});
 				return { status: "online" as const };
 			} catch (err) {
-				try { updateRunnerStatus(input.runnerId, "failed"); } catch { /* */ }
-				return { status: "failed" as const, error: err instanceof Error ? err.message : String(err) };
+				try {
+					updateRunnerStatus(input.runnerId, "failed");
+				} catch {
+					/* */
+				}
+				return {
+					status: "failed" as const,
+					error: err instanceof Error ? err.message : String(err),
+				};
 			}
 		});
 
 		const worker = ow.newWorker({ concurrency: 1 });
 		await worker.start();
-		const result = await (await workflow.run({
-			runnerId: "runner-1", name: "test-runner", repo: "owner/repo", userId: "user-1",
-		})).result({ timeoutMs: 10000 });
+		const result = await (
+			await workflow.run({
+				runnerId: "runner-1",
+				name: "test-runner",
+				repo: "owner/repo",
+				userId: "user-1",
+			})
+		).result({ timeoutMs: 10000 });
 		await worker.stop();
 
 		expect(result.status).toBe("failed");
@@ -277,16 +321,28 @@ describe("Provision Runner Workflow", () => {
 				});
 				return { status: "online" as const };
 			} catch (err) {
-				try { updateRunnerStatus(input.runnerId, "failed"); } catch { /* */ }
-				return { status: "failed" as const, error: err instanceof Error ? err.message : String(err) };
+				try {
+					updateRunnerStatus(input.runnerId, "failed");
+				} catch {
+					/* */
+				}
+				return {
+					status: "failed" as const,
+					error: err instanceof Error ? err.message : String(err),
+				};
 			}
 		});
 
 		const worker = ow.newWorker({ concurrency: 1 });
 		await worker.start();
-		const result = await (await workflow.run({
-			runnerId: "runner-1", name: "test-runner", repo: "owner/repo", userId: "user-1",
-		})).result({ timeoutMs: 10000 });
+		const result = await (
+			await workflow.run({
+				runnerId: "runner-1",
+				name: "test-runner",
+				repo: "owner/repo",
+				userId: "user-1",
+			})
+		).result({ timeoutMs: 10000 });
 		await worker.stop();
 
 		expect(result.status).toBe("failed");
@@ -298,11 +354,13 @@ describe("Provision Runner Workflow", () => {
 		await seedUser("user-1", "ghp_test_token");
 		seedRunner("runner-1", "test-runner", "owner/repo", "user-1");
 
-		const fetchSpy = spyOn(global, "fetch")
-			.mockResolvedValueOnce(Response.json({ token: "AABCDEF123" }));
+		const fetchSpy = spyOn(global, "fetch").mockResolvedValueOnce(
+			Response.json({ token: "AABCDEF123" }),
+		);
 
-		const spawnSpy = spyOn(Bun, "spawn")
-			.mockReturnValueOnce(fakeProc(1, "podman: image not found") as ReturnType<typeof Bun.spawn>);
+		const spawnSpy = spyOn(Bun, "spawn").mockReturnValueOnce(
+			fakeProc(1, "podman: image not found") as ReturnType<typeof Bun.spawn>,
+		);
 
 		const workflow = ow.defineWorkflow<
 			{ runnerId: string; name: string; repo: string; userId: string },
@@ -333,16 +391,28 @@ describe("Provision Runner Workflow", () => {
 				});
 				return { status: "online" as const };
 			} catch (err) {
-				try { updateRunnerStatus(input.runnerId, "failed"); } catch { /* */ }
-				return { status: "failed" as const, error: err instanceof Error ? err.message : String(err) };
+				try {
+					updateRunnerStatus(input.runnerId, "failed");
+				} catch {
+					/* */
+				}
+				return {
+					status: "failed" as const,
+					error: err instanceof Error ? err.message : String(err),
+				};
 			}
 		});
 
 		const worker = ow.newWorker({ concurrency: 1 });
 		await worker.start();
-		const result = await (await workflow.run({
-			runnerId: "runner-1", name: "test-runner", repo: "owner/repo", userId: "user-1",
-		})).result({ timeoutMs: 10000 });
+		const result = await (
+			await workflow.run({
+				runnerId: "runner-1",
+				name: "test-runner",
+				repo: "owner/repo",
+				userId: "user-1",
+			})
+		).result({ timeoutMs: 10000 });
 		await worker.stop();
 
 		expect(result.status).toBe("failed");
@@ -360,11 +430,11 @@ describe("Deprovision Runner Workflow", () => {
 		seedRunner("runner-1", "test-runner", "owner/repo", "user-1");
 		updateRunnerStatus("runner-1", "online");
 
-		const fetchSpy = spyOn(global, "fetch")
-			.mockResolvedValueOnce(Response.json({ runners: [] }));
+		const fetchSpy = spyOn(global, "fetch").mockResolvedValueOnce(Response.json({ runners: [] }));
 
-		const spawnSpy = spyOn(Bun, "spawn")
-			.mockReturnValueOnce(fakeProc() as ReturnType<typeof Bun.spawn>);
+		const spawnSpy = spyOn(Bun, "spawn").mockReturnValueOnce(
+			fakeProc() as ReturnType<typeof Bun.spawn>,
+		);
 
 		const workflow = ow.defineWorkflow<
 			{ runnerId: string; name: string; repo: string; userId: string },
@@ -375,16 +445,18 @@ describe("Deprovision Runner Workflow", () => {
 					updateRunnerStatus(input.runnerId, "removing");
 				});
 				await step.run({ name: "stop-container" }, async () => {
-					const proc = Bun.spawn(["sudo", "runner-ctl", "deprovision", input.name], { stdout: "pipe", stderr: "pipe" });
+					const proc = Bun.spawn(["sudo", "runner-ctl", "deprovision", input.name], {
+						stdout: "pipe",
+						stderr: "pipe",
+					});
 					if ((await proc.exited) !== 0) throw new Error("deprovision failed");
 				});
 				await step.run({ name: "remove-from-github" }, async () => {
 					const ghToken = await getGithubToken(input.userId);
 					if (!ghToken) return;
-					const res = await fetch(
-						`https://api.github.com/repos/${input.repo}/actions/runners`,
-						{ headers: { Authorization: `Bearer ${ghToken}` } },
-					);
+					const res = await fetch(`https://api.github.com/repos/${input.repo}/actions/runners`, {
+						headers: { Authorization: `Bearer ${ghToken}` },
+					});
 					if (!res.ok) return;
 					const data = (await res.json()) as { runners: Array<{ id: number; name: string }> };
 					const runner = data.runners?.find((r) => r.name === input.name);
@@ -395,16 +467,28 @@ describe("Deprovision Runner Workflow", () => {
 				});
 				return { status: "removed" as const };
 			} catch (err) {
-				try { updateRunnerStatus(input.runnerId, "failed"); } catch { /* */ }
-				return { status: "failed" as const, error: err instanceof Error ? err.message : String(err) };
+				try {
+					updateRunnerStatus(input.runnerId, "failed");
+				} catch {
+					/* */
+				}
+				return {
+					status: "failed" as const,
+					error: err instanceof Error ? err.message : String(err),
+				};
 			}
 		});
 
 		const worker = ow.newWorker({ concurrency: 1 });
 		await worker.start();
-		const result = await (await workflow.run({
-			runnerId: "runner-1", name: "test-runner", repo: "owner/repo", userId: "user-1",
-		})).result({ timeoutMs: 10000 });
+		const result = await (
+			await workflow.run({
+				runnerId: "runner-1",
+				name: "test-runner",
+				repo: "owner/repo",
+				userId: "user-1",
+			})
+		).result({ timeoutMs: 10000 });
 		await worker.stop();
 
 		expect(result.status).toBe("removed");

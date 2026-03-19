@@ -11,7 +11,7 @@
 		"typecheck": "tsc --noEmit",
 		"test": "bun test"
 	},
-"dependencies": {
+	"dependencies": {
 		"@noron/shared": "workspace:*",
 		"ink": "^5",
 		"react": "^18",

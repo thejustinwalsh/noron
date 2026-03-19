@@ -1,5 +1,5 @@
-import React from "react";
 import { Box, Text, useInput } from "ink";
+import React from "react";
 import type { HardwareProfile } from "../detect";
 
 interface WelcomeProps {
@@ -37,10 +37,8 @@ export function Welcome({ hardware, onNext }: WelcomeProps) {
 								const caps = hardware.cpu.coreCapacities;
 								const maxCap = Math.max(...caps.values());
 								const minCap = Math.min(...caps.values());
-								const perfCores = hardware.cpu.onlineCores
-									.filter((c) => caps.get(c) === maxCap);
-								const effCores = hardware.cpu.onlineCores
-									.filter((c) => caps.get(c) === minCap);
+								const perfCores = hardware.cpu.onlineCores.filter((c) => caps.get(c) === maxCap);
+								const effCores = hardware.cpu.onlineCores.filter((c) => caps.get(c) === minCap);
 								return `Performance cores: ${perfCores.join(", ")}, Efficiency cores: ${effCores.join(", ")}`;
 							})()}
 						</Text>

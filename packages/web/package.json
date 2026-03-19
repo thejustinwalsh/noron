@@ -9,7 +9,7 @@
 		"typecheck": "tsc --noEmit",
 		"test": "bun test"
 	},
-"dependencies": {
+	"dependencies": {
 		"@noron/shared": "workspace:*",
 		"@zod/mini": "^4.0.0-beta.0",
 		"hono": "^4",

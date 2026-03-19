@@ -1,6 +1,6 @@
-import React, { useState } from "react";
 import { Box, Text } from "ink";
 import TextInput from "ink-text-input";
+import React, { useState } from "react";
 import type { SetupConfig } from "../generate";
 
 interface LabelProps {

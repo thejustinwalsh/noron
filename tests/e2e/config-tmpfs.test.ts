@@ -1,8 +1,8 @@
-import { describe, test, expect, beforeAll, afterAll } from "bun:test";
+import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { BenchdClient } from "../../packages/shared/src/ipc-client";
-import { TestServices } from "./helpers/services";
 import { uniquePaths } from "./helpers/fixtures";
 import { findAvailablePort } from "./helpers/ports";
+import { TestServices } from "./helpers/services";
 
 describe("config.get includes benchTmpfs", () => {
 	let services: TestServices;

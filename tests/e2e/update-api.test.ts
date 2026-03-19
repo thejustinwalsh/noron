@@ -1,8 +1,8 @@
-import { describe, test, expect, beforeAll, afterAll } from "bun:test";
 import { Database } from "bun:sqlite";
-import { TestServices } from "./helpers/services";
+import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { uniquePaths } from "./helpers/fixtures";
 import { findAvailablePort } from "./helpers/ports";
+import { TestServices } from "./helpers/services";
 
 function seedTestUser(dbPath: string): string {
 	const db = new Database(dbPath);

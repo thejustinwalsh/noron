@@ -193,10 +193,7 @@ export function loadConfig(path: string = CONFIG_PATH): BenchdConfig | null {
  * Write a BenchdConfig to a TOML file.
  * Creates parent directories if they don't exist.
  */
-export function writeDefaultConfig(
-	path: string,
-	config: BenchdConfig,
-): void {
+export function writeDefaultConfig(path: string, config: BenchdConfig): void {
 	const dir = dirname(path);
 	if (!existsSync(dir)) {
 		mkdirSync(dir, { recursive: true });

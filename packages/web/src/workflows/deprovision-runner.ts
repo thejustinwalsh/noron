@@ -1,4 +1,11 @@
-import { ow, getGithubToken, updateRunnerStatus, updateRunnerStatusWithMessage, deleteRunner, withGate } from "./index";
+import {
+	deleteRunner,
+	getGithubToken,
+	ow,
+	updateRunnerStatus,
+	updateRunnerStatusWithMessage,
+	withGate,
+} from "./index";
 
 export interface DeprovisionInput {
 	runnerId: string;
@@ -38,10 +45,10 @@ const deprovisionRunner = ow.defineWorkflow<DeprovisionInput, DeprovisionOutput>
 				},
 				() =>
 					withGate(async () => {
-						const proc = Bun.spawn(
-							["sudo", "runner-ctl", "deprovision", input.name],
-							{ stdout: "pipe", stderr: "pipe" },
-						);
+						const proc = Bun.spawn(["sudo", "runner-ctl", "deprovision", input.name], {
+							stdout: "pipe",
+							stderr: "pipe",
+						});
 						const exitCode = await proc.exited;
 						if (exitCode !== 0) {
 							const stderr = await new Response(proc.stderr).text();
@@ -78,17 +85,14 @@ const deprovisionRunner = ow.defineWorkflow<DeprovisionInput, DeprovisionOutput>
 					if (!runner) return; // already removed — idempotent
 
 					// Delete the runner from GitHub
-					await fetch(
-						`https://api.github.com/repos/${input.repo}/actions/runners/${runner.id}`,
-						{
-							method: "DELETE",
-							headers: {
-								Authorization: `Bearer ${ghToken}`,
-								Accept: "application/vnd.github+json",
-							},
-							signal,
+					await fetch(`https://api.github.com/repos/${input.repo}/actions/runners/${runner.id}`, {
+						method: "DELETE",
+						headers: {
+							Authorization: `Bearer ${ghToken}`,
+							Accept: "application/vnd.github+json",
 						},
-					);
+						signal,
+					});
 				}),
 			);
 

@@ -1,24 +1,17 @@
-import { Hono } from "hono";
 import type { Database } from "bun:sqlite";
-import * as z from "@zod/mini";
 import { BenchdClient, SOCKET_PATH } from "@noron/shared";
+import * as z from "@zod/mini";
+import { Hono } from "hono";
 import { extractToken, getUserByToken } from "../auth-middleware";
-import { startProvisionWorkflow } from "../workflows/provision-runner";
-import { startDeprovisionWorkflow } from "../workflows/deprovision-runner";
 import { encryptToken } from "../crypto";
+import { startDeprovisionWorkflow } from "../workflows/deprovision-runner";
+import { startProvisionWorkflow } from "../workflows/provision-runner";
 
 /** Runner name: alphanumeric, dots, underscores, hyphens. Matches runner-ctl validate_name. */
-const RunnerName = z.string().check(
-	z.regex(/^[a-zA-Z0-9._-]+$/),
-	z.minLength(1),
-	z.maxLength(64),
-);
+const RunnerName = z.string().check(z.regex(/^[a-zA-Z0-9._-]+$/), z.minLength(1), z.maxLength(64));
 
 /** GitHub repo: owner/name format */
-const RepoSlug = z.string().check(
-	z.regex(/^[a-zA-Z0-9._-]+\/[a-zA-Z0-9._-]+$/),
-	z.maxLength(200),
-);
+const RepoSlug = z.string().check(z.regex(/^[a-zA-Z0-9._-]+\/[a-zA-Z0-9._-]+$/), z.maxLength(200));
 
 const CreateRunnerBody = z.object({
 	name: RunnerName,
@@ -52,13 +45,14 @@ export function statusRoutes(db: Database): Hono {
 
 			client.close();
 
-			const lock = lockStatus.type === "lock.status"
-				? {
-						held: lockStatus.held,
-						holder: lockStatus.holder,
-						queueDepth: lockStatus.queueDepth,
-					}
-				: null;
+			const lock =
+				lockStatus.type === "lock.status"
+					? {
+							held: lockStatus.held,
+							holder: lockStatus.holder,
+							queueDepth: lockStatus.queueDepth,
+						}
+					: null;
 
 			return c.json({
 				lock,
@@ -85,20 +79,25 @@ export function statusRoutes(db: Database): Hono {
 		if (!user) return c.json({ error: "Unauthorized" }, 401);
 
 		// Admins see all runners, regular users see only their own
-		const runners = user.role === "admin"
-			? db.query(
-				"SELECT id, name, repo, owner_id, registered_at, last_heartbeat, status, status_message, job_timeout_ms, disabled_at, disabled_reason FROM runners ORDER BY registered_at DESC",
-			).all()
-			: db.query(
-				"SELECT id, name, repo, owner_id, registered_at, last_heartbeat, status, status_message, job_timeout_ms, disabled_at, disabled_reason FROM runners WHERE owner_id = ? ORDER BY registered_at DESC",
-			).all(user.id);
+		const runners =
+			user.role === "admin"
+				? db
+						.query(
+							"SELECT id, name, repo, owner_id, registered_at, last_heartbeat, status, status_message, job_timeout_ms, disabled_at, disabled_reason FROM runners ORDER BY registered_at DESC",
+						)
+						.all()
+				: db
+						.query(
+							"SELECT id, name, repo, owner_id, registered_at, last_heartbeat, status, status_message, job_timeout_ms, disabled_at, disabled_reason FROM runners WHERE owner_id = ? ORDER BY registered_at DESC",
+						)
+						.all(user.id);
 
 		// Attach violation counts per runner
 		const windowStart = Date.now() - 30 * 24 * 3600_000;
 		const runnersWithViolations = (runners as Record<string, unknown>[]).map((r) => {
-			const count = db.query(
-				"SELECT COUNT(*) as count FROM violations WHERE repo = ? AND created_at > ?",
-			).get(r.repo as string, windowStart) as { count: number } | null;
+			const count = db
+				.query("SELECT COUNT(*) as count FROM violations WHERE repo = ? AND created_at > ?")
+				.get(r.repo as string, windowStart) as { count: number } | null;
 			return {
 				...r,
 				violationCount: count?.count ?? 0,
@@ -124,13 +123,16 @@ export function statusRoutes(db: Database): Hono {
 		const body = parsed.data;
 
 		if (!user.githubPat && !user.githubToken) {
-			return c.json({ error: "GitHub token not found — re-authenticate with GitHub or add a PAT" }, 400);
+			return c.json(
+				{ error: "GitHub token not found — re-authenticate with GitHub or add a PAT" },
+				400,
+			);
 		}
 
 		// Check for duplicate repo registration
-		const existing = db
-			.query("SELECT id FROM runners WHERE repo = ?")
-			.get(body.repo) as { id: string } | null;
+		const existing = db.query("SELECT id FROM runners WHERE repo = ?").get(body.repo) as {
+			id: string;
+		} | null;
 		if (existing) {
 			return c.json({ error: "This repo is already registered" }, 409);
 		}
@@ -159,13 +161,16 @@ export function statusRoutes(db: Database): Hono {
 		// Store workflow run ID for status tracking
 		db.run("UPDATE runners SET workflow_run_id = ? WHERE id = ?", [workflowRunId, id]);
 
-		return c.json({
-			id,
-			name: body.name,
-			repo: body.repo,
-			status: "pending",
-			lastHeartbeat: null,
-		}, 201);
+		return c.json(
+			{
+				id,
+				name: body.name,
+				repo: body.repo,
+				status: "pending",
+				lastHeartbeat: null,
+			},
+			201,
+		);
 	});
 
 	// Authenticated: remove a runner (triggers deprovisioning workflow)
@@ -245,15 +250,17 @@ export function statusRoutes(db: Database): Hono {
 
 		const runnerId = c.req.param("id");
 		const runner = db
-			.query("SELECT id, name, repo, status, status_message, workflow_run_id FROM runners WHERE id = ?")
+			.query(
+				"SELECT id, name, repo, status, status_message, workflow_run_id FROM runners WHERE id = ?",
+			)
 			.get(runnerId) as {
-				id: string;
-				name: string;
-				repo: string;
-				status: string;
-				status_message: string | null;
-				workflow_run_id: string | null;
-			} | null;
+			id: string;
+			name: string;
+			repo: string;
+			status: string;
+			status_message: string | null;
+			workflow_run_id: string | null;
+		} | null;
 
 		if (!runner) return c.json({ error: "Runner not found" }, 404);
 
@@ -280,8 +287,7 @@ export function statusRoutes(db: Database): Hono {
 			.query("SELECT COUNT(*) as count FROM runners WHERE owner_id = ?")
 			.get(user.id) as { count: number };
 
-		const hasRepoScope =
-			!!user.githubPat || (user.githubScope ?? "").includes("repo");
+		const hasRepoScope = !!user.githubPat || (user.githubScope ?? "").includes("repo");
 
 		return c.json({
 			login: user.githubLogin,
@@ -300,7 +306,7 @@ export function statusRoutes(db: Database): Hono {
 		const user = getUserByToken(db, token);
 		if (!user) return c.json({ error: "Unauthorized" }, 401);
 
-		const body = await c.req.json() as { pat?: string };
+		const body = (await c.req.json()) as { pat?: string };
 		if (!body.pat || typeof body.pat !== "string") {
 			return c.json({ error: "Missing pat field" }, 400);
 		}
@@ -320,9 +326,9 @@ export function statusRoutes(db: Database): Hono {
 		const ghUser = (await ghRes.json()) as { id: number; login: string };
 
 		// Verify the PAT belongs to the same GitHub user
-		const dbUser = db
-			.query("SELECT github_id FROM users WHERE id = ?")
-			.get(user.id) as { github_id: number } | null;
+		const dbUser = db.query("SELECT github_id FROM users WHERE id = ?").get(user.id) as {
+			github_id: number;
+		} | null;
 
 		if (!dbUser || dbUser.github_id !== ghUser.id) {
 			return c.json({ error: "Token belongs to a different GitHub user" }, 403);
