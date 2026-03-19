@@ -1,0 +1,14 @@
+{
+	"files": [],
+	"references": [
+		{ "path": "packages/shared" },
+		{ "path": "packages/benchd" },
+		{ "path": "packages/bench-exec" },
+		{ "path": "packages/action" },
+		{ "path": "packages/web" },
+		{ "path": "packages/dashboard" },
+		{ "path": "packages/setup" },
+		{ "path": "packages/cli" },
+		{ "path": "tests" }
+	]
+}

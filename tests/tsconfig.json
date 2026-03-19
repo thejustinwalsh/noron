@@ -1,0 +1,12 @@
+{
+	"extends": "../tsconfig.base.json",
+	"compilerOptions": {
+		"rootDir": ".",
+		"outDir": "dist",
+		"paths": {
+			"@noron/shared": ["../packages/shared/src/index.ts"],
+			"@noron/shared/*": ["../packages/shared/src/*"]
+		}
+	},
+	"include": ["**/*.ts"]
+}

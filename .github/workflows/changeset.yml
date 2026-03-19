@@ -1,0 +1,21 @@
+name: Generate Changeset
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize]
+
+jobs:
+  generate-changeset:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 0
+
+      - uses: thejustinwalsh/workflows/generate-changesets@main
+        with:
+          copilot-pat: ${{ secrets.COPILOT_PAT }}

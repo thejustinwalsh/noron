@@ -1,0 +1,14 @@
+{
+	"name": "@noron/benchmark",
+	"version": "0.1.0",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"bench": "bun run src/bench.ts",
+		"report": "bun run src/report.ts"
+	},
+	"dependencies": {
+		"mitata": "^1.0.34",
+		"@mitata/counters": "*"
+	}
+}

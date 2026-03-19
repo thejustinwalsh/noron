@@ -1,0 +1,19 @@
+{
+	"name": "@noron/iso",
+	"version": "0.1.0",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"build": "bun run collect.ts",
+		"build:iso": "bun run build-iso.ts"
+	},
+	"dependencies": {
+		"@noron/shared": "workspace:*",
+		"@noron/benchd": "workspace:*",
+		"@noron/bench-exec": "workspace:*",
+		"@noron/web": "workspace:*",
+		"@noron/setup": "workspace:*",
+		"@noron/cli": "workspace:*",
+		"@noron/dashboard": "workspace:*"
+	}
+}

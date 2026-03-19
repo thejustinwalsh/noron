@@ -1,0 +1,73 @@
+---
+- name: Create benchd directories
+  file:
+    path: "{{ item }}"
+    state: directory
+  loop:
+    - /usr/local/lib/benchd
+    - /usr/local/lib/benchd/hooks
+    - /etc/benchd
+
+- name: Copy benchd binary
+  copy:
+    src: benchd
+    dest: /usr/local/bin/benchd
+    mode: "0755"
+
+- name: Copy job hook binaries
+  copy:
+    src: "{{ item }}"
+    dest: "/usr/local/lib/benchd/hooks/{{ item | basename }}"
+    mode: "0755"
+  loop:
+    - job-started
+    - job-completed
+
+- name: Copy bench-exec binary
+  copy:
+    src: bench-exec
+    dest: /usr/local/bin/bench-exec
+    mode: "0755"
+
+- name: Configure sudoers for bench-exec
+  copy:
+    content: "{{ runner_user }} ALL=(root) NOPASSWD: /usr/local/bin/bench-exec\n"
+    dest: /etc/sudoers.d/bench-exec
+    mode: "0440"
+    validate: "visudo -cf %s"
+
+- name: Install benchd systemd service
+  copy:
+    src: "{{ playbook_dir }}/../systemd/benchd.service"
+    dest: /etc/systemd/system/benchd.service
+  notify: reload-systemd
+
+- name: Generate benchd config
+  template:
+    src: config.toml.j2
+    dest: /etc/benchd/config.toml
+    mode: "0644"
+
+- name: Install benchmark cgroup slice
+  template:
+    src: benchmark.slice.j2
+    dest: /etc/systemd/system/benchmark.slice
+  notify: reload-systemd
+
+- name: Install bench-web systemd service
+  copy:
+    src: "{{ playbook_dir }}/../systemd/bench-web.service"
+    dest: /etc/systemd/system/bench-web.service
+  notify: reload-systemd
+
+- name: Enable and start benchd
+  systemd:
+    name: benchd
+    enabled: true
+    state: started
+
+- name: Enable and start bench-web
+  systemd:
+    name: bench-web
+    enabled: true
+    state: started

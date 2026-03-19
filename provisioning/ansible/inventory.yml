@@ -1,0 +1,6 @@
+---
+all:
+  hosts:
+    chromebox:
+      ansible_host: "{{ chromebox_ip }}"
+      ansible_user: root

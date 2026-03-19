@@ -1,0 +1,14 @@
+{
+	"name": "@noron/action",
+	"version": "0.1.0",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"build": "bun build ./src/index.ts --outfile dist/index.js --target node --bundle",
+		"typecheck": "tsc --noEmit",
+		"test": "bun test"
+	},
+	"dependencies": {
+		"@noron/shared": "workspace:*"
+	}
+}

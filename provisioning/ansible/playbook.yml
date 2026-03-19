@@ -1,0 +1,16 @@
+---
+# Provision a Debian 12 Chromebox as a benchmark runner appliance.
+# Following LLVM Benchmarking Guidelines: https://llvm.org/docs/Benchmarking.html
+#
+# Alternative: For interactive setup on new hardware, use the bench-setup wizard:
+#   curl -fsSL https://your-domain/setup.sh | sudo bash
+# Or boot the appliance ISO which runs the wizard automatically on first boot.
+- name: Provision Benchmark Chromebox
+  hosts: chromebox
+  become: true
+  roles:
+    - base
+    - bun
+    - benchd
+    - runner
+    - tailscale

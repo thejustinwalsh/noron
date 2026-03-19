@@ -1,0 +1,30 @@
+{
+	"$schema": "https://raw.githubusercontent.com/changesets/changesets/main/packages/config/schema.json",
+	"changelog": ["@changesets/changelog-github", { "repo": "thejustinwalsh/noron" }],
+	"commit": false,
+	"fixed": [
+		[
+			"@noron/shared",
+			"@noron/benchd",
+			"@noron/bench-exec",
+			"@noron/action",
+			"@noron/web",
+			"@noron/cli",
+			"@noron/iso"
+		]
+	],
+	"linked": [],
+	"access": "restricted",
+	"baseBranch": "main",
+	"updateInternalDependencies": "patch",
+	"privatePackages": {
+		"version": true,
+		"tag": true
+	},
+	"ignore": [
+		"@noron/dashboard",
+		"@noron/setup",
+		"@noron/benchmark",
+		"@noron/dev"
+	]
+}

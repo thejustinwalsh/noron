@@ -1,0 +1,25 @@
+[Unit]
+Description=Benchmark GitHub Actions Runner (Podman)
+After=network.target benchd.service
+Requires=benchd.service
+
+[Service]
+Type=simple
+User={{ runner_user }}
+Restart=on-failure
+RestartSec=10
+
+ExecStart=/usr/bin/podman run --rm \
+  --name bench-runner \
+  --env-file /opt/runner/.env \
+  --volume {{ benchd_socket }}:{{ benchd_socket }}:rw \
+  --volume /usr/local/bin/bench-exec:/usr/local/bin/bench-exec:ro \
+  --volume /usr/local/lib/benchd/hooks:/usr/local/lib/benchd/hooks:ro \
+  --volume {{ bench_tmpfs_path }}:{{ bench_tmpfs_path }}:rw \
+  --cpuset-cpus={{ housekeeping_core }} \
+  bench-runner
+
+ExecStop=/usr/bin/podman stop bench-runner
+
+[Install]
+WantedBy=multi-user.target

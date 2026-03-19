@@ -1,0 +1,7 @@
+---
+- name: Install Bun runtime
+  shell: curl -fsSL https://bun.sh/install | bash
+  args:
+    creates: /usr/local/bin/bun
+  environment:
+    BUN_INSTALL: /usr/local

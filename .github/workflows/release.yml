@@ -1,0 +1,155 @@
+name: Release
+
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows: [CI]
+    branches: [main]
+    types: [completed]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+
+jobs:
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+
+    outputs:
+      released: ${{ steps.release.outputs.released }}
+      tagged: ${{ steps.release.outputs.tagged-packages }}
+      iso-version: ${{ steps.iso-out.outputs.version }}
+      build-iso: ${{ steps.iso-out.outputs.build }}
+
+    steps:
+      - uses: actions/checkout@v6
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+
+      - uses: actions/cache@v4
+        with:
+          path: .turbo
+          key: turbo-${{ runner.os }}-${{ github.sha }}
+          restore-keys: turbo-${{ runner.os }}-
+
+      - run: bun run build
+
+      - id: release
+        uses: thejustinwalsh/workflows/release@main
+        with:
+          version-command: bun run changeset:version
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Check if ISO was tagged
+        id: iso
+        if: steps.release.outputs.released == 'true'
+        uses: thejustinwalsh/workflows/filter-packages@main
+        with:
+          packages: ${{ steps.release.outputs.tagged-packages }}
+          filter: "@noron/iso"
+
+      - name: Set ISO outputs
+        id: iso-out
+        if: steps.release.outputs.released == 'true'
+        run: |
+          if [ "${{ steps.iso.outputs.empty }}" = "false" ]; then
+            version=$(echo '${{ steps.iso.outputs.packages }}' | node -e "const d=JSON.parse(require('fs').readFileSync('/dev/stdin','utf-8'));console.log(d[0]?.version||'')")
+            echo "version=$version" >> "$GITHUB_OUTPUT"
+            echo "build=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "build=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  build-iso:
+    name: Build ISO (${{ matrix.arch }})
+    runs-on: ubuntu-latest
+    needs: release
+    if: needs.release.outputs.build-iso == 'true'
+    strategy:
+      matrix:
+        include:
+          - arch: x64
+            lb_arch: amd64
+            bun_target: bun-linux-x64
+          - arch: arm64
+            lb_arch: arm64
+            bun_target: bun-linux-arm64
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: main
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+
+      - uses: actions/cache@v4
+        with:
+          path: .turbo
+          key: turbo-${{ runner.os }}-${{ matrix.arch }}-${{ github.sha }}
+          restore-keys: turbo-${{ runner.os }}-${{ matrix.arch }}-
+
+      - name: Collect dist (${{ matrix.arch }})
+        run: BUN_TARGET=${{ matrix.bun_target }} bun run collect-dist
+
+      - name: Validate dist assets
+        run: bun test tests/e2e/iso-assets.test.ts
+        env:
+          BENCH_ENCRYPTION_KEY: "0000000000000000000000000000000000000000000000000000000000000000"
+
+      - name: Install live-build
+        run: sudo apt-get update && sudo apt-get install -y live-build debootstrap
+
+      - name: Install qemu for cross-arch
+        if: matrix.arch == 'arm64'
+        run: sudo apt-get install -y qemu-user-static binfmt-support
+
+      - name: Build ISO (${{ matrix.arch }})
+        run: sudo ./provisioning/iso/build-iso.sh packages/iso/dist/ ${{ matrix.lb_arch }}
+
+      - name: Create update archive (${{ matrix.arch }})
+        run: tar -czf packages/iso/dist/noron-update-linux-${{ matrix.arch }}.tar.gz -C packages/iso/dist .
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: benchmark-appliance-${{ matrix.arch }}
+          path: |
+            packages/iso/dist/benchmark-appliance-${{ matrix.arch }}.iso
+            packages/iso/dist/noron-update-linux-${{ matrix.arch }}.tar.gz
+
+  github-release:
+    name: GitHub Release
+    runs-on: ubuntu-latest
+    needs: [release, build-iso]
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: main
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: benchmark-appliance-x64
+          path: artifacts/
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: benchmark-appliance-arm64
+          path: artifacts/
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "@noron/iso@${{ needs.release.outputs.iso-version }}" \
+            --repo "${{ github.repository }}" \
+            --generate-notes \
+            artifacts/benchmark-appliance-x64.iso#"Benchmark Appliance ISO (x64)" \
+            artifacts/benchmark-appliance-arm64.iso#"Benchmark Appliance ISO (arm64 - Orange Pi, RPi, etc.)" \
+            artifacts/noron-update-linux-x64.tar.gz#"Update Archive (x64)" \
+            artifacts/noron-update-linux-arm64.tar.gz#"Update Archive (arm64)"

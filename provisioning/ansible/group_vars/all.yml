@@ -1,0 +1,26 @@
+---
+# CPU core allocation
+isolated_cores: "1,2,3"
+housekeeping_core: "0"
+
+# System users
+benchmark_user: "bench"
+runner_user: "runner"
+
+# Daemon config
+benchd_socket: "/var/run/benchd.sock"
+
+# Benchmark tmpfs (LLVM guideline: avoid disk I/O variance)
+bench_tmpfs_path: "/mnt/bench-tmpfs"
+bench_tmpfs_size: "4g"
+
+# GitHub
+github_org: "your-org"
+
+# Tailscale (encrypted with ansible-vault)
+tailscale_auth_key: "{{ vault_tailscale_auth_key }}"
+
+# Web service
+web_port: 9216
+github_client_id: "{{ vault_github_client_id }}"
+github_client_secret: "{{ vault_github_client_secret }}"

@@ -1,0 +1,18 @@
+[Unit]
+Description=Benchmark Appliance First Boot Setup
+After=multi-user.target
+ConditionPathExists=!/var/lib/bench/.setup-complete
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/bench-setup
+ExecStartPost=/usr/bin/touch /var/lib/bench/.setup-complete
+StandardInput=tty
+StandardOutput=tty
+TTYPath=/dev/tty1
+TTYReset=yes
+TTYVHangup=yes
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

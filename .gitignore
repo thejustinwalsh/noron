@@ -1,0 +1,11 @@
+node_modules/
+dist/
+!packages/action/dist/
+*.tsbuildinfo
+.env
+.env.local
+.turbo
+*.db
+*.db-shm
+*.db-wal
+.claude/settings.local.json

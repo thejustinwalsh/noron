@@ -1,0 +1,10 @@
+---
+- name: update-grub
+  command: update-grub
+
+- name: reload-sysctl
+  command: sysctl --system
+
+- name: reload-systemd
+  systemd:
+    daemon_reload: true

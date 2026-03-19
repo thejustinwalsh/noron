@@ -1,0 +1,15 @@
+{
+	"name": "@noron/benchd",
+	"version": "0.1.0",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"dev": "bun --watch src/main.ts",
+		"build": "bun build ./src/main.ts --compile --outfile dist/benchd --target ${BUN_TARGET:-bun-linux-x64} && bun build src/hooks/job-started.ts --compile --outfile dist/hooks/job-started --target ${BUN_TARGET:-bun-linux-x64} && bun build src/hooks/job-completed.ts --compile --outfile dist/hooks/job-completed --target ${BUN_TARGET:-bun-linux-x64}",
+		"typecheck": "tsc --noEmit",
+		"test": "bun test"
+	},
+"dependencies": {
+		"@noron/shared": "workspace:*"
+	}
+}

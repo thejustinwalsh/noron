@@ -1,0 +1,34 @@
+name: "Benchmark Run"
+description: "Run benchmarks with thermal stabilization, CPU isolation, and machine-wide locking"
+inputs:
+  command:
+    description: "The benchmark command to run"
+    required: true
+  target-temp:
+    description: "Target CPU temperature in Celsius. Set to 0 (default) to use auto-detected idle baseline. Set explicitly to override."
+    required: false
+    default: "0"
+  cores:
+    description: "CPU cores to pin to (comma-separated). Leave empty to auto-detect from benchd."
+    required: false
+    default: ""
+  timeout:
+    description: "Maximum seconds to wait for thermal stabilization"
+    required: false
+    default: "300"
+  use-tmpfs:
+    description: "Use tmpfs for benchmark I/O (TMPDIR). Set to false for disk-based benchmarks."
+    required: false
+    default: "true"
+runs:
+  using: "composite"
+  steps:
+    - name: Run benchmark with isolation
+      shell: bash
+      run: node "${{ github.action_path }}/dist/index.js"
+      env:
+        BENCH_COMMAND: ${{ inputs.command }}
+        BENCH_TARGET_TEMP: ${{ inputs.target-temp }}
+        BENCH_CORES: ${{ inputs.cores }}
+        BENCH_TIMEOUT: ${{ inputs.timeout }}
+        BENCH_USE_TMPFS: ${{ inputs.use-tmpfs }}

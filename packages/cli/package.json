@@ -1,0 +1,23 @@
+{
+	"name": "@noron/cli",
+	"version": "0.1.0",
+	"type": "module",
+	"bin": {
+		"bench": "src/main.ts"
+	},
+	"scripts": {
+		"dev": "bun --watch src/main.ts",
+		"build": "bun build ./src/main.ts --compile --outfile dist/bench --target ${BUN_TARGET:-bun-linux-x64}",
+		"typecheck": "tsc --noEmit",
+		"test": "bun test"
+	},
+"dependencies": {
+		"@noron/shared": "workspace:*",
+		"ink": "^5",
+		"react": "^18",
+		"clipanion": "^4.0.0-rc.4"
+	},
+	"devDependencies": {
+		"@types/react": "^18"
+	}
+}

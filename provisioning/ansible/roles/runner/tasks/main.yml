@@ -1,0 +1,43 @@
+---
+- name: Create runner working directory
+  file:
+    path: /opt/runner
+    state: directory
+    owner: "{{ runner_user }}"
+
+- name: Copy Containerfile
+  copy:
+    src: "{{ playbook_dir }}/../../runner-image/Containerfile"
+    dest: /opt/runner/Containerfile
+
+- name: Copy runner start script
+  copy:
+    src: "{{ playbook_dir }}/../../runner-image/start.sh"
+    dest: /opt/runner/start.sh
+    mode: "0755"
+
+- name: Build runner Podman image
+  command: >-
+    podman build
+    --build-arg RUNNER_ARCH={{ runner_arch | default('x64') }}
+    -t bench-runner -f /opt/runner/Containerfile /opt/runner
+  changed_when: true
+
+- name: Template runner environment
+  template:
+    src: runner.env.j2
+    dest: /opt/runner/.env
+    owner: "{{ runner_user }}"
+    mode: "0600"
+
+- name: Install runner systemd service
+  template:
+    src: runner.service.j2
+    dest: /etc/systemd/system/bench-runner.service
+  notify: reload-systemd
+
+- name: Enable and start runner
+  systemd:
+    name: bench-runner
+    enabled: true
+    state: started

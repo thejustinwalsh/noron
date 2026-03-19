@@ -1,0 +1,10 @@
+[Unit]
+Description=Benchmark CPU Isolation Slice
+Before=slices.target
+
+[Slice]
+AllowedCPUs={{ isolated_cores }}
+AllowedMemoryNodes=0
+
+[Install]
+WantedBy=slices.target

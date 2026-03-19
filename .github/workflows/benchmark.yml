@@ -1,0 +1,88 @@
+name: Benchmark Stability
+
+on:
+  workflow_dispatch:
+    inputs:
+      runs:
+        description: "Number of benchmark runs per runner"
+        default: "5"
+        type: string
+  schedule:
+    - cron: "0 6 * * 1" # Weekly Monday 6am UTC
+
+permissions:
+  contents: read
+
+jobs:
+  bench-github:
+    name: Bench (GitHub, run ${{ matrix.run }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        run: [1, 2, 3, 4, 5]
+      max-parallel: 1
+    steps:
+      - uses: actions/checkout@v6
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+
+      - name: Run benchmark
+        run: bun run packages/benchmark/src/bench.ts
+        env:
+          BENCH_RUNNER: github
+          BENCH_RUN_INDEX: ${{ matrix.run }}
+          BENCH_OUTPUT: results-github-${{ matrix.run }}.json
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: bench-github-${{ matrix.run }}
+          path: results-github-${{ matrix.run }}.json
+
+  bench-noron:
+    name: Bench (Noron, run ${{ matrix.run }})
+    runs-on: [self-hosted, noron]
+    strategy:
+      matrix:
+        run: [1, 2, 3, 4, 5]
+      max-parallel: 1
+    steps:
+      - uses: actions/checkout@v6
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+
+      - name: Run benchmark with thermal wait + CPU isolation
+        uses: ./packages/action
+        with:
+          command: bun run packages/benchmark/src/bench.ts
+        env:
+          BENCH_RUNNER: noron
+          BENCH_RUN_INDEX: ${{ matrix.run }}
+          BENCH_OUTPUT: results-noron-${{ matrix.run }}.json
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: bench-noron-${{ matrix.run }}
+          path: results-noron-${{ matrix.run }}.json
+
+  report:
+    name: Generate Report
+    runs-on: ubuntu-latest
+    needs: [bench-github, bench-noron]
+    steps:
+      - uses: actions/checkout@v6
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: bench-*
+          path: results/
+          merge-multiple: true
+
+      - name: Generate HTML report
+        run: bun run packages/benchmark/src/report.ts results/ --out benchmark-report.html
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: benchmark-report
+          path: benchmark-report.html

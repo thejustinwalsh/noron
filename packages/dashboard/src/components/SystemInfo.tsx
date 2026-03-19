@@ -1,0 +1,58 @@
+import { WaCard, WaIcon } from "@awesome.me/webawesome/dist/react";
+import type { SystemInfo as SystemInfoType } from "../types";
+import { useConfig } from "../hooks/useApi";
+
+interface SystemInfoProps {
+	system: SystemInfoType | undefined;
+	uptime: number;
+}
+
+function formatUptime(ms: number): string {
+	const hours = Math.floor(ms / 3_600_000);
+	const minutes = Math.floor((ms % 3_600_000) / 60_000);
+	if (hours > 0) return `${hours}h ${minutes}m`;
+	return `${minutes}m`;
+}
+
+export function SystemInfo({ system, uptime }: SystemInfoProps) {
+	const { config } = useConfig();
+
+	return (
+		<WaCard>
+			<div className="system-info">
+				<h3>
+					<WaIcon name="server" family="classic" variant="solid" style={{ marginRight: "6px" }} />
+					System
+				</h3>
+				<div className="info-row">
+					<span className="label">Uptime</span>
+					<span className="value">{formatUptime(uptime)}</span>
+				</div>
+				{system && (
+					<>
+						<div className="info-row">
+							<span className="label">Total Cores</span>
+							<span className="value">{system.totalCores}</span>
+						</div>
+						<div className="info-row">
+							<span className="label">Housekeeping</span>
+							<span className="value">Core {system.housekeepingCore}</span>
+						</div>
+						<div className="info-row">
+							<span className="label">Isolated</span>
+							<span className="value">
+								Cores {system.isolatedCores.join(", ")}
+							</span>
+						</div>
+					</>
+				)}
+				{config?.thermalZones && config.thermalZones.length > 0 && (
+					<div className="info-row">
+						<span className="label">Thermal Zones</span>
+						<span className="value">{config.thermalZones.join(", ")}</span>
+					</div>
+				)}
+			</div>
+		</WaCard>
+	);
+}

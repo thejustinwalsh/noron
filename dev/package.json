@@ -1,0 +1,17 @@
+{
+	"name": "@noron/dev",
+	"version": "0.0.0",
+	"private": true,
+	"scripts": {
+		"mock-benchd": "bun mock-benchd.ts",
+		"local-test": "bun local-test.ts",
+		"local-test:serve": "bun local-test.ts --serve",
+		"local-test:bench": "bun local-test.ts --bench-only",
+		"iso": "make iso",
+		"iso:x64": "make iso ARCH=x64",
+		"test-vm": "make test-vm",
+		"test-vm:x64": "make test-vm ARCH=x64",
+		"vm:clean": "make vm-clean",
+		"clean": "make clean"
+	}
+}

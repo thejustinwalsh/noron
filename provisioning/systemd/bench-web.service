@@ -1,0 +1,31 @@
+[Unit]
+Description=Benchmark Registration Web Service
+After=network.target benchd.service
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/bench-web
+User=bench
+Restart=on-failure
+RestartSec=5
+
+# Pin to housekeeping core — never steal benchmark CPU time
+CPUAffinity=0
+
+WorkingDirectory=/var/lib/bench
+
+Environment=PORT=9216
+Environment=DATABASE_PATH=/var/lib/bench/bench.db
+Environment=WORKFLOW_DB_PATH=/var/lib/bench/workflows.db
+Environment=BENCHD_SOCKET=/var/run/benchd.sock
+Environment=DASHBOARD_DIR=/var/lib/bench/dashboard
+Environment=GITHUB_CLIENT_ID=changeme
+Environment=GITHUB_CLIENT_SECRET=changeme
+Environment=PUBLIC_URL=changeme
+
+ProtectSystem=strict
+ReadWritePaths=/var/lib/bench /run /var/run
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

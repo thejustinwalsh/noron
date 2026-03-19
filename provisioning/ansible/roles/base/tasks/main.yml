@@ -1,0 +1,178 @@
+---
+# LLVM Benchmarking Guidelines: https://llvm.org/docs/Benchmarking.html
+# Target: <0.1% variance with all optimizations applied.
+
+- name: Install essential packages
+  apt:
+    name:
+      - podman
+      - sqlite3
+      - htop
+      - lm-sensors
+      - cpufrequtils
+      - util-linux
+      - irqbalance
+    state: present
+    update_cache: true
+
+# --- CPU Isolation (LLVM: use cpuset to reserve cores) ---
+
+- name: Set GRUB cmdline for CPU isolation
+  lineinfile:
+    path: /etc/default/grub
+    regexp: '^GRUB_CMDLINE_LINUX_DEFAULT='
+    line: 'GRUB_CMDLINE_LINUX_DEFAULT="quiet isolcpus={{ isolated_cores }} nohz_full={{ isolated_cores }} rcu_nocbs={{ isolated_cores }} nosmt"'
+  notify: update-grub
+
+# --- Disable Turbo Boost (LLVM: disable frequency scaling) ---
+
+- name: Disable Intel Turbo Boost at boot
+  copy:
+    content: |
+      #!/bin/bash
+      echo 1 > /sys/devices/system/cpu/intel_pstate/no_turbo 2>/dev/null || true
+    dest: /usr/local/bin/disable-turbo
+    mode: "0755"
+
+- name: Create systemd service for turbo boost disable
+  copy:
+    content: |
+      [Unit]
+      Description=Disable CPU Turbo Boost
+      After=local-fs.target
+
+      [Service]
+      Type=oneshot
+      ExecStart=/usr/local/bin/disable-turbo
+      RemainAfterExit=yes
+
+      [Install]
+      WantedBy=multi-user.target
+    dest: /etc/systemd/system/disable-turbo.service
+  notify: reload-systemd
+
+- name: Enable turbo boost disable service
+  systemd:
+    name: disable-turbo
+    enabled: true
+
+# --- CPU Governor (LLVM: set performance governor) ---
+
+- name: Set CPU governor to performance for all cores
+  shell: |
+    for f in /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor; do
+      echo performance > "$f" 2>/dev/null || true
+    done
+  changed_when: false
+
+# --- ASLR (LLVM: disable address space randomization) ---
+
+- name: Copy sysctl configuration
+  copy:
+    src: "{{ playbook_dir }}/../sysctl.d/99-benchmark.conf"
+    dest: /etc/sysctl.d/99-benchmark.conf
+  notify: reload-sysctl
+
+# --- Disable THP (LLVM: reduce latency spikes) ---
+
+- name: Disable Transparent Huge Pages at boot
+  copy:
+    content: |
+      #!/bin/bash
+      echo never > /sys/kernel/mm/transparent_hugepage/enabled 2>/dev/null || true
+      echo never > /sys/kernel/mm/transparent_hugepage/defrag 2>/dev/null || true
+    dest: /usr/local/bin/disable-thp
+    mode: "0755"
+
+- name: Create systemd service for THP disable
+  copy:
+    content: |
+      [Unit]
+      Description=Disable Transparent Huge Pages
+      After=local-fs.target
+
+      [Service]
+      Type=oneshot
+      ExecStart=/usr/local/bin/disable-thp
+      RemainAfterExit=yes
+
+      [Install]
+      WantedBy=multi-user.target
+    dest: /etc/systemd/system/disable-thp.service
+  notify: reload-systemd
+
+- name: Enable THP disable service
+  systemd:
+    name: disable-thp
+    enabled: true
+
+# --- tmpfs (LLVM: use tmpfs for program inputs/outputs) ---
+
+- name: Create benchmark tmpfs mount point
+  file:
+    path: "{{ bench_tmpfs_path }}"
+    state: directory
+
+- name: Mount benchmark tmpfs
+  mount:
+    path: "{{ bench_tmpfs_path }}"
+    src: none
+    fstype: tmpfs
+    opts: "size={{ bench_tmpfs_size }},mode=1777"
+    state: mounted
+
+# --- IRQ Affinity (pin interrupts to housekeeping core) ---
+
+- name: Stop irqbalance (we manage affinity manually)
+  systemd:
+    name: irqbalance
+    state: stopped
+    enabled: false
+
+- name: Pin IRQs to housekeeping core
+  copy:
+    content: |
+      #!/bin/bash
+      # Pin all IRQs to core 0 (housekeeping)
+      for irq in /proc/irq/*/smp_affinity_list; do
+        echo {{ housekeeping_core }} > "$irq" 2>/dev/null || true
+      done
+      echo {{ housekeeping_core }} > /proc/irq/default_smp_affinity 2>/dev/null || true
+    dest: /usr/local/bin/pin-irqs
+    mode: "0755"
+
+- name: Create systemd service for IRQ pinning
+  copy:
+    content: |
+      [Unit]
+      Description=Pin IRQs to housekeeping core
+      After=local-fs.target
+
+      [Service]
+      Type=oneshot
+      ExecStart=/usr/local/bin/pin-irqs
+      RemainAfterExit=yes
+
+      [Install]
+      WantedBy=multi-user.target
+    dest: /etc/systemd/system/pin-irqs.service
+  notify: reload-systemd
+
+- name: Enable IRQ pinning service
+  systemd:
+    name: pin-irqs
+    enabled: true
+
+# --- System Users ---
+
+- name: Create benchmark service user
+  user:
+    name: "{{ benchmark_user }}"
+    system: true
+    shell: /usr/sbin/nologin
+
+- name: Create runner user
+  user:
+    name: "{{ runner_user }}"
+    system: true
+    groups: ["{{ benchmark_user }}"]

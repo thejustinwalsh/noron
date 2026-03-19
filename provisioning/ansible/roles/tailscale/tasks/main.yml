@@ -1,0 +1,15 @@
+---
+- name: Install Tailscale
+  shell: curl -fsSL https://tailscale.com/install.sh | sh
+  args:
+    creates: /usr/bin/tailscale
+
+- name: Authenticate Tailscale
+  command: >
+    tailscale up
+    --authkey={{ tailscale_auth_key }}
+    --hostname=bench-{{ inventory_hostname }}
+  when: tailscale_auth_key is defined
+
+- name: Enable Tailscale Funnel for web service
+  command: tailscale funnel --bg {{ web_port }}
