@@ -49,7 +49,9 @@ export class UpdateStatusCommand extends Command {
 							? "\x1b[31m"
 							: "\x1b[33m";
 				const reset = "\x1b[0m";
-				this.context.stdout.write(`\n  Latest update:   ${data.latest.version} (${stateColor}${data.latest.state}${reset})\n`);
+				this.context.stdout.write(
+					`\n  Latest update:   ${data.latest.version} (${stateColor}${data.latest.state}${reset})\n`,
+				);
 				if (data.latest.error) {
 					this.context.stdout.write(`  Error:           ${data.latest.error}\n`);
 				}
@@ -93,7 +95,9 @@ export class UpdateCheckCommand extends Command {
 			};
 
 			if (data.latest && data.latest.state === "pending") {
-				this.context.stdout.write(`Update available: ${data.currentVersion} → ${data.latest.version}\n`);
+				this.context.stdout.write(
+					`Update available: ${data.currentVersion} → ${data.latest.version}\n`,
+				);
 			} else {
 				this.context.stdout.write(`Up to date (${data.currentVersion})\n`);
 			}

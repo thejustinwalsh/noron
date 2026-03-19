@@ -1,9 +1,9 @@
+import { WaBadge, WaButton, WaCard, WaIcon } from "@awesome.me/webawesome/dist/react";
 import { useState } from "react";
-import { WaCard, WaBadge, WaButton, WaIcon } from "@awesome.me/webawesome/dist/react";
-import { useWorkflowRuns, useWorkflowCounts } from "../hooks/useApi";
+import { useWorkflowCounts, useWorkflowRuns } from "../hooks/useApi";
 import type { WorkflowCounts, WorkflowRunStatus } from "../types";
-import { WorkflowList } from "./WorkflowList";
 import { WorkflowDetail } from "./WorkflowDetail";
+import { WorkflowList } from "./WorkflowList";
 
 const FILTERS: { value: string | undefined; label: string; key: keyof WorkflowCounts | null }[] = [
 	{ value: undefined, label: "All", key: null },
@@ -31,14 +31,31 @@ export function WorkflowsPage() {
 	const { counts } = useWorkflowCounts();
 
 	const totalCount = counts
-		? counts.pending + counts.running + counts.sleeping + counts.completed + counts.failed + counts.canceled
+		? counts.pending +
+			counts.running +
+			counts.sleeping +
+			counts.completed +
+			counts.failed +
+			counts.canceled
 		: null;
 
 	return (
 		<WaCard>
-			<div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "12px" }}>
+			<div
+				style={{
+					display: "flex",
+					alignItems: "center",
+					justifyContent: "space-between",
+					marginBottom: "12px",
+				}}
+			>
 				<h3>
-					<WaIcon name="diagram-project" family="classic" variant="solid" style={{ marginRight: "6px" }} />
+					<WaIcon
+						name="diagram-project"
+						family="classic"
+						variant="solid"
+						style={{ marginRight: "6px" }}
+					/>
 					Workflows
 				</h3>
 				<WaButton variant="neutral" appearance="outlined" size="small" onClick={() => refetch()}>
@@ -49,7 +66,7 @@ export function WorkflowsPage() {
 			{!selectedRunId && (
 				<div className="workflow-filters">
 					{FILTERS.map((f) => {
-						const count = f.key && counts ? counts[f.key] : (f.key === null ? totalCount : null);
+						const count = f.key && counts ? counts[f.key] : f.key === null ? totalCount : null;
 						const isActive = statusFilter === f.value;
 						return (
 							<WaBadge
@@ -72,16 +89,9 @@ export function WorkflowsPage() {
 			)}
 
 			{selectedRunId ? (
-				<WorkflowDetail
-					workflowRunId={selectedRunId}
-					onBack={() => setSelectedRunId(null)}
-				/>
+				<WorkflowDetail workflowRunId={selectedRunId} onBack={() => setSelectedRunId(null)} />
 			) : (
-				<WorkflowList
-					runs={runs}
-					loading={loading}
-					onSelect={setSelectedRunId}
-				/>
+				<WorkflowList runs={runs} loading={loading} onSelect={setSelectedRunId} />
 			)}
 		</WaCard>
 	);

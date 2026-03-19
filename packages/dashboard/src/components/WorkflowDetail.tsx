@@ -75,7 +75,9 @@ export function WorkflowDetail({ workflowRunId, onBack }: WorkflowDetailProps) {
 			<div className="workflow-detail-meta">
 				<div className="workflow-detail-row">
 					<span className="label">Workflow</span>
-					<span className="value" style={{ fontWeight: 500 }}>{run.workflowName}</span>
+					<span className="value" style={{ fontWeight: 500 }}>
+						{run.workflowName}
+					</span>
 				</div>
 				<div className="workflow-detail-row">
 					<span className="label">Status</span>
@@ -109,14 +111,34 @@ export function WorkflowDetail({ workflowRunId, onBack }: WorkflowDetailProps) {
 
 			{run.input != null && (
 				<div style={{ marginTop: "16px" }}>
-					<h4 className="muted" style={{ marginBottom: "4px", textTransform: "uppercase", letterSpacing: "0.05em", fontSize: "11px" }}>Input</h4>
+					<h4
+						className="muted"
+						style={{
+							marginBottom: "4px",
+							textTransform: "uppercase",
+							letterSpacing: "0.05em",
+							fontSize: "11px",
+						}}
+					>
+						Input
+					</h4>
 					<pre className="setup-code">{formatJson(run.input)}</pre>
 				</div>
 			)}
 
 			{run.error && (
 				<div style={{ marginTop: "16px" }}>
-					<h4 style={{ color: "var(--red)", marginBottom: "4px", textTransform: "uppercase", letterSpacing: "0.05em", fontSize: "11px" }}>Error</h4>
+					<h4
+						style={{
+							color: "var(--red)",
+							marginBottom: "4px",
+							textTransform: "uppercase",
+							letterSpacing: "0.05em",
+							fontSize: "11px",
+						}}
+					>
+						Error
+					</h4>
 					<pre className="setup-code" style={{ borderColor: "var(--red)" }}>
 						{run.error.message}
 						{run.error.stack ? `\n\n${run.error.stack}` : ""}
@@ -126,14 +148,32 @@ export function WorkflowDetail({ workflowRunId, onBack }: WorkflowDetailProps) {
 
 			{run.output != null && !run.error && (
 				<div style={{ marginTop: "16px" }}>
-					<h4 className="muted" style={{ marginBottom: "4px", textTransform: "uppercase", letterSpacing: "0.05em", fontSize: "11px" }}>Output</h4>
+					<h4
+						className="muted"
+						style={{
+							marginBottom: "4px",
+							textTransform: "uppercase",
+							letterSpacing: "0.05em",
+							fontSize: "11px",
+						}}
+					>
+						Output
+					</h4>
 					<pre className="setup-code">{formatJson(run.output)}</pre>
 				</div>
 			)}
 
 			{steps.length > 0 && (
 				<div style={{ marginTop: "24px" }}>
-					<h4 className="muted" style={{ marginBottom: "8px", textTransform: "uppercase", letterSpacing: "0.05em", fontSize: "11px" }}>
+					<h4
+						className="muted"
+						style={{
+							marginBottom: "8px",
+							textTransform: "uppercase",
+							letterSpacing: "0.05em",
+							fontSize: "11px",
+						}}
+					>
 						Steps ({steps.length})
 					</h4>
 					<table className="invite-table">
@@ -157,7 +197,11 @@ export function WorkflowDetail({ workflowRunId, onBack }: WorkflowDetailProps) {
 									</td>
 									<td>{step.stepName}</td>
 									<td>
-										<WaBadge pill variant={KIND_VARIANT[step.kind] ?? "neutral"} style={{ fontSize: "10px" }}>
+										<WaBadge
+											pill
+											variant={KIND_VARIANT[step.kind] ?? "neutral"}
+											style={{ fontSize: "10px" }}
+										>
 											{step.kind}
 										</WaBadge>
 									</td>
@@ -168,7 +212,9 @@ export function WorkflowDetail({ workflowRunId, onBack }: WorkflowDetailProps) {
 									<td>
 										{step.error ? (
 											<span style={{ color: "var(--red)", fontSize: "12px" }}>
-												{typeof step.error === "object" && step.error !== null && "message" in step.error
+												{typeof step.error === "object" &&
+												step.error !== null &&
+												"message" in step.error
 													? (step.error as { message: string }).message
 													: String(step.error)}
 											</span>

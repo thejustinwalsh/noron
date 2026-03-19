@@ -41,20 +41,18 @@ async function getKey(): Promise<CryptoKey> {
 		rawHex = Buffer.from(keyBytes).toString("hex");
 		try {
 			mkdirSync("/etc/benchd", { recursive: true });
-			writeFileSync(KEY_FILE_PATH, rawHex + "\n", { mode: 0o600 });
+			writeFileSync(KEY_FILE_PATH, `${rawHex}\n`, { mode: 0o600 });
 			console.log(`Generated encryption key and wrote to ${KEY_FILE_PATH}`);
 		} catch (err) {
 			console.warn(
-				`Could not write encryption key to ${KEY_FILE_PATH}: ${err}. ` +
-					`Set BENCH_ENCRYPTION_KEY env var or ensure /etc/benchd is writable.`,
+				`Could not write encryption key to ${KEY_FILE_PATH}: ${err}. Set BENCH_ENCRYPTION_KEY env var or ensure /etc/benchd is writable.`,
 			);
 		}
 	}
 
 	if (!rawHex || rawHex.length !== 64) {
 		throw new Error(
-			"BENCH_ENCRYPTION_KEY must be a 64-character hex string (32 bytes). " +
-				`Got ${rawHex?.length ?? 0} characters.`,
+			`BENCH_ENCRYPTION_KEY must be a 64-character hex string (32 bytes). Got ${rawHex?.length ?? 0} characters.`,
 		);
 	}
 

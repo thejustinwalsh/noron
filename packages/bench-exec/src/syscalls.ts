@@ -35,20 +35,12 @@ export function applyCpuAffinity(cores: number[]): void {
  */
 export function applyNice(priority: number): void {
 	if (priority < -20 || priority > 19) {
-		throw new Error(
-			`applyNice: priority must be between -20 and 19, got ${priority}`,
-		);
+		throw new Error(`applyNice: priority must be between -20 and 19, got ${priority}`);
 	}
 
 	const pid = process.pid;
 
-	const result = Bun.spawnSync([
-		"renice",
-		"-n",
-		String(priority),
-		"-p",
-		String(pid),
-	]);
+	const result = Bun.spawnSync(["renice", "-n", String(priority), "-p", String(pid)]);
 
 	if (result.exitCode !== 0) {
 		const stderr = result.stderr.toString().trim();
@@ -70,20 +62,12 @@ export function applyNice(priority: number): void {
  */
 export function applyIonice(classId: number): void {
 	if (classId < 0 || classId > 3) {
-		throw new Error(
-			`applyIonice: classId must be between 0 and 3, got ${classId}`,
-		);
+		throw new Error(`applyIonice: classId must be between 0 and 3, got ${classId}`);
 	}
 
 	const pid = process.pid;
 
-	const result = Bun.spawnSync([
-		"ionice",
-		"-c",
-		String(classId),
-		"-p",
-		String(pid),
-	]);
+	const result = Bun.spawnSync(["ionice", "-c", String(classId), "-p", String(pid)]);
 
 	if (result.exitCode !== 0) {
 		const stderr = result.stderr.toString().trim();
@@ -115,8 +99,8 @@ export function dropPrivileges(): void {
 		);
 	}
 
-	const uid = parseInt(sudoUid, 10);
-	const gid = parseInt(sudoGid, 10);
+	const uid = Number.parseInt(sudoUid, 10);
+	const gid = Number.parseInt(sudoGid, 10);
 
 	if (Number.isNaN(uid) || uid < 0) {
 		throw new Error(`dropPrivileges: invalid SUDO_UID: ${sudoUid}`);
@@ -149,8 +133,6 @@ export function dropPrivileges(): void {
 
 	// Verify we actually dropped
 	if (process.getuid?.() === 0) {
-		throw new Error(
-			"dropPrivileges: still running as root after setuid — this should not happen",
-		);
+		throw new Error("dropPrivileges: still running as root after setuid — this should not happen");
 	}
 }

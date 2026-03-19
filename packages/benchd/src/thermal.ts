@@ -1,12 +1,5 @@
-import {
-	ThermalRingBuffer,
-	readCpuTemp,
-	THERMAL_TIMEOUT_MS,
-} from "@noron/shared";
-import type {
-	ThermalStatusRequest,
-	ThermalWaitRequest,
-} from "@noron/shared";
+import { THERMAL_TIMEOUT_MS, ThermalRingBuffer, readCpuTemp } from "@noron/shared";
+import type { ThermalStatusRequest, ThermalWaitRequest } from "@noron/shared";
 import type { ClientConnection } from "./connection";
 import { log } from "./logger";
 
@@ -73,7 +66,11 @@ export class ThermalMonitor {
 			deadline: Date.now() + timeout,
 		});
 
-		log("info", "thermal", `Waiting for ${effectiveTarget}°C (current: ${current}°C, timeout: ${timeout}ms)`);
+		log(
+			"info",
+			"thermal",
+			`Waiting for ${effectiveTarget}°C (current: ${current}°C, timeout: ${timeout}ms)`,
+		);
 	}
 
 	getStatus(client: ClientConnection, msg: ThermalStatusRequest): void {
@@ -153,11 +150,7 @@ export class ThermalMonitor {
 					currentTemp: temp,
 					targetTemp: waiter.targetTemp,
 				});
-				log(
-					"warn",
-					"thermal",
-					`Timeout waiting for ${waiter.targetTemp}°C (current: ${temp}°C)`,
-				);
+				log("warn", "thermal", `Timeout waiting for ${waiter.targetTemp}°C (current: ${temp}°C)`);
 			} else {
 				remaining.push(waiter);
 			}

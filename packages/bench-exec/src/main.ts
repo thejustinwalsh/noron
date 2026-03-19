@@ -11,7 +11,7 @@
  */
 import { parseArgs } from "node:util";
 import { BenchdClient, SOCKET_PATH } from "@noron/shared";
-import { applyCpuAffinity, applyNice, applyIonice, dropPrivileges } from "./syscalls";
+import { applyCpuAffinity, applyIonice, applyNice, dropPrivileges } from "./syscalls";
 
 const { values, positionals } = parseArgs({
 	args: Bun.argv.slice(2),
@@ -25,7 +25,9 @@ const { values, positionals } = parseArgs({
 });
 
 if (positionals.length === 0) {
-	console.error("Usage: bench-exec [--cores 1,2,3] [--nice -20] [--ionice 1] -- <command> [args...]");
+	console.error(
+		"Usage: bench-exec [--cores 1,2,3] [--nice -20] [--ionice 1] -- <command> [args...]",
+	);
 	process.exit(1);
 }
 
@@ -97,8 +99,8 @@ if (values.cores) {
 }
 
 // Step 3: Apply performance settings
-const nicePriority = Number.parseInt(values.nice!, 10);
-const ioniceClass = Number.parseInt(values.ionice!, 10);
+const nicePriority = Number.parseInt(values.nice as string, 10);
+const ioniceClass = Number.parseInt(values.ionice as string, 10);
 
 try {
 	applyCpuAffinity(cores);

@@ -2,8 +2,8 @@
 // Delegates to provisioning/iso/build-iso.sh.
 // Usage: ARCH=arm64 bun run build:iso
 import { execSync } from "node:child_process";
-import { resolve } from "node:path";
 import { existsSync } from "node:fs";
+import { resolve } from "node:path";
 
 const ROOT = resolve(import.meta.dirname, "../..");
 const DIST = resolve(import.meta.dirname, "dist");

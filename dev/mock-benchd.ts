@@ -193,8 +193,8 @@ const server = createServer((socket) => {
 
 	socket.on("data", (data: Buffer) => {
 		buffer += data.toString();
-		let idx: number;
-		while ((idx = buffer.indexOf("\n")) !== -1) {
+		let idx: number = buffer.indexOf("\n");
+		while (idx !== -1) {
 			const line = buffer.slice(0, idx);
 			buffer = buffer.slice(idx + 1);
 			if (!line.trim()) continue;
@@ -204,6 +204,7 @@ const server = createServer((socket) => {
 			} catch {
 				// malformed JSON
 			}
+			idx = buffer.indexOf("\n");
 		}
 	});
 
@@ -223,7 +224,7 @@ const server = createServer((socket) => {
 
 server.listen(SOCKET_PATH, () => {
 	console.log(`Mock benchd listening on ${SOCKET_PATH}`);
-	console.log(`Test with:`);
+	console.log("Test with:");
 	console.log(`  bun packages/cli/src/index.ts status  --socket ${SOCKET_PATH}`);
 	console.log(`  bun packages/cli/src/index.ts monitor --socket ${SOCKET_PATH}`);
 });

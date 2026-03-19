@@ -55,11 +55,15 @@ export function wsStatusHandler(
 						.then(async () => {
 							// Send initial thermal history snapshot
 							try {
-								const thermalStatus = await client!.request({
+								const thermalStatus = await client?.request({
 									type: "thermal.status",
 									requestId: crypto.randomUUID(),
 								});
-								if (thermalStatus.type === "thermal.status") {
+								if (
+									thermalStatus &&
+									thermalStatus.type === "thermal.status" &&
+									"history" in thermalStatus
+								) {
 									ws.send(
 										JSON.stringify({
 											type: "thermal.history",
@@ -74,9 +78,10 @@ export function wsStatusHandler(
 							}
 
 							// Subscribe to live status updates
-							unsubscribe = client!.subscribe((update) => {
-								ws.send(JSON.stringify(update));
-							});
+							unsubscribe =
+								client?.subscribe((update) => {
+									ws.send(JSON.stringify(update));
+								}) ?? null;
 						})
 						.catch(() => {
 							ws.send(JSON.stringify({ type: "error", message: "Cannot reach benchd" }));

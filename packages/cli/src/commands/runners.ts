@@ -20,18 +20,14 @@ export class RunnersCommand extends Command {
 	async execute(): Promise<number> {
 		const creds = loadCredentials();
 		if (!creds) {
-			this.context.stderr.write(
-				"Not logged in. Run `bench login --server <url>` first.\n",
-			);
+			this.context.stderr.write("Not logged in. Run `bench login --server <url>` first.\n");
 			return 1;
 		}
 
 		const config = loadConfig();
 		const serverUrl = this.server ?? config.serverUrl;
 		if (!serverUrl) {
-			this.context.stderr.write(
-				"No server URL configured. Use --server <url>\n",
-			);
+			this.context.stderr.write("No server URL configured. Use --server <url>\n");
 			return 1;
 		}
 
@@ -57,8 +53,7 @@ export class RunnersCommand extends Command {
 		this.context.stdout.write("  ============\n\n");
 
 		for (const runner of runners) {
-			const statusColor =
-				runner.status === "online" ? "\x1b[32m" : "\x1b[31m";
+			const statusColor = runner.status === "online" ? "\x1b[32m" : "\x1b[31m";
 			const reset = "\x1b[0m";
 			const registered = new Date(runner.registeredAt).toLocaleDateString();
 			this.context.stdout.write(

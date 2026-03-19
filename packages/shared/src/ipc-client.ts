@@ -131,8 +131,8 @@ export class BenchdClient {
 	}
 
 	private processBuffer(): void {
-		let newlineIdx: number;
-		while ((newlineIdx = this.buffer.indexOf("\n")) !== -1) {
+		let newlineIdx: number = this.buffer.indexOf("\n");
+		while (newlineIdx !== -1) {
 			const line = this.buffer.slice(0, newlineIdx);
 			this.buffer = this.buffer.slice(newlineIdx + 1);
 
@@ -144,6 +144,7 @@ export class BenchdClient {
 			} catch {
 				// Malformed JSON — skip
 			}
+			newlineIdx = this.buffer.indexOf("\n");
 		}
 	}
 

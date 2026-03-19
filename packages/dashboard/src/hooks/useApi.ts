@@ -1,16 +1,26 @@
-import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import type { ConfigInfo, GithubRepo, Invite, Runner, UserInfo, Violation, WorkflowCounts, WorkflowRun, StepAttempt } from "../types";
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import type {
+	ConfigInfo,
+	GithubRepo,
+	Invite,
+	Runner,
+	StepAttempt,
+	UserInfo,
+	Violation,
+	WorkflowCounts,
+	WorkflowRun,
+} from "../types";
 
 async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
 	const headers: Record<string, string> = {
 		"Content-Type": "application/json",
-		...(init?.headers as Record<string, string> ?? {}),
+		...((init?.headers as Record<string, string>) ?? {}),
 	};
 	const res = await fetch(url, { ...init, headers, credentials: "same-origin" });
 	if (!res.ok) {
 		let message = `${res.status} ${res.statusText}`;
 		try {
-			const body = await res.json() as { error?: string };
+			const body = (await res.json()) as { error?: string };
 			if (body.error) message = body.error;
 		} catch {
 			// response wasn't JSON — use status text
@@ -32,7 +42,11 @@ export function useConfig() {
 export function useRunners() {
 	const queryClient = useQueryClient();
 
-	const { data: runners = [], isLoading: loading, refetch } = useQuery({
+	const {
+		data: runners = [],
+		isLoading: loading,
+		refetch,
+	} = useQuery({
 		queryKey: ["runners"],
 		queryFn: () => fetchJson<Runner[]>("/api/runners"),
 	});
@@ -74,14 +88,11 @@ export function useRunners() {
 	});
 
 	const removeRunner = useMutation({
-		mutationFn: (id: string) =>
-			fetchJson<void>(`/api/runners/${id}`, { method: "DELETE" }),
+		mutationFn: (id: string) => fetchJson<void>(`/api/runners/${id}`, { method: "DELETE" }),
 		onMutate: async (id) => {
 			await queryClient.cancelQueries({ queryKey: ["runners"] });
 			const previous = queryClient.getQueryData<Runner[]>(["runners"]);
-			queryClient.setQueryData<Runner[]>(["runners"], (old = []) =>
-				old.filter((r) => r.id !== id),
-			);
+			queryClient.setQueryData<Runner[]>(["runners"], (old = []) => old.filter((r) => r.id !== id));
 			return { previous };
 		},
 		onError: (_err, _id, context) => {
@@ -131,18 +142,23 @@ export function useInvites() {
 const PER_PAGE = 100;
 
 export function useGithubRepos(hasRepoScope?: boolean) {
-	const { data, isLoading: loading, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } =
-		useInfiniteQuery({
-			queryKey: ["github", "repos"],
-			queryFn: ({ pageParam }) =>
-				fetchJson<GithubRepo[]>(`/api/github/repos?page=${pageParam}`),
-			initialPageParam: 1,
-			getNextPageParam: (lastPage, _allPages, lastPageParam) =>
-				lastPage.length >= PER_PAGE ? lastPageParam + 1 : undefined,
-			enabled: hasRepoScope !== false,
-			staleTime: 10 * 60_000,
-			gcTime: 30 * 60_000,
-		});
+	const {
+		data,
+		isLoading: loading,
+		refetch,
+		fetchNextPage,
+		hasNextPage,
+		isFetchingNextPage,
+	} = useInfiniteQuery({
+		queryKey: ["github", "repos"],
+		queryFn: ({ pageParam }) => fetchJson<GithubRepo[]>(`/api/github/repos?page=${pageParam}`),
+		initialPageParam: 1,
+		getNextPageParam: (lastPage, _allPages, lastPageParam) =>
+			lastPage.length >= PER_PAGE ? lastPageParam + 1 : undefined,
+		enabled: hasRepoScope !== false,
+		staleTime: 10 * 60_000,
+		gcTime: 30 * 60_000,
+	});
 
 	const repos = data?.pages.flat() ?? [];
 
@@ -150,7 +166,11 @@ export function useGithubRepos(hasRepoScope?: boolean) {
 }
 
 export function useUserInfo() {
-	const { data: userInfo = null, isLoading: loading, refetch } = useQuery({
+	const {
+		data: userInfo = null,
+		isLoading: loading,
+		refetch,
+	} = useQuery({
 		queryKey: ["auth", "me"],
 		queryFn: () => fetchJson<UserInfo>("/api/auth/me"),
 	});
@@ -169,14 +189,16 @@ export function useWorkflowCounts() {
 }
 
 export function useWorkflowRuns(statusFilter?: string) {
-	const { data: runs = [], isLoading: loading, refetch } = useQuery({
+	const {
+		data: runs = [],
+		isLoading: loading,
+		refetch,
+	} = useQuery({
 		queryKey: ["workflows", "runs", statusFilter],
 		queryFn: () => {
 			const params = new URLSearchParams();
 			if (statusFilter) params.set("status", statusFilter);
-			return fetchJson<{ data: WorkflowRun[] }>(`/api/workflows?${params}`).then(
-				(res) => res.data,
-			);
+			return fetchJson<{ data: WorkflowRun[] }>(`/api/workflows?${params}`).then((res) => res.data);
 		},
 	});
 
@@ -186,7 +208,11 @@ export function useWorkflowRuns(statusFilter?: string) {
 export function useViolations(repo?: string) {
 	const queryClient = useQueryClient();
 
-	const { data, isLoading: loading, refetch } = useQuery({
+	const {
+		data,
+		isLoading: loading,
+		refetch,
+	} = useQuery({
 		queryKey: ["violations", repo],
 		queryFn: () => {
 			const params = repo ? `?repo=${encodeURIComponent(repo)}` : "";

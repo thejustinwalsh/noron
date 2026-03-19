@@ -156,14 +156,14 @@ export async function runInstall(
 		// Disable turbo boost script
 		writeFileSync(
 			"/usr/local/bin/disable-turbo",
-			`#!/bin/bash\necho 1 > /sys/devices/system/cpu/intel_pstate/no_turbo 2>/dev/null || true\n# ARM: disable boost via cpufreq\necho 0 > /sys/devices/system/cpu/cpufreq/boost 2>/dev/null || true\n`,
+			"#!/bin/bash\necho 1 > /sys/devices/system/cpu/intel_pstate/no_turbo 2>/dev/null || true\n# ARM: disable boost via cpufreq\necho 0 > /sys/devices/system/cpu/cpufreq/boost 2>/dev/null || true\n",
 		);
 		chmodSync("/usr/local/bin/disable-turbo", 0o755);
 
 		// Disable THP script
 		writeFileSync(
 			"/usr/local/bin/disable-thp",
-			`#!/bin/bash\necho never > /sys/kernel/mm/transparent_hugepage/enabled 2>/dev/null || true\necho never > /sys/kernel/mm/transparent_hugepage/defrag 2>/dev/null || true\n`,
+			"#!/bin/bash\necho never > /sys/kernel/mm/transparent_hugepage/enabled 2>/dev/null || true\necho never > /sys/kernel/mm/transparent_hugepage/defrag 2>/dev/null || true\n",
 		);
 		chmodSync("/usr/local/bin/disable-thp", 0o755);
 

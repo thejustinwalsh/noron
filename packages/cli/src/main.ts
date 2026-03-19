@@ -1,10 +1,15 @@
 #!/usr/bin/env bun
-import { Cli, Builtins } from "clipanion";
+import { Builtins, Cli } from "clipanion";
 import { LoginCommand } from "./commands/login";
-import { StatusCommand } from "./commands/status";
 import { MonitorCommand } from "./commands/monitor";
 import { RunnersCommand } from "./commands/runners";
-import { UpdateStatusCommand, UpdateCheckCommand, UpdateApplyCommand, UpdateHistoryCommand } from "./commands/update";
+import { StatusCommand } from "./commands/status";
+import {
+	UpdateApplyCommand,
+	UpdateCheckCommand,
+	UpdateHistoryCommand,
+	UpdateStatusCommand,
+} from "./commands/update";
 
 const cli = new Cli({
 	binaryLabel: "bench",

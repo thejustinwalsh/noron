@@ -70,13 +70,15 @@ gate.on("drainTimeout", (level, activeOps) => {
 		gateClient.subscribe((update) => {
 			const isLocked = update.lock !== null;
 			if (isLocked && !wasLocked) {
-				gate.closeGate(update.lock!.owner);
+				gate.closeGate(update.lock?.owner);
 
 				// Push per-repo timeout override if configured
-				const owner = update.lock!.owner;
-				const override = db
-					.query("SELECT job_timeout_ms FROM runners WHERE repo = ?")
-					.get(owner) as { job_timeout_ms: number | null } | null;
+				const owner = update.lock?.owner;
+				const override = owner
+					? (db.query("SELECT job_timeout_ms FROM runners WHERE repo = ?").get(owner) as {
+							job_timeout_ms: number | null;
+						} | null)
+					: null;
 				if (override?.job_timeout_ms) {
 					gateClient
 						.request({

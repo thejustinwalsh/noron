@@ -1,18 +1,18 @@
-import { useEffect, useMemo, useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
 import { WaCard, WaIcon } from "@awesome.me/webawesome/dist/react";
-import { useWebSocket } from "./hooks/useWebSocket";
-import { useAuth } from "./hooks/useAuth";
-import { useUserInfo, useWorkflowCounts } from "./hooks/useApi";
-import { Layout } from "./components/Layout";
-import { SparklineChart } from "./components/SparklineChart";
-import { LockStatus } from "./components/LockStatus";
-import { SystemInfo } from "./components/SystemInfo";
-import { RunnerList } from "./components/RunnerList";
+import { useQueryClient } from "@tanstack/react-query";
+import { useEffect, useMemo, useState } from "react";
 import { AdminPanel } from "./components/AdminPanel";
+import { Layout } from "./components/Layout";
+import { LockStatus } from "./components/LockStatus";
 import { LoginPrompt } from "./components/LoginPrompt";
 import { Onboarding } from "./components/Onboarding";
+import { RunnerList } from "./components/RunnerList";
+import { SparklineChart } from "./components/SparklineChart";
+import { SystemInfo } from "./components/SystemInfo";
 import { WorkflowsPage } from "./components/WorkflowsPage";
+import { useUserInfo, useWorkflowCounts } from "./hooks/useApi";
+import { useAuth } from "./hooks/useAuth";
+import { useWebSocket } from "./hooks/useWebSocket";
 
 function cpuColor(_pct: number): string {
 	return "#1f9de2";
@@ -102,13 +102,15 @@ export function App() {
 								<div className="sparkline-card">
 									<div className="sparkline-header">
 										<span className="sparkline-label">
-											<WaIcon name="temperature-half" family="classic" variant="solid" style={{ marginRight: "6px", color: tempColor(currentTemp) }} />
+											<WaIcon
+												name="temperature-half"
+												family="classic"
+												variant="solid"
+												style={{ marginRight: "6px", color: tempColor(currentTemp) }}
+											/>
 											Temperature
 										</span>
-										<span
-											className="sparkline-value"
-											style={{ color: tempColor(currentTemp) }}
-										>
+										<span className="sparkline-value" style={{ color: tempColor(currentTemp) }}>
 											{currentTemp.toFixed(1)}°C
 										</span>
 									</div>
@@ -128,13 +130,15 @@ export function App() {
 								<div className="sparkline-card">
 									<div className="sparkline-header">
 										<span className="sparkline-label">
-											<WaIcon name="microchip" family="classic" variant="solid" style={{ marginRight: "6px", color: cpuColor(currentCpu) }} />
+											<WaIcon
+												name="microchip"
+												family="classic"
+												variant="solid"
+												style={{ marginRight: "6px", color: cpuColor(currentCpu) }}
+											/>
 											CPU
 										</span>
-										<span
-											className="sparkline-value"
-											style={{ color: cpuColor(currentCpu) }}
-										>
+										<span className="sparkline-value" style={{ color: cpuColor(currentCpu) }}>
 											{currentCpu.toFixed(1)}%
 										</span>
 									</div>
@@ -154,13 +158,15 @@ export function App() {
 								<div className="sparkline-card">
 									<div className="sparkline-header">
 										<span className="sparkline-label">
-											<WaIcon name="memory" family="classic" variant="solid" style={{ marginRight: "6px", color: memColor(currentMem) }} />
+											<WaIcon
+												name="memory"
+												family="classic"
+												variant="solid"
+												style={{ marginRight: "6px", color: memColor(currentMem) }}
+											/>
 											Memory
 										</span>
-										<span
-											className="sparkline-value"
-											style={{ color: memColor(currentMem) }}
-										>
+										<span className="sparkline-value" style={{ color: memColor(currentMem) }}>
 											{currentMem.toFixed(1)}%
 										</span>
 									</div>
@@ -178,21 +184,26 @@ export function App() {
 							</WaCard>
 						</div>
 					</div>
-					<LockStatus
-						lock={status?.lock ?? null}
-						queueDepth={status?.queueDepth ?? 0}
-					/>
-					<SystemInfo
-						system={status?.system}
-						uptime={status?.uptime ?? 0}
-					/>
+					<LockStatus lock={status?.lock ?? null} queueDepth={status?.queueDepth ?? 0} />
+					<SystemInfo system={status?.system} uptime={status?.uptime ?? 0} />
 				</div>
 			)}
-			{page === "runners" && (authenticated
-			? (userInfo && !userInfo.hasRepoScope && userInfo.runnerCount === 0
-				? <Onboarding onComplete={() => queryClient.invalidateQueries({ queryKey: ["auth", "me"] })} />
-				: <RunnerList hasRepoScope={userInfo?.hasRepoScope} autoAdd={autoAddRunner} onAutoAddConsumed={() => setAutoAddRunner(false)} />)
-			: <LoginPrompt />)}
+			{page === "runners" &&
+				(authenticated ? (
+					userInfo && !userInfo.hasRepoScope && userInfo.runnerCount === 0 ? (
+						<Onboarding
+							onComplete={() => queryClient.invalidateQueries({ queryKey: ["auth", "me"] })}
+						/>
+					) : (
+						<RunnerList
+							hasRepoScope={userInfo?.hasRepoScope}
+							autoAdd={autoAddRunner}
+							onAutoAddConsumed={() => setAutoAddRunner(false)}
+						/>
+					)
+				) : (
+					<LoginPrompt />
+				))}
 			{page === "workflows" && (authenticated ? <WorkflowsPage /> : <LoginPrompt />)}
 			{page === "admin" && (authenticated && isAdmin ? <AdminPanel /> : <LoginPrompt />)}
 		</Layout>

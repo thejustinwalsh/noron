@@ -1,5 +1,5 @@
-import { describe, test, expect } from "bun:test";
-import { applyNice, applyIonice } from "../syscalls";
+import { describe, expect, test } from "bun:test";
+import { applyIonice, applyNice } from "../syscalls";
 
 describe("syscalls validation", () => {
 	test("applyNice rejects priority below -20", () => {
@@ -12,7 +12,9 @@ describe("syscalls validation", () => {
 
 	test("applyNice accepts boundary values", () => {
 		// These will fail on macOS without root, but validation passes
-		try { applyNice(-20); } catch (e) {
+		try {
+			applyNice(-20);
+		} catch (e) {
 			// Expected on macOS — renice may fail, but arg validation passed
 			expect(String(e)).toContain("Failed to set nice");
 		}
@@ -35,8 +37,8 @@ describe("syscalls validation", () => {
 		const { dropPrivileges } = await import("../syscalls");
 		const origUid = process.env.SUDO_UID;
 		const origGid = process.env.SUDO_GID;
-		delete process.env.SUDO_UID;
-		delete process.env.SUDO_GID;
+		process.env.SUDO_UID = undefined;
+		process.env.SUDO_GID = undefined;
 		try {
 			expect(() => dropPrivileges()).toThrow("SUDO_UID and SUDO_GID must be set");
 		} finally {
@@ -54,8 +56,10 @@ describe("syscalls validation", () => {
 		try {
 			expect(() => dropPrivileges()).toThrow("invalid SUDO_UID");
 		} finally {
-			if (origUid) process.env.SUDO_UID = origUid; else delete process.env.SUDO_UID;
-			if (origGid) process.env.SUDO_GID = origGid; else delete process.env.SUDO_GID;
+			if (origUid) process.env.SUDO_UID = origUid;
+			else process.env.SUDO_UID = undefined;
+			if (origGid) process.env.SUDO_GID = origGid;
+			else process.env.SUDO_GID = undefined;
 		}
 	});
 
@@ -68,8 +72,10 @@ describe("syscalls validation", () => {
 		try {
 			expect(() => dropPrivileges()).toThrow("invalid SUDO_GID");
 		} finally {
-			if (origUid) process.env.SUDO_UID = origUid; else delete process.env.SUDO_UID;
-			if (origGid) process.env.SUDO_GID = origGid; else delete process.env.SUDO_GID;
+			if (origUid) process.env.SUDO_UID = origUid;
+			else process.env.SUDO_UID = undefined;
+			if (origGid) process.env.SUDO_GID = origGid;
+			else process.env.SUDO_GID = undefined;
 		}
 	});
 });

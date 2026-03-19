@@ -49,16 +49,17 @@ export function SparklineChart({
 		const duration = 300;
 
 		function draw(now: number) {
-			const ctx = canvas!.getContext("2d");
+			const ctx = canvas?.getContext("2d");
 			if (!ctx) return;
 
 			const t = Math.min((now - startTime) / duration, 1);
 			const ease = 1 - (1 - t) * (1 - t) * (1 - t);
 
 			const dpr = window.devicePixelRatio || 1;
-			const rect = canvas!.getBoundingClientRect();
-			canvas!.width = rect.width * dpr;
-			canvas!.height = rect.height * dpr;
+			const rect = canvas?.getBoundingClientRect();
+			if (!canvas || !rect) return;
+			canvas.width = rect.width * dpr;
+			canvas.height = rect.height * dpr;
 			ctx.scale(dpr, dpr);
 
 			const w = rect.width;
@@ -147,9 +148,7 @@ export function SparklineChart({
 			const lastX = toX(interp.length - 1);
 			const lastY = toY(interp[interp.length - 1]);
 			const lastVal = interp[interp.length - 1];
-			const dotColor = gradient
-				? lerpColor(gradient, (lastVal - lo) / range)
-				: color;
+			const dotColor = gradient ? lerpColor(gradient, (lastVal - lo) / range) : color;
 
 			ctx.beginPath();
 			ctx.arc(lastX, lastY, 3, 0, Math.PI * 2);

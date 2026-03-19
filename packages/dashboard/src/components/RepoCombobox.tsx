@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from "react";
 import { WaIcon, WaSpinner } from "@awesome.me/webawesome/dist/react";
+import { useEffect, useRef, useState } from "react";
 import { useGithubRepos } from "../hooks/useApi";
 
 interface RepoComboboxProps {
@@ -12,7 +12,8 @@ interface RepoComboboxProps {
 }
 
 export function RepoCombobox({ value, onChange, onSelect, hasRepoScope }: RepoComboboxProps) {
-	const { repos, loading, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } = useGithubRepos(hasRepoScope);
+	const { repos, loading, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } =
+		useGithubRepos(hasRepoScope);
 	const isRefreshing = isFetchingNextPage || loading;
 	const [open, setOpen] = useState(false);
 	const [focusIndex, setFocusIndex] = useState(-1);
@@ -20,9 +21,10 @@ export function RepoCombobox({ value, onChange, onSelect, hasRepoScope }: RepoCo
 	const inputRef = useRef<HTMLInputElement>(null);
 	const dropdownRef = useRef<HTMLDivElement>(null);
 
-	const filtered = value.length > 0
-		? repos.filter((r) => r.fullName.toLowerCase().includes(value.toLowerCase()))
-		: repos;
+	const filtered =
+		value.length > 0
+			? repos.filter((r) => r.fullName.toLowerCase().includes(value.toLowerCase()))
+			: repos;
 
 	const showDropdown = open && hasRepoScope !== false && (loading || filtered.length > 0);
 
@@ -80,9 +82,12 @@ export function RepoCombobox({ value, onChange, onSelect, hasRepoScope }: RepoCo
 
 	return (
 		<div className="repo-combobox" ref={wrapperRef}>
-			<label className="repo-combobox-label">Repository</label>
+			<label className="repo-combobox-label" htmlFor="repo-combobox-input">
+				Repository
+			</label>
 			<div className="repo-combobox-input-wrap">
 				<input
+					id="repo-combobox-input"
 					ref={inputRef}
 					type="text"
 					className="repo-combobox-input"
@@ -93,7 +98,17 @@ export function RepoCombobox({ value, onChange, onSelect, hasRepoScope }: RepoCo
 					onKeyDown={handleKeyDown}
 					autoComplete="off"
 				/>
-				{(loading || isFetchingNextPage) && <WaSpinner style={{ fontSize: "14px", position: "absolute", right: "10px", top: "50%", transform: "translateY(-50%)" }} />}
+				{(loading || isFetchingNextPage) && (
+					<WaSpinner
+						style={{
+							fontSize: "14px",
+							position: "absolute",
+							right: "10px",
+							top: "50%",
+							transform: "translateY(-50%)",
+						}}
+					/>
+				)}
 			</div>
 			{showDropdown && (
 				<div className="repo-dropdown" ref={dropdownRef}>
@@ -104,7 +119,10 @@ export function RepoCombobox({ value, onChange, onSelect, hasRepoScope }: RepoCo
 						<div
 							key={repo.fullName}
 							className={`repo-option${i === focusIndex ? " repo-option-focused" : ""}`}
-							onMouseDown={(e) => { e.preventDefault(); handleSelect(repo.fullName); }}
+							onMouseDown={(e) => {
+								e.preventDefault();
+								handleSelect(repo.fullName);
+							}}
 							onMouseEnter={() => setFocusIndex(i)}
 						>
 							<WaIcon
@@ -115,9 +133,7 @@ export function RepoCombobox({ value, onChange, onSelect, hasRepoScope }: RepoCo
 							/>
 							<div className="repo-option-text">
 								<span className="repo-option-name">{repo.fullName}</span>
-								{repo.description && (
-									<span className="repo-option-desc">{repo.description}</span>
-								)}
+								{repo.description && <span className="repo-option-desc">{repo.description}</span>}
 							</div>
 						</div>
 					))}

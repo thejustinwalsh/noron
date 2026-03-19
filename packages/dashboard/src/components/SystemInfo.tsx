@@ -1,6 +1,6 @@
 import { WaCard, WaIcon } from "@awesome.me/webawesome/dist/react";
-import type { SystemInfo as SystemInfoType } from "../types";
 import { useConfig } from "../hooks/useApi";
+import type { SystemInfo as SystemInfoType } from "../types";
 
 interface SystemInfoProps {
 	system: SystemInfoType | undefined;
@@ -40,9 +40,7 @@ export function SystemInfo({ system, uptime }: SystemInfoProps) {
 						</div>
 						<div className="info-row">
 							<span className="label">Isolated</span>
-							<span className="value">
-								Cores {system.isolatedCores.join(", ")}
-							</span>
+							<span className="value">Cores {system.isolatedCores.join(", ")}</span>
 						</div>
 					</>
 				)}

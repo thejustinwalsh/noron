@@ -1,10 +1,16 @@
-import { unlinkSync, existsSync, chmodSync, readdirSync, rmSync } from "node:fs";
+import { chmodSync, existsSync, readdirSync, rmSync, unlinkSync } from "node:fs";
+import { type Server, type Socket, createServer } from "node:net";
 import { join } from "node:path";
-import { createServer, type Server, type Socket } from "node:net";
 import { BENCHMARK_TMPFS, readThrottleCounts } from "@noron/shared";
-import type { BenchdConfig, CpuTopology, Request, StatusUpdate, ViolationEvent } from "@noron/shared";
-import { ClientConnection } from "./connection";
+import type {
+	BenchdConfig,
+	CpuTopology,
+	Request,
+	StatusUpdate,
+	ViolationEvent,
+} from "@noron/shared";
 import { CgroupManager } from "./cgroup";
+import { ClientConnection } from "./connection";
 import { LockManager } from "./lock";
 import { log } from "./logger";
 import { SysMetrics } from "./sysmetrics";
@@ -47,13 +53,10 @@ export class BenchdServer {
 			(owner, jobId, runId) => this.handleJobTimeout(owner, jobId, runId),
 			(repo, jobId, runId, reason) => this.broadcastViolation(repo, jobId, runId, reason),
 		);
-		this.thermal = new ThermalMonitor(config.thermalPollIntervalMs, () =>
-			this.broadcastStatus(),
-			{
-				thermalMarginC: config.thermalMarginC,
-				baselineSettlingMs: config.thermalBaselineSettlingS * 1000,
-			},
-		);
+		this.thermal = new ThermalMonitor(config.thermalPollIntervalMs, () => this.broadcastStatus(), {
+			thermalMarginC: config.thermalMarginC,
+			baselineSettlingMs: config.thermalBaselineSettlingS * 1000,
+		});
 		this.cgroup = new CgroupManager(config.isolatedCores, config.benchmarkCgroup);
 	}
 
@@ -74,7 +77,9 @@ export class BenchdServer {
 
 			this.server.listen(this.options.socketPath, () => {
 				// Allow non-root services (bench-web) to connect
-				try { chmodSync(this.options.socketPath, 0o770); } catch {}
+				try {
+					chmodSync(this.options.socketPath, 0o770);
+				} catch {}
 				log("info", "server", `Listening on ${this.options.socketPath}`);
 				resolve();
 			});
@@ -104,9 +109,7 @@ export class BenchdServer {
 	}
 
 	private handleConnection(socket: Socket): void {
-		const client = new ClientConnection(socket, (msg) =>
-			this.handleMessage(client, msg),
-		);
+		const client = new ClientConnection(socket, (msg) => this.handleMessage(client, msg));
 
 		this.clients.add(client);
 		log("info", "server", `Client connected (${this.clients.size} total)`);

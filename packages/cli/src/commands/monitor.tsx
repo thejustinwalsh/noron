@@ -1,12 +1,16 @@
-import { Command, Option } from "clipanion";
-import React, { useState, useEffect } from "react";
-import { render, Text, Box } from "ink";
 import { BenchdClient, SOCKET_PATH } from "@noron/shared";
 import type { StatusUpdate } from "@noron/shared";
+import { Command, Option } from "clipanion";
+import { Box, Text, render } from "ink";
+import React, { useState, useEffect } from "react";
 
 // --- Ink Components ---
 
-function ThermalGraph({ history, current, trend }: {
+function ThermalGraph({
+	history,
+	current,
+	trend,
+}: {
 	history: number[];
 	current: number;
 	trend: string;
@@ -30,13 +34,19 @@ function ThermalGraph({ history, current, trend }: {
 	return (
 		<Box flexDirection="column">
 			<Text bold> Temperature</Text>
-			<Text color={color}> {current.toFixed(1)}°C ({trend})</Text>
+			<Text color={color}>
+				{" "}
+				{current.toFixed(1)}°C ({trend})
+			</Text>
 			<Text dimColor> {sparkline}</Text>
 		</Box>
 	);
 }
 
-function LockStatus({ holder, queueDepth }: {
+function LockStatus({
+	holder,
+	queueDepth,
+}: {
 	holder: StatusUpdate["lock"];
 	queueDepth: number;
 }) {
@@ -54,7 +64,10 @@ function LockStatus({ holder, queueDepth }: {
 		<Box flexDirection="column">
 			<Text bold> Lock</Text>
 			<Text color="yellow"> HELD by {holder.owner}</Text>
-			<Text> Job: {holder.jobId} ({dur}s)</Text>
+			<Text>
+				{" "}
+				Job: {holder.jobId} ({dur}s)
+			</Text>
 			{queueDepth > 0 && <Text> Queue: {queueDepth} waiting</Text>}
 		</Box>
 	);
@@ -98,7 +111,10 @@ function Dashboard({ socketPath }: { socketPath: string }) {
 
 	return (
 		<Box flexDirection="column" padding={1}>
-			<Text bold inverse> bench monitor </Text>
+			<Text bold inverse>
+				{" "}
+				bench monitor{" "}
+			</Text>
 			<Text dimColor> Uptime: {uptime}m</Text>
 			<Text> </Text>
 			<ThermalGraph
@@ -126,9 +142,7 @@ export class MonitorCommand extends Command {
 
 	async execute(): Promise<number> {
 		const socketPath = this.socket ?? SOCKET_PATH;
-		const { waitUntilExit } = render(
-			React.createElement(Dashboard, { socketPath }),
-		);
+		const { waitUntilExit } = render(React.createElement(Dashboard, { socketPath }));
 		await waitUntilExit();
 		return 0;
 	}

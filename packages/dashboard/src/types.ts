@@ -46,7 +46,16 @@ export interface Runner {
 	id: string;
 	name: string;
 	repo: string;
-	status: "online" | "offline" | "busy" | "pending" | "provisioning" | "removing" | "failed" | "healing" | "disabled";
+	status:
+		| "online"
+		| "offline"
+		| "busy"
+		| "pending"
+		| "provisioning"
+		| "removing"
+		| "failed"
+		| "healing"
+		| "disabled";
 	statusMessage: string | null;
 	lastHeartbeat: string | null;
 	job_timeout_ms: number | null;
@@ -96,7 +105,14 @@ export interface ConfigInfo {
 	configPath: string;
 }
 
-export type WorkflowRunStatus = "pending" | "running" | "sleeping" | "succeeded" | "completed" | "failed" | "canceled";
+export type WorkflowRunStatus =
+	| "pending"
+	| "running"
+	| "sleeping"
+	| "succeeded"
+	| "completed"
+	| "failed"
+	| "canceled";
 
 export interface WorkflowRun {
 	id: string;

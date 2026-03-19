@@ -1,10 +1,15 @@
-import { describe, test, expect, beforeEach, afterEach } from "bun:test";
-import { ThermalMonitor } from "../thermal";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import type { ClientConnection } from "../connection";
+import { ThermalMonitor } from "../thermal";
 
 function mockClient(): { messages: object[]; send: (msg: object) => void } {
 	const messages: object[] = [];
-	return { messages, send(msg: object) { messages.push(msg); } };
+	return {
+		messages,
+		send(msg: object) {
+			messages.push(msg);
+		},
+	};
 }
 
 describe("ThermalMonitor", () => {

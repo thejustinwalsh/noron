@@ -187,7 +187,7 @@ describe("Provision Runner Workflow", () => {
 							input.name,
 							input.repo,
 							data.token,
-							"http://localhost:3000/api/runners/" + input.runnerId + "/callback",
+							`http://localhost:3000/api/runners/${input.runnerId}/callback`,
 						],
 						{ stdout: "pipe", stderr: "pipe" },
 					);

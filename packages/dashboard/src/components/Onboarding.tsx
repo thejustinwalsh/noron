@@ -1,6 +1,6 @@
-import { useState } from "react";
-import { WaButton, WaCard, WaIcon, WaInput } from "@awesome.me/webawesome/dist/react";
 import type WaInputEl from "@awesome.me/webawesome/dist/components/input/input.js";
+import { WaButton, WaCard, WaIcon, WaInput } from "@awesome.me/webawesome/dist/react";
+import { useState } from "react";
 
 interface OnboardingProps {
 	onComplete: () => void;
@@ -45,12 +45,17 @@ export function Onboarding({ onComplete }: OnboardingProps) {
 			<WaCard>
 				<div className="onboarding">
 					<div className="onboarding-icon">
-						<WaIcon name="gauge-high" family="classic" variant="solid" style={{ fontSize: "32px", color: "var(--primary)" }} />
+						<WaIcon
+							name="gauge-high"
+							family="classic"
+							variant="solid"
+							style={{ fontSize: "32px", color: "var(--primary)" }}
+						/>
 					</div>
 					<h2 style={{ margin: 0, fontSize: "20px" }}>Welcome to your benchmark appliance</h2>
 					<p className="muted" style={{ maxWidth: "480px", textAlign: "center" }}>
-						This appliance runs your GitHub Actions benchmarks on dedicated hardware
-						with hardware-level CPU isolation for repeatable, low-variance results.
+						This appliance runs your GitHub Actions benchmarks on dedicated hardware with
+						hardware-level CPU isolation for repeatable, low-variance results.
 					</p>
 					<WaButton variant="brand" onClick={() => setStep("choose")}>
 						Get Started
@@ -69,20 +74,46 @@ export function Onboarding({ onComplete }: OnboardingProps) {
 						We need access to your repositories to register self-hosted runners.
 					</p>
 					<div className="onboarding-choices">
-						<div className="onboarding-choice" onClick={() => {
-							window.location.href = "/auth/upgrade";
-						}}>
-							<WaIcon name="github" family="brands" style={{ fontSize: "24px", color: "var(--text)" }} />
+						<div
+							className="onboarding-choice"
+							role="button"
+							tabIndex={0}
+							onClick={() => {
+								window.location.href = "/auth/upgrade";
+							}}
+							onKeyDown={(e) => {
+								if (e.key === "Enter") window.location.href = "/auth/upgrade";
+							}}
+						>
+							<WaIcon
+								name="github"
+								family="brands"
+								style={{ fontSize: "24px", color: "var(--text)" }}
+							/>
 							<strong>Grant GitHub access</strong>
 							<p className="muted" style={{ margin: 0, fontSize: "12px" }}>
 								One click to authorize. We'll handle runner provisioning automatically.
 							</p>
 						</div>
-						<div className="onboarding-choice" onClick={() => setStep("pat-input")}>
-							<WaIcon name="key" family="classic" variant="solid" style={{ fontSize: "24px", color: "var(--yellow)" }} />
+						<div
+							className="onboarding-choice"
+							role="button"
+							tabIndex={0}
+							onClick={() => setStep("pat-input")}
+							onKeyDown={(e) => {
+								if (e.key === "Enter") setStep("pat-input");
+							}}
+						>
+							<WaIcon
+								name="key"
+								family="classic"
+								variant="solid"
+								style={{ fontSize: "24px", color: "var(--yellow)" }}
+							/>
 							<strong>Use a personal access token</strong>
 							<p className="muted" style={{ margin: 0, fontSize: "12px" }}>
-								Full control over what we can access. Use a fine-grained token scoped to specific repos.
+								Full control over what we can access. Use a fine-grained token scoped to specific
+								repos.
 							</p>
 						</div>
 					</div>
@@ -98,16 +129,29 @@ export function Onboarding({ onComplete }: OnboardingProps) {
 				<h2 style={{ margin: 0, fontSize: "20px" }}>Add a personal access token</h2>
 				<div className="onboarding-instructions">
 					<p className="muted">Create a fine-grained token on GitHub:</p>
-					<ol className="muted" style={{ paddingLeft: "20px", textAlign: "left", lineHeight: "1.8" }}>
+					<ol
+						className="muted"
+						style={{ paddingLeft: "20px", textAlign: "left", lineHeight: "1.8" }}
+					>
 						<li>
 							Go to{" "}
-							<a href="https://github.com/settings/tokens?type=beta" target="_blank" rel="noopener noreferrer" style={{ color: "var(--primary)" }}>
+							<a
+								href="https://github.com/settings/tokens?type=beta"
+								target="_blank"
+								rel="noopener noreferrer"
+								style={{ color: "var(--primary)" }}
+							>
 								github.com/settings/tokens
 							</a>{" "}
 							&rarr; Fine-grained tokens &rarr; Generate new token
 						</li>
-						<li>Select <strong>"Only select repositories"</strong> &rarr; pick your repo(s)</li>
-						<li>Permissions &rarr; Repository permissions &rarr; <strong>"Administration"</strong> &rarr; Read and write</li>
+						<li>
+							Select <strong>"Only select repositories"</strong> &rarr; pick your repo(s)
+						</li>
+						<li>
+							Permissions &rarr; Repository permissions &rarr; <strong>"Administration"</strong>{" "}
+							&rarr; Read and write
+						</li>
 						<li>Copy the generated token and paste it below</li>
 					</ol>
 				</div>
@@ -122,13 +166,14 @@ export function Onboarding({ onComplete }: OnboardingProps) {
 						style={{ width: "100%" }}
 					/>
 				</div>
-				{patError && (
-					<p style={{ color: "var(--red)", fontSize: "13px", margin: 0 }}>
-						{patError}
-					</p>
-				)}
+				{patError && <p style={{ color: "var(--red)", fontSize: "13px", margin: 0 }}>{patError}</p>}
 				<div style={{ display: "flex", gap: "8px" }}>
-					<WaButton variant="neutral" appearance="outlined" size="small" onClick={() => setStep("choose")}>
+					<WaButton
+						variant="neutral"
+						appearance="outlined"
+						size="small"
+						onClick={() => setStep("choose")}
+					>
 						Back
 					</WaButton>
 					<WaButton

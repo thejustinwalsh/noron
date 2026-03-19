@@ -1,14 +1,18 @@
-import { describe, test, expect, beforeEach } from "bun:test";
-import { LockManager } from "../lock";
+import { beforeEach, describe, expect, test } from "bun:test";
 import type { ClientConnection } from "../connection";
+import { LockManager } from "../lock";
 
 function mockClient(): ClientConnection & { messages: object[] } {
 	const messages: object[] = [];
 	return {
 		messages,
-		send(msg: object) { messages.push(msg); },
+		send(msg: object) {
+			messages.push(msg);
+		},
 		close() {},
-		get id() { return "mock"; },
+		get id() {
+			return "mock";
+		},
 		subscriptionRequestId: null,
 	} as unknown as ClientConnection & { messages: object[] };
 }
@@ -145,7 +149,7 @@ describe("LockManager", () => {
 	test("currentHolder includes duration", () => {
 		const c = mockClient();
 		lock.acquire(c, acquireReq("j1"));
-		const holder = lock.currentHolder!;
+		const holder = lock.currentHolder as NonNullable<typeof lock.currentHolder>;
 		expect(holder.jobId).toBe("j1");
 		expect(holder.duration).toBeGreaterThanOrEqual(0);
 	});

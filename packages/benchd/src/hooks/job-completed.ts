@@ -4,7 +4,7 @@
  * Releases the machine-wide lock after all job steps complete.
  * Reports violations (action not used) to bench-web for strike tracking.
  */
-import { readFileSync, unlinkSync, existsSync } from "node:fs";
+import { existsSync, readFileSync, unlinkSync } from "node:fs";
 import { BenchdClient, JOB_TOKEN_PATH } from "@noron/shared";
 
 const client = new BenchdClient();

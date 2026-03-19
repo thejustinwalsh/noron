@@ -5,7 +5,7 @@
  * This blocks until the lock is granted (FIFO queue).
  * Writes the job token to a file for the noron action to read.
  */
-import { writeFileSync, chmodSync } from "node:fs";
+import { chmodSync, writeFileSync } from "node:fs";
 import { BenchdClient, JOB_TOKEN_PATH } from "@noron/shared";
 
 const client = new BenchdClient();

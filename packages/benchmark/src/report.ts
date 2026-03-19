@@ -4,7 +4,7 @@
 // Usage: bun run src/report.ts results/*.json --out report.html
 
 import { readFileSync, readdirSync } from "node:fs";
-import { resolve, basename } from "node:path";
+import { basename, resolve } from "node:path";
 
 interface Meta {
 	runner: string;
@@ -61,7 +61,7 @@ const byRunner = new Map<string, RunFile[]>();
 for (const run of runs) {
 	const key = run.meta.runner;
 	if (!byRunner.has(key)) byRunner.set(key, []);
-	byRunner.get(key)!.push(run);
+	byRunner.get(key)?.push(run);
 }
 
 // Compute stats across runs for each benchmark per runner
@@ -102,7 +102,7 @@ interface BenchComparison {
 const benchNames = [...new Set(runs.flatMap((r) => r.results.map((b) => b.name)))];
 
 const comparisons: BenchComparison[] = benchNames.map((name) => {
-	const runners = new Map<string, any>();
+	const runners = new Map<string, unknown>();
 	for (const [runner, runnerRuns] of byRunner) {
 		const entries = runnerRuns
 			.map((r) => r.results.find((b) => b.name === name))
@@ -115,14 +115,10 @@ const comparisons: BenchComparison[] = benchNames.map((name) => {
 		const withinCVs = entries.map((e) => iqrCV(e.samples));
 
 		// Aggregate counters across runs (avg of each counter value)
-		const counterKeys = [
-			...new Set(entries.flatMap((e) => Object.keys(e.counters ?? {}))),
-		];
+		const counterKeys = [...new Set(entries.flatMap((e) => Object.keys(e.counters ?? {})))];
 		const counters: Record<string, { avg: number; cv: number }> = {};
 		for (const key of counterKeys) {
-			const vals = entries
-				.map((e) => e.counters?.[key])
-				.filter((v): v is number => v != null);
+			const vals = entries.map((e) => e.counters?.[key]).filter((v): v is number => v != null);
 			if (vals.length > 0) {
 				counters[key] = {
 					avg: vals.reduce((a, b) => a + b, 0) / vals.length,
@@ -189,7 +185,7 @@ const tableRows = groups
 const runnerHeaders = runnerNames
 	.map(
 		(r) =>
-			`<th colspan="3">${r} <span class="run-count">(${byRunner.get(r)!.length} runs)</span></th>`,
+			`<th colspan="3">${r} <span class="run-count">(${byRunner.get(r)?.length} runs)</span></th>`,
 	)
 	.join("");
 const subHeaders = runnerNames
@@ -205,10 +201,12 @@ const summaryRows = runnerNames
 		const allWithin = comparisons
 			.map((c) => c.runners.get(r)?.withinRunCV)
 			.filter((v): v is number => v != null);
-		const medianR2R = [...allRunToRun].sort((a, b) => a - b)[Math.floor(allRunToRun.length / 2)] ?? 0;
-		const medianWithin = [...allWithin].sort((a, b) => a - b)[Math.floor(allWithin.length / 2)] ?? 0;
+		const medianR2R =
+			[...allRunToRun].sort((a, b) => a - b)[Math.floor(allRunToRun.length / 2)] ?? 0;
+		const medianWithin =
+			[...allWithin].sort((a, b) => a - b)[Math.floor(allWithin.length / 2)] ?? 0;
 		const maxR2R = Math.max(...allRunToRun, 0);
-		return `<tr><td>${r}</td><td>${byRunner.get(r)!.length}</td><td>${cvBadge(medianR2R)}</td><td>${cvBadge(maxR2R)}</td><td>${cvBadge(medianWithin)}</td></tr>`;
+		return `<tr><td>${r}</td><td>${byRunner.get(r)?.length}</td><td>${cvBadge(medianR2R)}</td><td>${cvBadge(maxR2R)}</td><td>${cvBadge(medianWithin)}</td></tr>`;
 	})
 	.join("\n");
 
@@ -256,8 +254,7 @@ const countersSection = !hasCounters
 					const cells = runnerNames
 						.map((r) => {
 							const d = c.runners.get(r);
-							if (!d)
-								return allCounterKeys.map(() => "<td>-</td>").join("");
+							if (!d) return allCounterKeys.map(() => "<td>-</td>").join("");
 							return allCounterKeys
 								.map((k) => {
 									const ct = d.counters?.[k];

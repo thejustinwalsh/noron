@@ -1,8 +1,8 @@
 // Collect dist/ outputs from all sibling packages into packages/iso/dist/
 // Turbo guarantees all deps are built before this runs (dependsOn: ["^build"]).
 // Walks packages/*/dist/ and copies whatever exists. No hardcoded list.
-import { cpSync, mkdirSync, existsSync, readdirSync } from "node:fs";
-import { resolve, join } from "node:path";
+import { cpSync, existsSync, mkdirSync, readdirSync } from "node:fs";
+import { join, resolve } from "node:path";
 
 const ROOT = resolve(import.meta.dirname, "../..");
 const PACKAGES = resolve(ROOT, "packages");

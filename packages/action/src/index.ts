@@ -1,3 +1,4 @@
+import { spawn } from "node:child_process";
 /**
  * Composite GitHub Action entry point.
  * Bundled to dist/index.js targeting Node (not Bun) since the
@@ -6,18 +7,14 @@
  * Orchestrates: action.checkin → thermal wait → cgroup prepare → bench-exec spawn
  */
 import { readFileSync } from "node:fs";
-import { spawn } from "node:child_process";
-import { connect, type Socket } from "node:net";
+import { type Socket, connect } from "node:net";
 
 const SOCKET_PATH = process.env.BENCHD_SOCKET ?? "/var/run/benchd.sock";
 const JOB_TOKEN_PATH = process.env.JOB_TOKEN_PATH ?? "/opt/actions-runner/.benchd-token";
 
 // --- Minimal IPC client for Node (no Bun APIs) ---
 
-function sendRequest(
-	socketPath: string,
-	msg: object,
-): Promise<Record<string, unknown>> {
+function sendRequest(socketPath: string, msg: object): Promise<Record<string, unknown>> {
 	return new Promise((resolve, reject) => {
 		const socket: Socket = connect({ path: socketPath });
 		let buffer = "";
@@ -62,7 +59,9 @@ async function run(): Promise<void> {
 	try {
 		jobToken = readFileSync(JOB_TOKEN_PATH, "utf-8").trim();
 	} catch {
-		console.log("::error::Could not read job token. Ensure the noron job-started hook is configured.");
+		console.log(
+			"::error::Could not read job token. Ensure the noron job-started hook is configured.",
+		);
 		process.exitCode = 1;
 		return;
 	}
@@ -121,7 +120,9 @@ async function run(): Promise<void> {
 	}
 
 	// Step 1: Wait for thermal stabilization
-	console.log(`::group::Thermal stabilization (target: ${targetTemp === 0 ? "auto" : `${targetTemp}°C`})`);
+	console.log(
+		`::group::Thermal stabilization (target: ${targetTemp === 0 ? "auto" : `${targetTemp}°C`})`,
+	);
 	try {
 		const thermal = await sendRequest(SOCKET_PATH, {
 			type: "thermal.wait",
@@ -172,7 +173,7 @@ async function run(): Promise<void> {
 	// Step 3: Run the benchmark via bench-exec
 	// If tmpfs is available, set TMPDIR so all temp I/O goes to RAM automatically.
 	const benchEnv: Record<string, string> = {
-		...process.env as Record<string, string>,
+		...(process.env as Record<string, string>),
 		BENCH_SESSION_ID: sessionId,
 		BENCH_JOB_TOKEN: jobToken,
 	};
@@ -185,7 +186,9 @@ async function run(): Promise<void> {
 	} else if (!useTmpfs) {
 		console.log("Tmpfs disabled for this run (use-tmpfs: false). Benchmark I/O will use disk.");
 	} else {
-		console.log("::notice::No tmpfs available — benchmark I/O will use disk. For lower variance, configure tmpfs in /etc/benchd/config.toml (requires sufficient RAM).");
+		console.log(
+			"::notice::No tmpfs available — benchmark I/O will use disk. For lower variance, configure tmpfs in /etc/benchd/config.toml (requires sufficient RAM).",
+		);
 	}
 
 	console.log(`::group::Benchmark: ${command}`);

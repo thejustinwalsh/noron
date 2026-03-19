@@ -1,9 +1,6 @@
 import { existsSync } from "node:fs";
-import { mkdir, writeFile, rmdir } from "node:fs/promises";
-import type {
-	ExecPrepareRequest,
-	ExecValidateRequest,
-} from "@noron/shared";
+import { mkdir, rmdir, writeFile } from "node:fs/promises";
+import type { ExecPrepareRequest, ExecValidateRequest } from "@noron/shared";
 import type { ClientConnection } from "./connection";
 import { log } from "./logger";
 
@@ -69,10 +66,7 @@ export class CgroupManager {
 		});
 	}
 
-	async validate(
-		client: ClientConnection,
-		msg: ExecValidateRequest,
-	): Promise<void> {
+	async validate(client: ClientConnection, msg: ExecValidateRequest): Promise<void> {
 		const session = this.sessions.get(msg.sessionId);
 		if (!session) {
 			client.send({

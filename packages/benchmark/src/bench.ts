@@ -2,7 +2,7 @@
 // These are intentionally chosen to amplify noise from CPU contention,
 // thermal throttling, and scheduling jitter — exactly what our appliance eliminates.
 
-import { run, bench, group } from "mitata";
+import { bench, group, run } from "mitata";
 
 // --- CPU-bound: tight loop that's sensitive to frequency scaling & contention ---
 group("cpu", () => {

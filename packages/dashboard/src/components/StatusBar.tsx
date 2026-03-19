@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
 import { WaBadge, WaIcon } from "@awesome.me/webawesome/dist/react";
+import { useEffect, useState } from "react";
 import type { LockHolder, WorkflowCounts } from "../types";
 
 interface StatusBarProps {
@@ -19,7 +19,12 @@ function formatDuration(ms: number): string {
 	return `${hours}h ${minutes % 60}m`;
 }
 
-export function StatusBar({ lock, queueDepth, workflowCounts, onNavigateWorkflows }: StatusBarProps) {
+export function StatusBar({
+	lock,
+	queueDepth,
+	workflowCounts,
+	onNavigateWorkflows,
+}: StatusBarProps) {
 	const [elapsed, setElapsed] = useState(0);
 
 	useEffect(() => {
@@ -73,10 +78,20 @@ export function StatusBar({ lock, queueDepth, workflowCounts, onNavigateWorkflow
 				<div className="status-bar-right">
 					<div
 						className="workflow-counts-link"
+						role="button"
+						tabIndex={0}
 						onClick={onNavigateWorkflows}
+						onKeyDown={(e) => {
+							if (e.key === "Enter" || e.key === " ") onNavigateWorkflows?.();
+						}}
 						title="View workflows"
 					>
-						<WaIcon name="diagram-project" family="classic" variant="solid" style={{ fontSize: "12px" }} />
+						<WaIcon
+							name="diagram-project"
+							family="classic"
+							variant="solid"
+							style={{ fontSize: "12px" }}
+						/>
 						<WaBadge pill variant={wf.variant} style={{ fontSize: "11px", cursor: "pointer" }}>
 							{wf.text}
 						</WaBadge>
@@ -87,8 +102,16 @@ export function StatusBar({ lock, queueDepth, workflowCounts, onNavigateWorkflow
 	);
 }
 
-function buildWorkflowSummary(counts: WorkflowCounts): { text: string; variant: "danger" | "warning" | "neutral" | "success" } | null {
-	const total = counts.running + counts.sleeping + counts.pending + counts.completed + counts.failed + counts.canceled;
+function buildWorkflowSummary(
+	counts: WorkflowCounts,
+): { text: string; variant: "danger" | "warning" | "neutral" | "success" } | null {
+	const total =
+		counts.running +
+		counts.sleeping +
+		counts.pending +
+		counts.completed +
+		counts.failed +
+		counts.canceled;
 	if (total === 0) return null;
 
 	// Failed takes priority

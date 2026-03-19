@@ -77,6 +77,9 @@ export function WorkflowList({ runs, loading, onSelect }: WorkflowListProps) {
 						key={run.id}
 						className="workflow-row"
 						onClick={() => onSelect(run.id)}
+						onKeyDown={(e) => {
+							if (e.key === "Enter" || e.key === " ") onSelect(run.id);
+						}}
 					>
 						<td>
 							<WaBadge pill variant={STATUS_VARIANT[run.status] ?? "neutral"}>

@@ -30,8 +30,8 @@ const { values: flags } = parseArgs({
 	strict: true,
 });
 
-const SOCKET = flags.socket!;
-const PORT = Number.parseInt(flags.port!, 10);
+const SOCKET = flags.socket as string;
+const PORT = Number.parseInt(flags.port as string, 10);
 const DB_PATH = join(tmpdir(), "bench-dev.db");
 const WF_DB_PATH = join(tmpdir(), "bench-dev-wf.db");
 const DASHBOARD_DIR = "packages/dashboard/dist";

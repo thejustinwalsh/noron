@@ -80,9 +80,12 @@ export function authRoutes(db: Database): Hono {
 		if (Date.now() > row.expires_at) return c.json({ status: "expired" });
 		if (!row.token) return c.json({ status: "pending" });
 
-		const user = db
-			.query("SELECT github_login, role FROM users WHERE id = ?")
-			.get(row.user_id!) as { github_login: string; role: string } | null;
+		const user = row.user_id
+			? (db.query("SELECT github_login, role FROM users WHERE id = ?").get(row.user_id) as {
+					github_login: string;
+					role: string;
+				} | null)
+			: null;
 
 		// Clean up used device code
 		db.run("DELETE FROM device_codes WHERE code = ?", [body.deviceCode]);

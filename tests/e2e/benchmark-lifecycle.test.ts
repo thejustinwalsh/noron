@@ -100,7 +100,7 @@ describe("Benchmark lifecycle e2e", () => {
 				`  [e2e] Thermal: ready at ${(thermal as { currentTemp: number }).currentTemp}°C`,
 			);
 		} else if (thermal.type === "thermal.timeout") {
-			console.log(`  [e2e] Thermal: timed out (no sensor or temp too high) — proceeding`);
+			console.log("  [e2e] Thermal: timed out (no sensor or temp too high) — proceeding");
 		}
 		expect(["thermal.ready", "thermal.timeout"]).toContain(thermal.type);
 

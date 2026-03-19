@@ -94,7 +94,7 @@ describe("Protocol types", () => {
 			},
 		];
 
-		const wire = messages.map((m) => JSON.stringify(m)).join("\n") + "\n";
+		const wire = `${messages.map((m) => JSON.stringify(m)).join("\n")}\n`;
 		const parsed = wire
 			.trim()
 			.split("\n")

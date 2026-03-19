@@ -1,5 +1,5 @@
-import { Command, Option } from "clipanion";
 import { BenchdClient, SOCKET_PATH } from "@noron/shared";
+import { Command, Option } from "clipanion";
 
 export class StatusCommand extends Command {
 	static paths = [["status"]];
@@ -43,7 +43,9 @@ export class StatusCommand extends Command {
 				const temp = thermalStatus.currentTemp;
 				const color = temp < 40 ? "\x1b[32m" : temp < 50 ? "\x1b[33m" : "\x1b[31m";
 				const reset = "\x1b[0m";
-				this.context.stdout.write(`  Temperature: ${color}${temp.toFixed(1)}°C${reset} (${thermalStatus.trend})\n`);
+				this.context.stdout.write(
+					`  Temperature: ${color}${temp.toFixed(1)}°C${reset} (${thermalStatus.trend})\n`,
+				);
 			}
 
 			// Lock
@@ -51,7 +53,9 @@ export class StatusCommand extends Command {
 				if (lockStatus.held && lockStatus.holder) {
 					const h = lockStatus.holder;
 					const dur = (h.duration / 1000).toFixed(0);
-					this.context.stdout.write(`  Lock: \x1b[33mHELD\x1b[0m by ${h.owner} (job: ${h.jobId}, ${dur}s)\n`);
+					this.context.stdout.write(
+						`  Lock: \x1b[33mHELD\x1b[0m by ${h.owner} (job: ${h.jobId}, ${dur}s)\n`,
+					);
 				} else {
 					this.context.stdout.write("  Lock: \x1b[32mIDLE\x1b[0m\n");
 				}

@@ -1,7 +1,15 @@
-import { useState } from "react";
-import { WaCard, WaButton, WaCallout, WaBadge, WaSpinner, WaIcon, WaInput } from "@awesome.me/webawesome/dist/react";
 import type WaInputEl from "@awesome.me/webawesome/dist/components/input/input.js";
-import { useInvites, useRunners, useViolations, useRunnerTimeout } from "../hooks/useApi";
+import {
+	WaBadge,
+	WaButton,
+	WaCallout,
+	WaCard,
+	WaIcon,
+	WaInput,
+	WaSpinner,
+} from "@awesome.me/webawesome/dist/react";
+import { useState } from "react";
+import { useInvites, useRunnerTimeout, useRunners, useViolations } from "../hooks/useApi";
 
 const STATUS_VARIANT: Record<string, "success" | "neutral" | "brand"> = {
 	Active: "success",
@@ -25,9 +33,21 @@ export function AdminPanel() {
 	return (
 		<div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
 			<WaCard>
-				<div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "12px" }}>
+				<div
+					style={{
+						display: "flex",
+						alignItems: "center",
+						justifyContent: "space-between",
+						marginBottom: "12px",
+					}}
+				>
 					<h3>
-						<WaIcon name="envelope-open-text" family="classic" variant="solid" style={{ marginRight: "6px" }} />
+						<WaIcon
+							name="envelope-open-text"
+							family="classic"
+							variant="solid"
+							style={{ marginRight: "6px" }}
+						/>
 						Invites
 					</h3>
 					<WaButton
@@ -44,7 +64,17 @@ export function AdminPanel() {
 					<WaCallout variant="brand" size="small" style={{ marginBottom: "16px" }}>
 						<div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
 							<span>Invite link created:</span>
-							<code style={{ flex: 1, fontSize: "12px", wordBreak: "break-all", background: "var(--bg)", padding: "4px 8px", borderRadius: "4px", minWidth: "200px" }}>
+							<code
+								style={{
+									flex: 1,
+									fontSize: "12px",
+									wordBreak: "break-all",
+									background: "var(--bg)",
+									padding: "4px 8px",
+									borderRadius: "4px",
+									minWidth: "200px",
+								}}
+							>
 								{newInviteUrl}
 							</code>
 							<WaButton
@@ -80,11 +110,7 @@ export function AdminPanel() {
 						<tbody>
 							{invites.map((invite) => {
 								const expired = new Date(invite.expiresAt) < new Date();
-								const status = invite.usedAt
-									? "Used"
-									: expired
-										? "Expired"
-										: "Active";
+								const status = invite.usedAt ? "Used" : expired ? "Expired" : "Active";
 								return (
 									<tr key={invite.id}>
 										<td>
@@ -156,13 +182,15 @@ function RunnerPolicies() {
 						<th>Strikes</th>
 						<th>Status</th>
 						<th>Timeout</th>
-						<th></th>
+						<th />
 					</tr>
 				</thead>
 				<tbody>
 					{runners.map((runner) => (
 						<tr key={runner.id}>
-							<td><code>{runner.repo}</code></td>
+							<td>
+								<code>{runner.repo}</code>
+							</td>
 							<td>
 								{runner.violationCount > 0 ? (
 									<WaBadge pill variant={runner.violationCount >= 3 ? "danger" : "warning"}>
@@ -173,7 +201,16 @@ function RunnerPolicies() {
 								)}
 							</td>
 							<td>
-								<WaBadge pill variant={runner.status === "disabled" ? "danger" : runner.status === "online" ? "success" : "neutral"}>
+								<WaBadge
+									pill
+									variant={
+										runner.status === "disabled"
+											? "danger"
+											: runner.status === "online"
+												? "success"
+												: "neutral"
+									}
+								>
 									{runner.status}
 								</WaBadge>
 							</td>
@@ -184,16 +221,22 @@ function RunnerPolicies() {
 											size="small"
 											placeholder="min"
 											value={timeoutValue}
-											onInput={(e) => setTimeoutValue((e.target as unknown as WaInputEl).value ?? "")}
+											onInput={(e) =>
+												setTimeoutValue((e.target as unknown as WaInputEl).value ?? "")
+											}
 											style={{ width: "70px" }}
 										/>
-										<span className="muted" style={{ fontSize: "12px" }}>min</span>
+										<span className="muted" style={{ fontSize: "12px" }}>
+											min
+										</span>
 									</div>
 								) : (
 									<span>
-										{runner.job_timeout_ms != null
-											? `${Math.round(runner.job_timeout_ms / 60_000)} min`
-											: <span className="muted">default</span>}
+										{runner.job_timeout_ms != null ? (
+											`${Math.round(runner.job_timeout_ms / 60_000)} min`
+										) : (
+											<span className="muted">default</span>
+										)}
 									</span>
 								)}
 							</td>
@@ -212,7 +255,10 @@ function RunnerPolicies() {
 											variant="neutral"
 											appearance="plain"
 											size="small"
-											onClick={() => { setEditingId(null); setTimeoutValue(""); }}
+											onClick={() => {
+												setEditingId(null);
+												setTimeoutValue("");
+											}}
 										>
 											Cancel
 										</WaButton>
@@ -249,18 +295,25 @@ function ViolationsPanel() {
 
 	// Group violations by repo
 	const byRepo = violations.reduce<Record<string, typeof violations>>((acc, v) => {
-		(acc[v.repo] ??= []).push(v);
+		acc[v.repo] ??= [];
+		acc[v.repo].push(v);
 		return acc;
 	}, {});
 
 	return (
 		<WaCard>
 			<h3 style={{ marginBottom: "12px" }}>
-				<WaIcon name="triangle-exclamation" family="classic" variant="solid" style={{ marginRight: "6px" }} />
+				<WaIcon
+					name="triangle-exclamation"
+					family="classic"
+					variant="solid"
+					style={{ marginRight: "6px" }}
+				/>
 				Violations
 			</h3>
 			<p className="muted" style={{ marginBottom: "12px", fontSize: "13px" }}>
-				Jobs that completed without invoking the Noron action. 3 strikes in 30 days disables the runner.
+				Jobs that completed without invoking the Noron action. 3 strikes in 30 days disables the
+				runner.
 			</p>
 
 			{loading && (
@@ -269,9 +322,7 @@ function ViolationsPanel() {
 				</div>
 			)}
 
-			{!loading && violations.length === 0 && (
-				<p className="muted">No violations recorded.</p>
-			)}
+			{!loading && violations.length === 0 && <p className="muted">No violations recorded.</p>}
 
 			{Object.entries(byRepo).map(([repo, repoViolations]) => (
 				<div key={repo} style={{ marginBottom: "16px" }}>
@@ -323,7 +374,9 @@ function ViolationsPanel() {
 								<tr key={v.id}>
 									<td>{new Date(v.created_at).toLocaleString()}</td>
 									<td>{v.reason}</td>
-									<td><code>{v.job_id ?? "—"}</code></td>
+									<td>
+										<code>{v.job_id ?? "—"}</code>
+									</td>
 								</tr>
 							))}
 						</tbody>

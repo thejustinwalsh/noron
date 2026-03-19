@@ -89,14 +89,14 @@ describe("WebSocket authentication", () => {
 		const req = makeWsRequest("http://localhost/ws/status");
 		const result = validateWsConnection(req, db);
 		expect(result).not.toBeNull();
-		expect(result!.status).toBe(401);
+		expect(result?.status).toBe(401);
 	});
 
 	test("rejects connection with invalid token", () => {
 		const req = makeWsRequest("http://localhost/ws/status?token=bad-token");
 		const result = validateWsConnection(req, db);
 		expect(result).not.toBeNull();
-		expect(result!.status).toBe(401);
+		expect(result?.status).toBe(401);
 	});
 
 	test("accepts connection with valid token", () => {
@@ -128,7 +128,7 @@ describe("WebSocket connection limits", () => {
 		const req = makeWsRequest(`http://localhost/ws/status?token=${validToken}`);
 		const result = validateWsConnection(req, db);
 		expect(result).not.toBeNull();
-		expect(result!.status).toBe(429);
+		expect(result?.status).toBe(429);
 	});
 
 	test("rejects when per-IP connections exceed limit", () => {
@@ -137,7 +137,7 @@ describe("WebSocket connection limits", () => {
 		const req = makeWsRequest(`http://localhost/ws/status?token=${validToken}`, ip);
 		const result = validateWsConnection(req, db);
 		expect(result).not.toBeNull();
-		expect(result!.status).toBe(429);
+		expect(result?.status).toBe(429);
 	});
 
 	test("allows connection when under all limits", () => {
@@ -194,7 +194,11 @@ describe("/api/status redaction logic", () => {
 		};
 		const isAuthenticated = true;
 
-		let lock;
+		let lock: {
+			held: boolean;
+			holder?: { jobId: string; runId: string; owner: string };
+			queueDepth?: number;
+		};
 		if (isAuthenticated) {
 			lock = {
 				held: lockStatus.held,
@@ -278,7 +282,7 @@ describe("Session expiry", () => {
 
 		const user = getUserByToken(db, token);
 		expect(user).not.toBeNull();
-		expect(user!.githubLogin).toBe("futureuser");
+		expect(user?.githubLogin).toBe("futureuser");
 	});
 
 	test("session with session_expires_at in the past is rejected", () => {
@@ -320,6 +324,6 @@ describe("Session expiry", () => {
 
 		const user = getUserByToken(db, token);
 		expect(user).not.toBeNull();
-		expect(user!.githubLogin).toBe("nullexpiryuser");
+		expect(user?.githubLogin).toBe("nullexpiryuser");
 	});
 });

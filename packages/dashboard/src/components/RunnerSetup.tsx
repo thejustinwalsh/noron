@@ -1,5 +1,5 @@
+import { WaBadge, WaButton, WaIcon } from "@awesome.me/webawesome/dist/react";
 import { useCallback, useEffect, useState } from "react";
-import { WaButton, WaIcon, WaBadge } from "@awesome.me/webawesome/dist/react";
 
 interface RunnerSetupProps {
 	runnerId: string;
@@ -19,7 +19,10 @@ jobs:
       - run: ./your-benchmark.sh
 `;
 
-const STATUS_LABELS: Record<string, { text: string; variant: "neutral" | "warning" | "success" | "danger" }> = {
+const STATUS_LABELS: Record<
+	string,
+	{ text: string; variant: "neutral" | "warning" | "success" | "danger" }
+> = {
 	pending: { text: "Pending", variant: "neutral" },
 	provisioning: { text: "Provisioning...", variant: "warning" },
 	online: { text: "Online", variant: "success" },
@@ -81,10 +84,8 @@ export function RunnerSetup({ runnerId, repo, initialStatus, onDismiss }: Runner
 			{isFailed && (
 				<div className="runner-setup-progress">
 					<p style={{ color: "var(--red)", fontSize: "13px", margin: 0 }}>
-						{statusMessage
-							? `Provisioning failed: ${statusMessage}`
-							: "Provisioning failed."}
-						{" "}You can remove this runner and try again.
+						{statusMessage ? `Provisioning failed: ${statusMessage}` : "Provisioning failed."} You
+						can remove this runner and try again.
 					</p>
 				</div>
 			)}
@@ -92,13 +93,20 @@ export function RunnerSetup({ runnerId, repo, initialStatus, onDismiss }: Runner
 			{!isReady && !isFailed && (
 				<div className="runner-setup-progress">
 					<p className="muted">
-						Setting up runner container for <strong>{repo}</strong>...
-						This may take a minute.
+						Setting up runner container for <strong>{repo}</strong>... This may take a minute.
 					</p>
 					<div className="setup-steps">
 						<SetupStep label="Get registration token" done={status !== "pending"} />
-						<SetupStep label="Start container" done={status !== "pending" && status !== "provisioning"} active={status === "provisioning"} />
-						<SetupStep label="Register with GitHub" done={isReady} active={status === "provisioning"} />
+						<SetupStep
+							label="Start container"
+							done={status !== "pending" && status !== "provisioning"}
+							active={status === "provisioning"}
+						/>
+						<SetupStep
+							label="Register with GitHub"
+							done={isReady}
+							active={status === "provisioning"}
+						/>
 					</div>
 				</div>
 			)}
@@ -117,14 +125,19 @@ export function RunnerSetup({ runnerId, repo, initialStatus, onDismiss }: Runner
 							onClick={handleCopy}
 							style={{ position: "absolute", top: "8px", right: "8px" }}
 						>
-							<WaIcon name={copied ? "check" : "copy"} family="classic" variant="solid" slot="prefix" />
+							<WaIcon
+								name={copied ? "check" : "copy"}
+								family="classic"
+								variant="solid"
+								slot="prefix"
+							/>
 							{copied ? "Copied" : "Copy"}
 						</WaButton>
 					</div>
 					<div className="setup-info">
 						<p className="muted">
-							<strong>What happens:</strong> Job starts → acquires machine lock →
-							waits for thermal stability → runs on isolated CPU cores → releases lock.
+							<strong>What happens:</strong> Job starts → acquires machine lock → waits for thermal
+							stability → runs on isolated CPU cores → releases lock.
 						</p>
 					</div>
 				</>

@@ -1,6 +1,6 @@
-import { useMemo, type ReactNode } from "react";
-import { WaTabGroup, WaTab, WaBadge, WaButton, WaIcon } from "@awesome.me/webawesome/dist/react";
 import type { WaTabShowEvent } from "@awesome.me/webawesome/dist/events/tab-show.js";
+import { WaBadge, WaButton, WaIcon, WaTab, WaTabGroup } from "@awesome.me/webawesome/dist/react";
+import { type ReactNode, useMemo } from "react";
 import type { LockHolder, WorkflowCounts } from "../types";
 import { StatusBar } from "./StatusBar";
 
@@ -31,11 +31,14 @@ export function Layout({
 	onLogout,
 	children,
 }: LayoutProps) {
-	const navItems = useMemo(() => [
-		{ id: "dashboard", label: "Dashboard" },
-		{ id: "runners", label: "Runners" },
-		...(isAdmin ? [{ id: "admin", label: "Admin" }] : []),
-	], [isAdmin]);
+	const navItems = useMemo(
+		() => [
+			{ id: "dashboard", label: "Dashboard" },
+			{ id: "runners", label: "Runners" },
+			...(isAdmin ? [{ id: "admin", label: "Admin" }] : []),
+		],
+		[isAdmin],
+	);
 
 	return (
 		<div className="layout">
@@ -58,12 +61,7 @@ export function Layout({
 						}}
 					>
 						{navItems.map((item) => (
-							<WaTab
-								key={item.id}
-								slot="nav"
-								panel={item.id}
-								active={currentPage === item.id}
-							>
+							<WaTab key={item.id} slot="nav" panel={item.id} active={currentPage === item.id}>
 								{item.label}
 							</WaTab>
 						))}
@@ -73,7 +71,12 @@ export function Layout({
 					{authenticated ? (
 						<div className="user-menu">
 							<span className="user-login">
-								<WaIcon name="github" family="brands" variant="solid" style={{ marginRight: "4px" }} />
+								<WaIcon
+									name="github"
+									family="brands"
+									variant="solid"
+									style={{ marginRight: "4px" }}
+								/>
 								{login}
 							</span>
 							<WaButton variant="neutral" appearance="outlined" size="small" onClick={onLogout}>
@@ -81,7 +84,13 @@ export function Layout({
 							</WaButton>
 						</div>
 					) : (
-						<WaButton variant="brand" size="small" onClick={() => { window.location.href = "/auth/login"; }}>
+						<WaButton
+							variant="brand"
+							size="small"
+							onClick={() => {
+								window.location.href = "/auth/login";
+							}}
+						>
 							<WaIcon name="github" family="brands" variant="solid" slot="prefix" />
 							Sign in
 						</WaButton>

@@ -43,21 +43,15 @@ export function useWebSocket(): WebSocketState {
 					setStatus(update);
 					setThermalHistory((prev) => {
 						const next = [...prev, update.thermal.currentTemp];
-						return next.length > MAX_HISTORY
-							? next.slice(next.length - MAX_HISTORY)
-							: next;
+						return next.length > MAX_HISTORY ? next.slice(next.length - MAX_HISTORY) : next;
 					});
 					setCpuHistory((prev) => {
 						const next = [...prev, update.cpu ?? 0];
-						return next.length > MAX_HISTORY
-							? next.slice(next.length - MAX_HISTORY)
-							: next;
+						return next.length > MAX_HISTORY ? next.slice(next.length - MAX_HISTORY) : next;
 					});
 					setMemoryHistory((prev) => {
 						const next = [...prev, update.memory?.percent ?? 0];
-						return next.length > MAX_HISTORY
-							? next.slice(next.length - MAX_HISTORY)
-							: next;
+						return next.length > MAX_HISTORY ? next.slice(next.length - MAX_HISTORY) : next;
 					});
 				}
 			} catch {

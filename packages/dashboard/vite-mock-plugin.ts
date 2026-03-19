@@ -1,5 +1,5 @@
 import type { Plugin } from "vite";
-import { WebSocketServer, type WebSocket } from "ws";
+import { type WebSocket, WebSocketServer } from "ws";
 
 /** Vite plugin that stubs the benchd API + WebSocket so `bun run dev` works without a backend. */
 export function mockBenchd(): Plugin {
@@ -67,9 +67,27 @@ export function mockBenchd(): Plugin {
 					res.setHeader("Content-Type", "application/json");
 					res.end(
 						JSON.stringify([
-							{ id: "1", name: "runner-1", repo: "org/bench-app", status: "online", lastHeartbeat: new Date().toISOString() },
-							{ id: "2", name: "runner-2", repo: "org/bench-lib", status: "busy", lastHeartbeat: new Date().toISOString() },
-							{ id: "3", name: "runner-3", repo: "org/bench-core", status: "offline", lastHeartbeat: new Date(Date.now() - 3600000).toISOString() },
+							{
+								id: "1",
+								name: "runner-1",
+								repo: "org/bench-app",
+								status: "online",
+								lastHeartbeat: new Date().toISOString(),
+							},
+							{
+								id: "2",
+								name: "runner-2",
+								repo: "org/bench-lib",
+								status: "busy",
+								lastHeartbeat: new Date().toISOString(),
+							},
+							{
+								id: "3",
+								name: "runner-3",
+								repo: "org/bench-core",
+								status: "offline",
+								lastHeartbeat: new Date(Date.now() - 3600000).toISOString(),
+							},
 						]),
 					);
 					return;
@@ -119,8 +137,8 @@ export function mockBenchd(): Plugin {
 			wss = new WebSocketServer({ noServer: true });
 			server.httpServer?.on("upgrade", (req, socket, head) => {
 				if (req.url === "/ws/status") {
-					wss!.handleUpgrade(req, socket, head, (ws) => {
-						wss!.emit("connection", ws, req);
+					wss?.handleUpgrade(req, socket, head, (ws) => {
+						wss?.emit("connection", ws, req);
 					});
 				}
 			});
@@ -149,7 +167,7 @@ export function mockBenchd(): Plugin {
 
 			interval = setInterval(() => {
 				const msg = buildUpdate();
-				for (const client of wss!.clients) {
+				for (const client of wss?.clients ?? []) {
 					if (client.readyState === 1) client.send(msg);
 				}
 			}, 1000);

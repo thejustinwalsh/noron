@@ -1,18 +1,26 @@
-import { describe, test, expect } from "bun:test";
+import { describe, expect, test } from "bun:test";
 import { EventEmitter } from "node:events";
-import { ClientConnection } from "../connection";
 import type { Request } from "@noron/shared";
+import { ClientConnection } from "../connection";
 
 function mockSocket() {
 	const emitter = new EventEmitter();
 	let written = "";
 	return Object.assign(emitter, {
 		writable: true,
-		write(data: string) { written += data; },
+		write(data: string) {
+			written += data;
+		},
 		end() {},
-		get remoteAddress() { return "127.0.0.1"; },
-		get remotePort() { return 9999; },
-		_written() { return written; },
+		get remoteAddress() {
+			return "127.0.0.1";
+		},
+		get remotePort() {
+			return 9999;
+		},
+		_written() {
+			return written;
+		},
 	});
 }
 

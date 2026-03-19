@@ -1,9 +1,17 @@
 {
 	"$schema": "https://biomejs.dev/schemas/1.9.0/schema.json",
+	"files": {
+		"ignore": ["dist/**", "node_modules/**", ".turbo/**", ".claude/**"]
+	},
 	"organizeImports": { "enabled": true },
 	"linter": {
 		"enabled": true,
-		"rules": { "recommended": true }
+		"rules": {
+			"recommended": true,
+			"a11y": {
+				"useSemanticElements": "warn"
+			}
+		}
 	},
 	"formatter": {
 		"indentStyle": "tab",

@@ -47,7 +47,12 @@ export class LockManager {
 		private onChange: () => void,
 		private jobTimeoutMs: number,
 		private onTimeout?: (owner: string, jobId: string, runId: string) => void,
-		private onViolation?: (repo: string, jobId: string, runId: string, reason: "action_not_used" | "job_timeout") => void,
+		private onViolation?: (
+			repo: string,
+			jobId: string,
+			runId: string,
+			reason: "action_not_used" | "job_timeout",
+		) => void,
 	) {}
 
 	acquire(client: ClientConnection, msg: LockAcquireRequest): void {
@@ -166,10 +171,7 @@ export class LockManager {
 		return this.holder?.owner ?? null;
 	}
 
-	getStatus(
-		client: ClientConnection,
-		msg: LockStatusRequest,
-	): void {
+	getStatus(client: ClientConnection, msg: LockStatusRequest): void {
 		client.send({
 			type: "lock.status",
 			requestId: msg.requestId,
@@ -188,11 +190,7 @@ export class LockManager {
 		if (this.holder?.client === client) {
 			const timer = setTimeout(() => {
 				if (this.holder?.client === client) {
-					log(
-						"warn",
-						"lock",
-						`Auto-releasing lock for disconnected job ${this.holder.jobId}`,
-					);
+					log("warn", "lock", `Auto-releasing lock for disconnected job ${this.holder.jobId}`);
 					this.clearTimeout();
 					this.holder = null;
 					this.grantNext();
@@ -231,11 +229,7 @@ export class LockManager {
 		return this.jobTimeoutMs;
 	}
 
-	private grantLock(
-		client: ClientConnection,
-		msg: LockAcquireRequest,
-		position: number,
-	): void {
+	private grantLock(client: ClientConnection, msg: LockAcquireRequest, position: number): void {
 		const jobToken = randomBytes(32).toString("hex");
 
 		this.holder = {
@@ -250,10 +244,7 @@ export class LockManager {
 		};
 
 		// Start job timeout timer
-		this.holder.timeoutTimer = setTimeout(
-			() => this.forceRelease(),
-			this.jobTimeoutMs,
-		);
+		this.holder.timeoutTimer = setTimeout(() => this.forceRelease(), this.jobTimeoutMs);
 
 		const response: LockAcquiredResponse = {
 			type: "lock.acquired",
@@ -277,7 +268,7 @@ export class LockManager {
 
 	private grantNext(): void {
 		if (this.queue.length === 0) return;
-		const next = this.queue.shift()!;
+		const next = this.queue.shift() as QueuedLock;
 		this.grantLock(next.client, next.request, 1);
 	}
 }

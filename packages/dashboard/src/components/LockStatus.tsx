@@ -1,5 +1,5 @@
+import { WaBadge, WaCallout, WaCard, WaIcon } from "@awesome.me/webawesome/dist/react";
 import { useEffect, useState } from "react";
-import { WaCard, WaBadge, WaCallout, WaIcon } from "@awesome.me/webawesome/dist/react";
 import type { LockHolder } from "../types";
 
 interface LockStatusProps {
@@ -35,7 +35,14 @@ export function LockStatus({ lock, queueDepth }: LockStatusProps) {
 	return (
 		<WaCard>
 			<div className="lock-status">
-				<div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%" }}>
+				<div
+					style={{
+						display: "flex",
+						alignItems: "center",
+						justifyContent: "space-between",
+						width: "100%",
+					}}
+				>
 					<h3>
 						<WaIcon
 							name={lock ? "lock" : "lock-open"}

@@ -1,6 +1,13 @@
-import { useEffect, useState } from "react";
-import { WaCard, WaButton, WaBadge, WaSpinner, WaIcon, WaInput } from "@awesome.me/webawesome/dist/react";
 import type WaInputEl from "@awesome.me/webawesome/dist/components/input/input.js";
+import {
+	WaBadge,
+	WaButton,
+	WaCard,
+	WaIcon,
+	WaInput,
+	WaSpinner,
+} from "@awesome.me/webawesome/dist/react";
+import { useEffect, useState } from "react";
 import { useRunners } from "../hooks/useApi";
 import { RepoCombobox } from "./RepoCombobox";
 import { RunnerSetup } from "./RunnerSetup";
@@ -17,7 +24,11 @@ const STATUS_VARIANT: Record<string, "success" | "warning" | "neutral" | "danger
 	disabled: "danger",
 };
 
-export function RunnerList({ hasRepoScope, autoAdd, onAutoAddConsumed }: { hasRepoScope?: boolean; autoAdd?: boolean; onAutoAddConsumed?: () => void }) {
+export function RunnerList({
+	hasRepoScope,
+	autoAdd,
+	onAutoAddConsumed,
+}: { hasRepoScope?: boolean; autoAdd?: boolean; onAutoAddConsumed?: () => void }) {
 	const { runners, loading, refetch, registerRunner, removeRunner } = useRunners();
 	const [showForm, setShowForm] = useState(false);
 	const [name, setName] = useState("");
@@ -25,7 +36,11 @@ export function RunnerList({ hasRepoScope, autoAdd, onAutoAddConsumed }: { hasRe
 	const [submitting, setSubmitting] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	// Track which runner was just registered (show setup panel)
-	const [setupRunner, setSetupRunner] = useState<{ id: string; repo: string; status: string } | null>(null);
+	const [setupRunner, setSetupRunner] = useState<{
+		id: string;
+		repo: string;
+		status: string;
+	} | null>(null);
 
 	// Auto-open form when redirected from OAuth upgrade (onboarding continuation)
 	useEffect(() => {
@@ -71,9 +86,21 @@ export function RunnerList({ hasRepoScope, autoAdd, onAutoAddConsumed }: { hasRe
 
 	return (
 		<WaCard>
-			<div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "12px" }}>
+			<div
+				style={{
+					display: "flex",
+					alignItems: "center",
+					justifyContent: "space-between",
+					marginBottom: "12px",
+				}}
+			>
 				<h3>
-					<WaIcon name="person-running" family="classic" variant="solid" style={{ marginRight: "6px" }} />
+					<WaIcon
+						name="person-running"
+						family="classic"
+						variant="solid"
+						style={{ marginRight: "6px" }}
+					/>
 					Runners
 				</h3>
 				<div style={{ display: "flex", gap: "8px" }}>
@@ -144,7 +171,11 @@ export function RunnerList({ hasRepoScope, autoAdd, onAutoAddConsumed }: { hasRe
 								{runner.status}
 							</WaBadge>
 							{runner.violationCount > 0 && (
-								<WaBadge pill variant={runner.violationCount >= 3 ? "danger" : "warning"} title={`${runner.violationCount} violation(s) in the last 30 days`}>
+								<WaBadge
+									pill
+									variant={runner.violationCount >= 3 ? "danger" : "warning"}
+									title={`${runner.violationCount} violation(s) in the last 30 days`}
+								>
 									{runner.violationCount}/3 strikes
 								</WaBadge>
 							)}
@@ -154,14 +185,18 @@ export function RunnerList({ hasRepoScope, autoAdd, onAutoAddConsumed }: { hasRe
 								</WaBadge>
 							)}
 							{runner.disabled_reason && (
-								<span className="muted" style={{ fontSize: "12px" }}>{runner.disabled_reason}</span>
+								<span className="muted" style={{ fontSize: "12px" }}>
+									{runner.disabled_reason}
+								</span>
 							)}
 							{runner.status === "online" && (
 								<WaButton
 									variant="neutral"
 									appearance="plain"
 									size="small"
-									onClick={() => setSetupRunner({ id: runner.id, repo: runner.repo, status: runner.status })}
+									onClick={() =>
+										setSetupRunner({ id: runner.id, repo: runner.repo, status: runner.status })
+									}
 									title="Show setup instructions"
 								>
 									<WaIcon name="gear" family="classic" variant="solid" />

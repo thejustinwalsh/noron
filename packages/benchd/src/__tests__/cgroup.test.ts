@@ -1,10 +1,15 @@
-import { describe, test, expect, beforeEach } from "bun:test";
+import { beforeEach, describe, expect, test } from "bun:test";
 import { CgroupManager } from "../cgroup";
 import type { ClientConnection } from "../connection";
 
 function mockClient(): { messages: object[]; send: (msg: object) => void } {
 	const messages: object[] = [];
-	return { messages, send(msg: object) { messages.push(msg); } };
+	return {
+		messages,
+		send(msg: object) {
+			messages.push(msg);
+		},
+	};
 }
 
 describe("CgroupManager", () => {

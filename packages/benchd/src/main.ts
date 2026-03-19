@@ -1,13 +1,13 @@
 import {
-	SOCKET_PATH,
 	CONFIG_PATH,
 	DEFAULT_CONFIG,
+	SOCKET_PATH,
+	detectCpuTopology,
 	loadConfig,
 	writeDefaultConfig,
-	detectCpuTopology,
 } from "@noron/shared";
-import { BenchdServer } from "./server";
 import { log } from "./logger";
+import { BenchdServer } from "./server";
 
 const configPath = process.env.BENCHD_CONFIG ?? CONFIG_PATH;
 const socketPath = process.env.BENCHD_SOCKET ?? SOCKET_PATH;
