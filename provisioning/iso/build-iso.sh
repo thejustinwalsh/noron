@@ -18,7 +18,7 @@ set -euo pipefail
 #   dist/shared/...                 dist/runner-image/runner-ctl.sh
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-DIST_DIR="${1:-${SCRIPT_DIR}/../../packages/iso/dist}"
+DIST_DIR="$(cd "${1:-${SCRIPT_DIR}/../../packages/iso/dist}" && pwd)"
 ARCH="${2:-$(dpkg --print-architecture 2>/dev/null || uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')}"
 BUILD_DIR="/tmp/bench-iso-build"
 
