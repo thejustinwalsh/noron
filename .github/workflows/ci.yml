@@ -20,7 +20,7 @@ jobs:
 
       - run: bun run typecheck
       - run: bun run lint
-      - run: bun test
+      - run: bun test packages/ tests/integration/
 
   build:
     runs-on: ubuntu-latest
@@ -37,3 +37,4 @@ jobs:
           restore-keys: turbo-${{ runner.os }}-
 
       - run: bun run build
+      - run: bun test tests/e2e/
