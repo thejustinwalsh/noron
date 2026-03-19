@@ -125,6 +125,7 @@ jobs:
     name: GitHub Release
     runs-on: ubuntu-latest
     needs: [release, build-iso]
+    if: needs.release.outputs.build-iso == 'true' && (needs.build-iso.result == 'success')
     permissions:
       contents: write
     steps:
