@@ -16,6 +16,7 @@ concurrency:
 
 env:
   TURBO_TELEMETRY_DISABLED: 1
+  ARMBIAN_VERSION: v26.2.1
 
 jobs:
   release:
@@ -170,7 +171,7 @@ jobs:
           BENCH_ENCRYPTION_KEY: "0000000000000000000000000000000000000000000000000000000000000000"
 
       - name: Clone Armbian build framework
-        run: git clone --depth=1 --branch=v26.2.1 https://github.com/armbian/build /tmp/armbian-build
+        run: git clone --depth=1 --branch=${{ env.ARMBIAN_VERSION }} https://github.com/armbian/build /tmp/armbian-build
 
       - name: Install Armbian host dependencies
         run: |
@@ -180,7 +181,7 @@ jobs:
       - name: Build SBC image (${{ matrix.board }})
         run: |
           mkdir -p artifacts/
-          ./provisioning/sbc/build-sbc-image.sh ${{ matrix.board }} packages/iso/dist/ artifacts/
+          ./provisioning/sbc/build-sbc-image.sh ${{ matrix.board }} packages/iso/dist/ artifacts/ "${{ needs.release.outputs.iso-version || '0.0.0' }}"
 
       - uses: actions/upload-artifact@v7
         with:

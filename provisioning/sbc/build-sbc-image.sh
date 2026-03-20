@@ -4,17 +4,19 @@ set -euo pipefail
 # Build a bootable SBC disk image using the Armbian build framework.
 # Produces a .img file flashable via balenaEtcher / dd.
 #
-# Usage: ./build-sbc-image.sh <board> <dist-dir> [output-dir]
+# Usage: ./build-sbc-image.sh <board> <dist-dir> [output-dir] [revision]
 #   board:      Armbian board identifier (orangepi5-plus, rpi4b)
 #   dist-dir:   path to packages/iso/dist/ with collected binaries
 #   output-dir: where to write the .img (default: dist-dir)
+#   revision:   version string for the image (default: 0.0.0)
 #
 # Requires: Docker, ~30GB disk space
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-BOARD="${1:?Usage: $0 <board> <dist-dir> [output-dir]}"
-DIST_DIR="$(cd "${2:?Usage: $0 <board> <dist-dir> [output-dir]}" && pwd)"
+BOARD="${1:?Usage: $0 <board> <dist-dir> [output-dir] [revision]}"
+DIST_DIR="$(cd "${2:?Usage: $0 <board> <dist-dir> [output-dir] [revision]}" && pwd)"
 ARMBIAN_DIR="/tmp/armbian-build"
+REVISION="${4:-0.0.0}"
 
 # Resolve OUTPUT_DIR to absolute path before we cd to ARMBIAN_DIR
 if [ -n "${3:-}" ]; then
@@ -114,16 +116,23 @@ cp "${SCRIPT_DIR}/customize-image.sh" "${ARMBIAN_DIR}/userpatches/customize-imag
 
 # Build the image — let Armbian manage its own Docker container
 echo "Building ${BOARD} image (this may take a while)..."
-./compile.sh \
+./compile.sh build \
+    REVISION="${REVISION}" \
     BOARD="${BOARD}" \
     BRANCH="${BRANCH}" \
     RELEASE=bookworm \
     BUILD_MINIMAL=yes \
     BUILD_DESKTOP=no \
+    EXPERT=yes \
     KERNEL_CONFIGURE=no \
+    KERNEL_BTF=yes \
+    INSTALL_HEADERS=no \
+    WIREGUARD=no \
+    SYNC_CLOCK=no \
+    PREFER_DOCKER=yes \
     COMPRESS_OUTPUTIMAGE=img,sha \
     USE_TMPFS=no \
-    DONT_BUILD_ARTIFACTS="kernel,firmware,full_firmware" \
+    DONT_BUILD_ARTIFACTS="kernel,firmware,full_firmware,fake_ubuntu_advantage_tools,armbian-zsh,armbian-plymouth-theme" \
     EXTRA_PACKAGES="podman sqlite3 lm-sensors cpufrequtils util-linux sudo curl ca-certificates openssh-server htop"
 
 # Find and move the output image
