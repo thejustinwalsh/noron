@@ -101,14 +101,23 @@ jobs:
         env:
           BENCH_ENCRYPTION_KEY: "0000000000000000000000000000000000000000000000000000000000000000"
 
-      - name: Install qemu for cross-arch
-        if: matrix.arch == 'arm64'
-        run: sudo apt-get update && sudo apt-get install -y qemu-user-static binfmt-support
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Cache live-build packages
+        uses: actions/cache@v4
+        with:
+          path: /tmp/lb-cache
+          key: lb-cache-${{ matrix.lb_arch }}-bookworm
+          restore-keys: lb-cache-${{ matrix.lb_arch }}-
 
       - name: Build ISO (${{ matrix.arch }})
         run: |
+          mkdir -p /tmp/lb-cache
           docker run --rm --privileged \
+            --platform linux/${{ matrix.lb_arch }} \
             -v "${{ github.workspace }}:/work" \
+            -v "/tmp/lb-cache:/tmp/bench-iso-build/cache" \
             -w /work \
             debian:bookworm bash -c "
               apt-get update && apt-get install -y live-build &&
@@ -125,10 +134,63 @@ jobs:
             packages/iso/dist/benchmark-appliance-${{ matrix.arch }}.iso
             packages/iso/dist/noron-update-linux-${{ matrix.arch }}.tar.gz
 
+  build-sbc:
+    name: Build SBC (${{ matrix.board }})
+    runs-on: ubuntu-latest
+    needs: release
+    if: needs.release.outputs.build-iso == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - board: orangepi5-plus
+            bun_target: bun-linux-arm64
+            label: "Orange Pi 5 Plus"
+          - board: rpi4b
+            bun_target: bun-linux-arm64
+            label: "Raspberry Pi 4/5"
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: main
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+
+      - uses: actions/cache@v4
+        with:
+          path: .turbo
+          key: turbo-${{ runner.os }}-sbc-${{ matrix.board }}-${{ github.sha }}
+          restore-keys: turbo-${{ runner.os }}-sbc-${{ matrix.board }}-
+
+      - name: Collect dist (arm64)
+        run: BUN_TARGET=${{ matrix.bun_target }} bun run collect-dist
+
+      - name: Validate dist assets
+        run: bun test tests/e2e/iso-assets.test.ts
+        env:
+          BENCH_ENCRYPTION_KEY: "0000000000000000000000000000000000000000000000000000000000000000"
+
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache
+          sudo docker image prune -af
+          df -h /
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Build SBC image (${{ matrix.board }})
+        run: sudo ./provisioning/sbc/build-sbc-image.sh ${{ matrix.board }} packages/iso/dist/
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: benchmark-appliance-${{ matrix.board }}
+          path: packages/iso/dist/benchmark-appliance-${{ matrix.board }}.img
+
   github-release:
     name: GitHub Release
     runs-on: ubuntu-latest
-    needs: [release, build-iso]
+    needs: [release, build-iso, build-sbc]
     if: needs.release.outputs.build-iso == 'true' && (needs.build-iso.result == 'success')
     permissions:
       contents: write
@@ -147,6 +209,16 @@ jobs:
           name: benchmark-appliance-arm64
           path: artifacts/
 
+      - uses: actions/download-artifact@v8
+        with:
+          name: benchmark-appliance-orangepi5-plus
+          path: artifacts/
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: benchmark-appliance-rpi4b
+          path: artifacts/
+
       - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
@@ -155,6 +227,8 @@ jobs:
             --repo "${{ github.repository }}" \
             --generate-notes \
             artifacts/benchmark-appliance-x64.iso#"Benchmark Appliance ISO (x64)" \
-            artifacts/benchmark-appliance-arm64.iso#"Benchmark Appliance ISO (arm64 - Orange Pi, RPi, etc.)" \
+            artifacts/benchmark-appliance-arm64.iso#"Benchmark Appliance ISO (arm64 server)" \
             artifacts/noron-update-linux-x64.tar.gz#"Update Archive (x64)" \
-            artifacts/noron-update-linux-arm64.tar.gz#"Update Archive (arm64)"
+            artifacts/noron-update-linux-arm64.tar.gz#"Update Archive (arm64)" \
+            artifacts/benchmark-appliance-orangepi5-plus.img#"SBC Image (Orange Pi 5 Plus)" \
+            artifacts/benchmark-appliance-rpi4b.img#"SBC Image (Raspberry Pi 4/5)"

@@ -48,12 +48,20 @@ rm -rf "$BUILD_DIR"
 mkdir -p "$BUILD_DIR"
 cd "$BUILD_DIR"
 
+# Set bootloader based on architecture
+case "${ARCH}" in
+    amd64)  BOOTLOADERS="syslinux,grub-efi" ;;
+    arm64)  BOOTLOADERS="grub-efi" ;;
+    *)      BOOTLOADERS="grub-efi" ;;
+esac
+
 # Initialize live-build — no mirror overrides needed when running on Debian
 lb config \
     --distribution bookworm \
     --architectures "${ARCH}" \
     --archive-areas "main contrib non-free non-free-firmware" \
-    --debian-installer false \
+    --bootloaders "${BOOTLOADERS}" \
+    --debian-installer none \
     --memtest none \
     --iso-application "Benchmark Appliance" \
     --iso-volume "BENCH" \

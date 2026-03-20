@@ -255,10 +255,31 @@ export async function runInstall(
 	onProgress("Configuring boot parameters", "running");
 	try {
 		if (config.isolatedCores.length > 0) {
+			const append = generateGrubAppend(config);
 			const grubDefault = "/etc/default/grub";
-			if (existsSync(grubDefault) && !isArm()) {
+			const armbianEnv = "/boot/armbianEnv.txt";
+
+			if (existsSync(armbianEnv) && isArm()) {
+				// Armbian SBCs: kernel params via extraargs in armbianEnv.txt
+				let env = readFileSync(armbianEnv, "utf-8");
+				if (env.match(/^extraargs=/m)) {
+					// Append to existing extraargs, removing any previous bench params
+					env = env.replace(/^extraargs=(.*)$/m, (_match, existing: string) => {
+						let cleaned = existing
+							.replace(/\s*isolcpus=\S*/g, "")
+							.replace(/\s*nohz_full=\S*/g, "")
+							.replace(/\s*rcu_nocbs=\S*/g, "")
+							.replace(/\s*nosmt\b/g, "")
+							.trim();
+						return `extraargs=${cleaned} ${append}`.replace(/= /, "=");
+					});
+				} else {
+					env = `${env.trimEnd()}\nextraargs=${append}\n`;
+				}
+				writeFileSync(armbianEnv, env);
+				needsReboot = true;
+			} else if (existsSync(grubDefault) && !isArm()) {
 				// x86: update GRUB
-				const append = generateGrubAppend(config);
 				let grub = readFileSync(grubDefault, "utf-8");
 				grub = grub.replace(
 					/^GRUB_CMDLINE_LINUX_DEFAULT=.*/m,
@@ -268,13 +289,11 @@ export async function runInstall(
 				run("update-grub");
 				needsReboot = true;
 			} else if (isArm()) {
-				// ARM: update /boot/cmdline.txt or /boot/firmware/cmdline.txt
-				const append = generateGrubAppend(config);
+				// RPi / other ARM: update cmdline.txt
 				const cmdlinePaths = ["/boot/firmware/cmdline.txt", "/boot/cmdline.txt"];
 				for (const cmdlinePath of cmdlinePaths) {
 					if (existsSync(cmdlinePath)) {
 						let cmdline = readFileSync(cmdlinePath, "utf-8").trim();
-						// Remove any existing isolcpus/nohz_full/rcu_nocbs params
 						cmdline = cmdline.replace(/\s*isolcpus=\S*/g, "");
 						cmdline = cmdline.replace(/\s*nohz_full=\S*/g, "");
 						cmdline = cmdline.replace(/\s*rcu_nocbs=\S*/g, "");
