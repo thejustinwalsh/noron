@@ -165,14 +165,14 @@ To update binaries on deployed appliances, either:
 
 2. **Re-run the playbook** — build new binaries locally, then re-run:
    ```bash
-   make collect-dist ARCH=arm64
+   BUN_TARGET=bun-linux-arm64 bun run collect-dist
    ansible-playbook -i inventory.local.yml playbook.yml --ask-vault-pass --tags benchd,runner
    ```
    The `benchd` and `runner` roles are idempotent — they'll replace binaries and restart services.
 
 ## Troubleshooting
 
-**Playbook fails at benchd role:** Ensure binaries are built first (`make collect-dist ARCH=arm64`). The role copies pre-compiled binaries — it doesn't build from source.
+**Playbook fails at benchd role:** Ensure binaries are built first (`BUN_TARGET=bun-linux-arm64 bun run collect-dist`). The role copies pre-compiled binaries — it doesn't build from source.
 
 **Runner container won't start:** Check that Podman is installed (`podman --version`) and the benchd socket exists (`ls -la /var/run/benchd.sock`). View logs with `journalctl -u bench-runner`.
 

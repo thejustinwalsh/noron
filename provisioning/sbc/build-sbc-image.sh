@@ -26,6 +26,7 @@ else
     OUTPUT_DIR="${DIST_DIR}"
 fi
 ARMBIAN_VERSION="v26.2.1"
+NORON_VERSION="${REVISION}"
 
 echo "=== Building SBC Image for ${BOARD} ==="
 echo "Dist from: ${DIST_DIR}"
@@ -108,6 +109,9 @@ cp "${DIST_DIR}/runner-image/runner-ctl.sh"   "${OVERLAY_DIR}/usr/local/share/be
 # Copy first-boot service
 cp "${SCRIPT_DIR}/../iso/first-boot.service" "${OVERLAY_DIR}/etc/systemd/system/"
 
+# Write noron version for customize-image.sh to pick up
+echo "${NORON_VERSION}" > "${OVERLAY_DIR}/noron-version"
+
 # Copy customize script
 cp "${SCRIPT_DIR}/customize-image.sh" "${ARMBIAN_DIR}/userpatches/customize-image.sh"
 
@@ -115,9 +119,14 @@ cp "${SCRIPT_DIR}/customize-image.sh" "${ARMBIAN_DIR}/userpatches/customize-imag
 # before this script runs — not done here to avoid root ownership issues.
 
 # Build the image — let Armbian manage its own Docker container
+# REVISION must use the Armbian version, not the noron version. Armbian embeds
+# REVISION into the base-files package version. If REVISION < 12.4 (Debian's
+# stock base-files), apt treats it as a downgrade and fails with
+# "pkgProblemResolver::Resolve generated breaks". The noron version is written
+# into the image separately via customize-image.sh.
 echo "Building ${BOARD} image (this may take a while)..."
 ./compile.sh build \
-    REVISION="${REVISION}" \
+    REVISION="${ARMBIAN_VERSION#v}" \
     BOARD="${BOARD}" \
     BRANCH="${BRANCH}" \
     RELEASE=bookworm \
@@ -141,7 +150,7 @@ if [ -z "${OUTPUT_IMG}" ]; then
     exit 1
 fi
 
-FINAL_OUTPUT="${OUTPUT_DIR}/benchmark-appliance-${BOARD}.img"
+FINAL_OUTPUT="${OUTPUT_DIR}/noron-${BOARD}.img"
 mv "${OUTPUT_IMG}" "${FINAL_OUTPUT}"
 
 echo ""

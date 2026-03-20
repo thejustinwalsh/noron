@@ -44,7 +44,7 @@ iso: collect-dist build-vm-deps
 	orbctl run -m $(BUILD_VM) sudo bash /mnt/mac$(ROOT_DIR)/dev/build-iso-vm.sh \
 		/mnt/mac$(ISO_DIST) /mnt/mac$(ROOT_DIR)/provisioning/iso $(LB_ARCH) /mnt/mac$(ISO_DIST)
 	@echo ""
-	@echo "ISO ready: $(ISO_DIST)/benchmark-appliance-$(ARCH).iso"
+	@echo "ISO ready: $(ISO_DIST)/noron-$(ARCH).iso"
 
 test-vm: collect-dist
 	@echo "=== Creating test VM ($(TEST_VM)) ==="

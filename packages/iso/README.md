@@ -1,10 +1,10 @@
-# @noron/iso — Benchmark Appliance Image
+# @noron/iso — Benchmark Appliance Images
 
-Builds the bootable Debian 12 ISO and collects all workspace package outputs for deployment. This is the deployment artifact for the Noron benchmark appliance.
+Builds bootable images for the Noron benchmark appliance: board-specific `.img` files for SBCs via Armbian, and generic `.iso` files for x86_64 and ARM64 servers via Debian live-build. These are the deployment artifacts — flash one to an SD card or SSD and boot into a fully configured benchmark runner.
 
-## What's inside the ISO
+## What's inside
 
-The ISO is a live Debian 12 (bookworm) image with everything pre-installed:
+Every image ships with a complete, pre-installed benchmark appliance:
 
 - **benchd** — host daemon managing locks, thermals, and cgroups
 - **bench-exec** — privileged executor with CPU pinning and priority
@@ -13,107 +13,92 @@ The ISO is a live Debian 12 (bookworm) image with everything pre-installed:
 - **bench** — remote CLI for monitoring and management
 - **bench-updater** — self-update script with rollback support
 - **dashboard** — React SPA served by bench-web
-- **hooks** — GitHub Actions job lifecycle hooks
+- **hooks** — GitHub Actions job lifecycle hooks (lock acquire/release)
 - **runner container** — Podman image with GitHub Actions runner
 
-## Deploying to an Orange Pi (or any ARM64 SBC)
+## Quick start
 
 ### What you need
 
-- Orange Pi 5, 5B, 5 Plus, or similar ARM64 board (4+ cores, 4GB+ RAM recommended)
-- MicroSD card (16GB+ recommended) or eMMC module
-- Ethernet connection (WiFi works but wired is more reliable for benchmarks)
+- An SBC (Orange Pi 5 Plus, Raspberry Pi 4/5) or x86_64 machine
+- MicroSD card (16GB+) or SSD/eMMC
+- Ethernet connection (wired recommended for consistent benchmarks)
 - A GitHub OAuth App ([create one](https://github.com/settings/developers))
 
-### Step 1: Flash the ISO
+### 1. Flash the image
 
-Download the ARM64 ISO from the [latest release](https://github.com/thejustinwalsh/noron/releases).
+Download from the [latest release](https://github.com/thejustinwalsh/noron/releases).
 
-**Using balenaEtcher (recommended — works on Windows, macOS, Linux):**
+**SBC users** — grab the board-specific `.img`:
 
-1. Download [balenaEtcher](https://etcher.balena.io/)
-2. Open Etcher, select the ISO, select your SD card, click "Flash!"
+| Board | Image | Architecture |
+|-------|-------|-------------|
+| Orange Pi 5 Plus | `noron-orangepi5-plus.img` | ARM64 (RK3588) |
+| Raspberry Pi 4/5 | `noron-rpi4b.img` | ARM64 |
 
-**Using the command line (macOS/Linux):**
+**x86_64 / generic ARM64** — grab the `.iso`:
+
+| Platform | Image |
+|----------|-------|
+| PC / server / cloud VM | `noron-x64.iso` |
+| ARM64 server (generic) | `noron-arm64.iso` |
+
+Flash with [balenaEtcher](https://etcher.balena.io/) (recommended) or the command line:
 
 ```bash
-sudo dd if=benchmark-appliance-arm64.iso of=/dev/sdX bs=4M status=progress
+# SBC image
+sudo dd if=noron-orangepi5-plus.img of=/dev/sdX bs=4M status=progress
+sync
+
+# Or ISO
+sudo dd if=noron-x64.iso of=/dev/sdX bs=4M status=progress
 sync
 ```
 
-Replace `/dev/sdX` with your SD card device (use `lsblk` to find it).
+Replace `/dev/sdX` with your SD card or drive (use `lsblk` to find it).
 
-### Booting from NVMe (Orange Pi 5 / 5 Plus)
+For cloud VMs, upload the ISO as a custom image and boot from it. Dedicated/metal instances are recommended — VMs with shared CPU cores won't achieve the same isolation as bare metal.
 
-The Orange Pi 5 series can boot directly from NVMe for better I/O performance. The process depends on your board's bootloader:
+### 2. First boot
 
-1. **Flash the ISO to an SD card first** and boot from it normally
-2. **Copy the running system to NVMe:**
-   ```bash
-   # Identify the NVMe device
-   lsblk
-   # Usually /dev/nvme0n1
-
-   # Partition and format the NVMe
-   sudo parted /dev/nvme0n1 mklabel gpt
-   sudo parted /dev/nvme0n1 mkpart primary ext4 1MiB 100%
-   sudo mkfs.ext4 /dev/nvme0n1p1
-
-   # Copy the root filesystem
-   sudo mount /dev/nvme0n1p1 /mnt
-   sudo rsync -axHAWXS --numeric-ids --info=progress2 / /mnt/ --exclude={/mnt,/proc,/sys,/dev,/run,/tmp}
-   sudo mkdir -p /mnt/{proc,sys,dev,run,tmp,mnt}
-
-   # Update fstab on the NVMe copy
-   sudo sed -i 's|ROOT_DEVICE|/dev/nvme0n1p1|g' /mnt/etc/fstab
-   sudo umount /mnt
-   ```
-3. **Set NVMe as boot device** using your board's bootloader tool:
-   - Orange Pi 5: use `orangepi-config` → System → Boot device
-   - Or update U-Boot environment: `fw_setenv bootdev nvme`
-4. **Remove the SD card** and reboot — the system should boot from NVMe
-
-Consult your board's documentation for specific bootloader instructions, as these vary between Orange Pi models and firmware versions.
-
-### Step 2: First boot
-
-1. Insert the SD card (or boot from NVMe) and power on the Orange Pi
+1. Insert the SD card (or boot from SSD/NVMe) and power on
 2. Connect via HDMI + keyboard, or SSH in (if your network assigns DHCP):
    ```bash
-   ssh user@<ip-address>    # default user/password from Debian live
+   ssh user@<ip-address>
    ```
 3. The **setup wizard** runs automatically on first boot
 
-### Step 3: Setup wizard
+### 3. Setup wizard
 
 The wizard detects your hardware and walks you through configuration:
 
 | Step | What happens |
 |------|-------------|
-| **Welcome** | Detects CPU cores (e.g., Orange Pi 5: 8 cores → 1 housekeeping + 7 benchmark) |
-| **Cores** | Review and adjust the core split |
+| **Welcome** | Detects CPU cores, memory, thermal zones, network interfaces |
+| **Cores** | Review and adjust the core split. Detects big.LITTLE on ARM SBCs |
 | **OAuth** | Paste your GitHub OAuth App Client ID and Secret |
 | **Network** | Set hostname, optionally configure Tailscale VPN |
+| **Label** | Set the GitHub Actions runner label (default: `noron`) |
 | **Review** | Confirm all settings |
 | **Install** | Installs kernel params, builds runner container, starts services |
-| **Done** | Shows your dashboard URL and admin invite link |
+| **Done** | Shows your dashboard URL and admin invite link (7-day expiry) |
 
 After setup, **reboot** to apply kernel parameters (`isolcpus`, `nohz_full`, etc.).
 
-### Step 4: Access the dashboard
+### 4. Access the dashboard
 
 1. Open the admin invite link shown on the Done screen
 2. Sign in with GitHub — you become the first admin
 3. From the dashboard, generate invite links for your team
 
-### Step 5: Register a repo
+### 5. Register a repo
 
 From the dashboard:
 1. Click "Add Runner"
 2. Enter the GitHub repo (e.g., `myorg/my-project`)
 3. The appliance provisions a containerized GitHub Actions runner for that repo
 
-### Step 6: Use in your workflow
+### 6. Use in your workflow
 
 ```yaml
 # .github/workflows/benchmark.yml
@@ -129,23 +114,13 @@ jobs:
 
 The action handles thermal wait, CPU isolation, and lock acquisition automatically.
 
-## Deploying to x86_64 (PC, server, cloud VM)
-
-Same process as ARM64, but download the x64 ISO instead. Use balenaEtcher or:
-
-```bash
-sudo dd if=benchmark-appliance-x64.iso of=/dev/sdX bs=4M status=progress
-```
-
-For cloud VMs, upload the ISO as a custom image and boot from it. Note that VMs with shared CPU cores won't achieve the same isolation as bare metal — dedicated/metal instances are recommended.
-
 ## Deploying with Ansible
 
 For fleet management or automated provisioning of multiple appliances, see the [Ansible deployment guide](../../provisioning/ansible/README.md).
 
 ## Self-updates
 
-The appliance can update itself automatically. Configure in `/etc/benchd/config.toml`:
+The appliance updates itself automatically from GitHub Releases. Configure in `/etc/benchd/config.toml`:
 
 ```toml
 # GitHub repo to check for new releases
@@ -173,35 +148,79 @@ bench update apply        # apply available update
 bench update history      # show past updates
 ```
 
-Or via the dashboard admin panel.
-
 ## Building from source
 
+### Collecting artifacts
+
+All images start by building the workspace packages and collecting their outputs:
+
 ```bash
-# Build all packages (turbo handles dependency order)
-BUN_TARGET=bun-linux-arm64 bun run build
-
-# Collect all outputs into packages/iso/dist/
-make collect-dist ARCH=arm64
-
-# Build the ISO (requires live-build on Debian/Ubuntu)
-make iso ARCH=arm64
-
-# Or for x64:
-make collect-dist ARCH=x64
-make iso ARCH=x64
+# Build all packages and collect into packages/iso/dist/
+BUN_TARGET=bun-linux-arm64 bun run collect-dist   # ARM64
+BUN_TARGET=bun-linux-x64 bun run collect-dist     # x64
 ```
 
-The ISO build uses Debian `live-build` and must run on a Debian-based system. On macOS, `make iso` runs the build inside an OrbStack VM automatically.
+Turbo handles the full dependency graph — `shared` builds first, then binaries in parallel, then the iso package collects everything.
+
+### Building ISOs (x86_64, generic ARM64)
+
+ISOs are built with Debian `live-build` and must run on a Debian-based system (or inside Docker):
+
+```bash
+# Direct (on Debian/Ubuntu with live-build installed)
+./provisioning/iso/build-iso.sh packages/iso/dist/ amd64 artifacts/
+./provisioning/iso/build-iso.sh packages/iso/dist/ arm64 artifacts/
+
+# Via Docker (from any platform)
+docker run --rm --privileged \
+  -v "$(pwd):/work" -w /work \
+  debian:bookworm bash -c "
+    apt-get update && apt-get install -y live-build &&
+    ./provisioning/iso/build-iso.sh packages/iso/dist/ amd64 artifacts/
+  "
+```
+
+### Building SBC images (Armbian)
+
+SBC images use the [Armbian build framework](https://github.com/armbian/build) (v26.2.1) to produce board-specific `.img` files with optimized kernels:
+
+```bash
+# Clone the Armbian framework
+git clone --depth=1 --branch=v26.2.1 https://github.com/armbian/build /tmp/armbian-build
+
+# Install host dependencies
+sudo /tmp/armbian-build/compile.sh requirements BOARD=orangepi5-plus BRANCH=vendor RELEASE=bookworm
+
+# Build the image
+./provisioning/sbc/build-sbc-image.sh orangepi5-plus packages/iso/dist/ artifacts/
+./provisioning/sbc/build-sbc-image.sh rpi4b packages/iso/dist/ artifacts/
+```
+
+Requires Docker and ~30GB disk space. Supported boards:
+
+| Board | Armbian ID | Kernel branch | Notes |
+|-------|-----------|---------------|-------|
+| Orange Pi 5 Plus | `orangepi5-plus` | `vendor` | RK3588, 6.1 LTS kernel |
+| Raspberry Pi 4/5 | `rpi4b` | `current` | RPi foundation kernel, covers Pi 4, Pi 5, CM4, CM5 |
+
+### Release pipeline
+
+The [release workflow](../../.github/workflows/release.yml) automates everything:
+
+1. **release** — Changesets version bump, tag `@noron/iso@X.Y.Z`
+2. **build-iso** — Matrix build: x64 on `ubuntu-latest`, arm64 on `ubuntu-24.04-arm`
+3. **build-sbc** — Matrix build: Orange Pi 5 Plus and RPi 4/5 on `ubuntu-24.04-arm`
+4. **github-release** — Collects all 6 artifacts (2 ISOs + 2 update archives + 2 SBC images) into a GitHub Release
 
 ## Architecture-specific notes
 
-### Orange Pi 5 / 5B / 5 Plus (RK3588)
+### Orange Pi 5 Plus (RK3588)
 
 - 8 cores: 4x Cortex-A76 (big) + 4x Cortex-A55 (LITTLE)
 - Recommended: pin benchmarks to the A76 cores for maximum consistency
 - The setup wizard auto-detects the big.LITTLE topology and recommends the optimal split
-- Mali G610 GPU is available in the runner container for GPU-accelerated benchmarks (WebGPU via Playwright, compute shaders, etc.) — GPU benchmarks benefit from CPU isolation just as much since the driver submission path runs on the CPU
+- NVMe supported — after booting from SD, you can migrate to NVMe for better I/O
+- Mali G610 GPU is available in the runner container for GPU-accelerated benchmarks
 
 ### Raspberry Pi 4 / 5
 

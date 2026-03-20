@@ -131,7 +131,7 @@ jobs:
 
       - uses: actions/upload-artifact@v7
         with:
-          name: benchmark-appliance-${{ matrix.arch }}
+          name: noron-${{ matrix.arch }}
           path: artifacts/
 
   build-sbc:
@@ -185,7 +185,7 @@ jobs:
 
       - uses: actions/upload-artifact@v7
         with:
-          name: benchmark-appliance-${{ matrix.board }}
+          name: noron-${{ matrix.board }}
           path: artifacts/
 
   github-release:
@@ -202,22 +202,22 @@ jobs:
 
       - uses: actions/download-artifact@v8
         with:
-          name: benchmark-appliance-x64
+          name: noron-x64
           path: artifacts/
 
       - uses: actions/download-artifact@v8
         with:
-          name: benchmark-appliance-arm64
+          name: noron-arm64
           path: artifacts/
 
       - uses: actions/download-artifact@v8
         with:
-          name: benchmark-appliance-orangepi5-plus
+          name: noron-orangepi5-plus
           path: artifacts/
 
       - uses: actions/download-artifact@v8
         with:
-          name: benchmark-appliance-rpi4b
+          name: noron-rpi4b
           path: artifacts/
 
       - name: Create GitHub Release
@@ -227,9 +227,9 @@ jobs:
           gh release create "@noron/iso@${{ needs.release.outputs.iso-version }}" \
             --repo "${{ github.repository }}" \
             --generate-notes \
-            artifacts/benchmark-appliance-x64.iso#"Benchmark Appliance ISO (x64)" \
-            artifacts/benchmark-appliance-arm64.iso#"Benchmark Appliance ISO (arm64 server)" \
+            artifacts/noron-x64.iso#"Noron ISO (x64)" \
+            artifacts/noron-arm64.iso#"Noron ISO (arm64 server)" \
             artifacts/noron-update-linux-x64.tar.gz#"Update Archive (x64)" \
             artifacts/noron-update-linux-arm64.tar.gz#"Update Archive (arm64)" \
-            artifacts/benchmark-appliance-orangepi5-plus.img#"SBC Image (Orange Pi 5 Plus)" \
-            artifacts/benchmark-appliance-rpi4b.img#"SBC Image (Raspberry Pi 4/5)"
+            artifacts/noron-orangepi5-plus.img#"Noron SBC Image (Orange Pi 5 Plus)" \
+            artifacts/noron-rpi4b.img#"Noron SBC Image (Raspberry Pi 4/5)"

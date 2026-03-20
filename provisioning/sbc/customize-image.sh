@@ -33,6 +33,12 @@ mkdir -p /etc/systemd/system/multi-user.target.wants
 ln -sf /etc/systemd/system/first-boot.service \
     /etc/systemd/system/multi-user.target.wants/first-boot.service
 
+# Write noron version
+if [ -f /tmp/overlay/noron-version ]; then
+    mkdir -p /var/lib/bench
+    cp /tmp/overlay/noron-version /var/lib/bench/version
+fi
+
 # Enable SSH
 systemctl enable ssh
 

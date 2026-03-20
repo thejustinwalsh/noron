@@ -151,7 +151,7 @@ if [ -n "$ISO_FILE" ]; then
         amd64|x86_64)  ARCH_LABEL="x64" ;;
         *)             ARCH_LABEL="${ARCH}" ;;
     esac
-    OUTPUT="${OUTPUT_DIR}/benchmark-appliance-${ARCH_LABEL}.iso"
+    OUTPUT="${OUTPUT_DIR}/noron-${ARCH_LABEL}.iso"
     mv "$ISO_FILE" "$OUTPUT"
     echo ""
     echo "ISO built successfully: ${OUTPUT}"
