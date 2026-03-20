@@ -151,13 +151,17 @@ if [ -n "$ISO_FILE" ]; then
         amd64|x86_64)  ARCH_LABEL="x64" ;;
         *)             ARCH_LABEL="${ARCH}" ;;
     esac
-    OUTPUT="${OUTPUT_DIR}/noron-${ARCH_LABEL}.iso"
-    mv "$ISO_FILE" "$OUTPUT"
+    ISO_PATH="${OUTPUT_DIR}/noron-${ARCH_LABEL}.iso"
+    OUTPUT="${ISO_PATH}.xz"
+    mv "$ISO_FILE" "$ISO_PATH"
+    echo "Compressing ISO with xz (this may take a while)..."
+    xz -T0 -6 "$ISO_PATH"
     echo ""
     echo "ISO built successfully: ${OUTPUT}"
     echo "Size: $(du -h "$OUTPUT" | cut -f1)"
     echo ""
-    echo "Write to USB/SD: sudo dd if=${OUTPUT} of=/dev/sdX bs=4M status=progress"
+    echo "Write to USB/SD: xzcat ${OUTPUT} | sudo dd of=/dev/sdX bs=4M status=progress"
+    echo "Or use balenaEtcher which handles .iso.xz directly"
 else
     echo "Error: ISO build failed"
     exit 1

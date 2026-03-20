@@ -139,22 +139,23 @@ echo "Building ${BOARD} image (this may take a while)..."
     WIREGUARD=no \
     SYNC_CLOCK=no \
     PREFER_DOCKER=yes \
-    COMPRESS_OUTPUTIMAGE=img,sha \
+    COMPRESS_OUTPUTIMAGE=xz,sha \
     USE_TMPFS=no \
     EXTRA_PACKAGES="podman sqlite3 lm-sensors cpufrequtils util-linux sudo curl ca-certificates openssh-server htop"
 
-# Find and move the output image
-OUTPUT_IMG=$(find "${ARMBIAN_DIR}/output/images/" -name "*.img" -type f | head -1)
+# Find and move the output image (Armbian compresses to .img.xz via COMPRESS_OUTPUTIMAGE)
+OUTPUT_IMG=$(find "${ARMBIAN_DIR}/output/images/" -name "*.img.xz" -type f | head -1)
 if [ -z "${OUTPUT_IMG}" ]; then
     echo "Error: No image produced"
     exit 1
 fi
 
-FINAL_OUTPUT="${OUTPUT_DIR}/noron-${BOARD}.img"
+FINAL_OUTPUT="${OUTPUT_DIR}/noron-${BOARD}.img.xz"
 mv "${OUTPUT_IMG}" "${FINAL_OUTPUT}"
 
 echo ""
 echo "SBC image built successfully: ${FINAL_OUTPUT}"
 echo "Size: $(du -h "${FINAL_OUTPUT}" | cut -f1)"
 echo ""
-echo "Flash with: balenaEtcher or dd if=${FINAL_OUTPUT} of=/dev/sdX bs=4M status=progress"
+echo "Flash with: xzcat ${FINAL_OUTPUT} | sudo dd of=/dev/sdX bs=4M status=progress"
+echo "Or use balenaEtcher which handles .img.xz directly"

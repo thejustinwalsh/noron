@@ -33,25 +33,25 @@ Download from the [latest release](https://github.com/thejustinwalsh/noron/relea
 
 | Board | Image | Architecture |
 |-------|-------|-------------|
-| Orange Pi 5 Plus | `noron-orangepi5-plus.img` | ARM64 (RK3588) |
-| Raspberry Pi 4/5 | `noron-rpi4b.img` | ARM64 |
+| Orange Pi 5 Plus | `noron-orangepi5-plus.img.xz` | ARM64 (RK3588) |
+| Raspberry Pi 4/5 | `noron-rpi4b.img.xz` | ARM64 |
 
 **x86_64 / generic ARM64** — grab the `.iso`:
 
 | Platform | Image |
 |----------|-------|
-| PC / server / cloud VM | `noron-x64.iso` |
-| ARM64 server (generic) | `noron-arm64.iso` |
+| PC / server / cloud VM | `noron-x64.iso.xz` |
+| ARM64 server (generic) | `noron-arm64.iso.xz` |
 
 Flash with [balenaEtcher](https://etcher.balena.io/) (recommended) or the command line:
 
 ```bash
-# SBC image
-sudo dd if=noron-orangepi5-plus.img of=/dev/sdX bs=4M status=progress
+# SBC image (xz-compressed — balenaEtcher handles .img.xz directly)
+xzcat noron-orangepi5-plus.img.xz | sudo dd of=/dev/sdX bs=4M status=progress
 sync
 
 # Or ISO
-sudo dd if=noron-x64.iso of=/dev/sdX bs=4M status=progress
+xzcat noron-x64.iso.xz | sudo dd of=/dev/sdX bs=4M status=progress
 sync
 ```
 

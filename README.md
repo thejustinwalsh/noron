@@ -18,15 +18,17 @@ Download the board-specific `.img` from the [latest release](../../releases):
 
 | Board | Image | Notes |
 |-------|-------|-------|
-| Orange Pi 5 Plus | `noron-orangepi5-plus.img` | RK3588, vendor kernel 6.1 LTS |
-| Raspberry Pi 4/5 | `noron-rpi4b.img` | RPi foundation kernel |
+| Orange Pi 5 Plus | `noron-orangepi5-plus.img.xz` | RK3588, vendor kernel 6.1 LTS |
+| Raspberry Pi 4/5 | `noron-rpi4b.img.xz` | RPi foundation kernel |
 
 Flash with [balenaEtcher](https://etcher.balena.io/) or the command line:
 
 ```bash
-sudo dd if=noron-orangepi5-plus.img of=/dev/sdX bs=4M status=progress
+xzcat noron-orangepi5-plus.img.xz | sudo dd of=/dev/sdX bs=4M status=progress
 sync
 ```
+
+Or use [balenaEtcher](https://etcher.balena.io/) which handles `.img.xz` files directly.
 
 Boot, run the setup wizard, reboot, done. See the [deployment guide](packages/iso/README.md) for details.
 
@@ -36,11 +38,13 @@ For PCs, servers, or cloud VMs, download the ISO from the [latest release](../..
 
 ```bash
 # x86_64
-sudo dd if=noron-x64.iso of=/dev/sdX bs=4M status=progress
+xzcat noron-x64.iso.xz | sudo dd of=/dev/sdX bs=4M status=progress
 
 # ARM64 server
-sudo dd if=noron-arm64.iso of=/dev/sdX bs=4M status=progress
+xzcat noron-arm64.iso.xz | sudo dd of=/dev/sdX bs=4M status=progress
 ```
+
+balenaEtcher handles `.iso.xz` files directly.
 
 ### Option 3: Ansible (fleet management)
 
