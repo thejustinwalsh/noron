@@ -57,7 +57,6 @@ lb config \
     --mirror-bootstrap "http://deb.debian.org/debian" \
     --mirror-chroot "http://deb.debian.org/debian" \
     --mirror-binary "http://deb.debian.org/debian" \
-    --debootstrap-options "--keyring=/usr/share/keyrings/debian-archive-keyring.gpg" \
     --debian-installer false \
     --memtest none \
     --iso-application "Benchmark Appliance" \
