@@ -132,7 +132,6 @@ echo "Building ${BOARD} image (this may take a while)..."
     PREFER_DOCKER=yes \
     COMPRESS_OUTPUTIMAGE=img,sha \
     USE_TMPFS=no \
-    DONT_BUILD_ARTIFACTS="kernel,firmware,full_firmware,fake_ubuntu_advantage_tools,armbian-zsh,armbian-plymouth-theme" \
     EXTRA_PACKAGES="podman sqlite3 lm-sensors cpufrequtils util-linux sudo curl ca-certificates openssh-server htop"
 
 # Find and move the output image
