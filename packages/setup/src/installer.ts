@@ -15,6 +15,9 @@ import {
 	generateSysctlConfig,
 	generateTmpfsMount,
 	recommendTmpfsSize,
+	updateArmbianEnv,
+	updateCmdline,
+	updateGrubDefault,
 } from "./generate";
 
 export interface InstallStep {
@@ -261,31 +264,13 @@ export async function runInstall(
 
 			if (existsSync(armbianEnv) && isArm()) {
 				// Armbian SBCs: kernel params via extraargs in armbianEnv.txt
-				let env = readFileSync(armbianEnv, "utf-8");
-				if (env.match(/^extraargs=/m)) {
-					// Append to existing extraargs, removing any previous bench params
-					env = env.replace(/^extraargs=(.*)$/m, (_match, existing: string) => {
-						let cleaned = existing
-							.replace(/\s*isolcpus=\S*/g, "")
-							.replace(/\s*nohz_full=\S*/g, "")
-							.replace(/\s*rcu_nocbs=\S*/g, "")
-							.replace(/\s*nosmt\b/g, "")
-							.trim();
-						return `extraargs=${cleaned} ${append}`.replace(/= /, "=");
-					});
-				} else {
-					env = `${env.trimEnd()}\nextraargs=${append}\n`;
-				}
-				writeFileSync(armbianEnv, env);
+				const env = readFileSync(armbianEnv, "utf-8");
+				writeFileSync(armbianEnv, updateArmbianEnv(env, append));
 				needsReboot = true;
 			} else if (existsSync(grubDefault) && !isArm()) {
 				// x86: update GRUB
-				let grub = readFileSync(grubDefault, "utf-8");
-				grub = grub.replace(
-					/^GRUB_CMDLINE_LINUX_DEFAULT=.*/m,
-					`GRUB_CMDLINE_LINUX_DEFAULT="quiet ${append}"`,
-				);
-				writeFileSync(grubDefault, grub);
+				const grub = readFileSync(grubDefault, "utf-8");
+				writeFileSync(grubDefault, updateGrubDefault(grub, append));
 				run("update-grub");
 				needsReboot = true;
 			} else if (isArm()) {
@@ -293,13 +278,8 @@ export async function runInstall(
 				const cmdlinePaths = ["/boot/firmware/cmdline.txt", "/boot/cmdline.txt"];
 				for (const cmdlinePath of cmdlinePaths) {
 					if (existsSync(cmdlinePath)) {
-						let cmdline = readFileSync(cmdlinePath, "utf-8").trim();
-						cmdline = cmdline.replace(/\s*isolcpus=\S*/g, "");
-						cmdline = cmdline.replace(/\s*nohz_full=\S*/g, "");
-						cmdline = cmdline.replace(/\s*rcu_nocbs=\S*/g, "");
-						cmdline = cmdline.replace(/\s*nosmt\b/g, "");
-						cmdline = `${cmdline.trim()} ${append}`;
-						writeFileSync(cmdlinePath, `${cmdline}\n`);
+						const cmdline = readFileSync(cmdlinePath, "utf-8");
+						writeFileSync(cmdlinePath, `${updateCmdline(cmdline, append)}\n`);
 						needsReboot = true;
 						break;
 					}

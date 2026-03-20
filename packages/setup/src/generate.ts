@@ -27,6 +27,40 @@ export function generateGrubAppend(setup: SetupConfig): string {
 	return `isolcpus=${cores} nohz_full=${cores} rcu_nocbs=${cores} nosmt`;
 }
 
+/** Remove any previous benchmark kernel params from a string. */
+function stripBenchParams(s: string): string {
+	return s
+		.replace(/\s*isolcpus=\S*/g, "")
+		.replace(/\s*nohz_full=\S*/g, "")
+		.replace(/\s*rcu_nocbs=\S*/g, "")
+		.replace(/\s*nosmt\b/g, "")
+		.trim();
+}
+
+/** Update armbianEnv.txt content with benchmark kernel params. */
+export function updateArmbianEnv(content: string, append: string): string {
+	if (/^extraargs=/m.test(content)) {
+		return content.replace(/^extraargs=(.*)$/m, (_match, existing: string) => {
+			const cleaned = stripBenchParams(existing);
+			return cleaned ? `extraargs=${cleaned} ${append}` : `extraargs=${append}`;
+		});
+	}
+	return `${content.trimEnd()}\nextraargs=${append}\n`;
+}
+
+/** Update cmdline.txt content with benchmark kernel params. */
+export function updateCmdline(content: string, append: string): string {
+	return `${stripBenchParams(content)} ${append}`;
+}
+
+/** Update GRUB_CMDLINE_LINUX_DEFAULT with benchmark kernel params. */
+export function updateGrubDefault(content: string, append: string): string {
+	return content.replace(
+		/^GRUB_CMDLINE_LINUX_DEFAULT=.*/m,
+		`GRUB_CMDLINE_LINUX_DEFAULT="quiet ${append}"`,
+	);
+}
+
 export function generateBenchmarkSlice(setup: SetupConfig): string {
 	return `[Unit]
 Description=Benchmark CPU Isolation Slice
