@@ -71,7 +71,7 @@ jobs:
 
   build-iso:
     name: Build ISO (${{ matrix.arch }})
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.runner }}
     needs: release
     if: needs.release.outputs.build-iso == 'true'
     strategy:
@@ -80,9 +80,11 @@ jobs:
           - arch: x64
             lb_arch: amd64
             bun_target: bun-linux-x64
+            runner: ubuntu-latest
           - arch: arm64
             lb_arch: arm64
             bun_target: bun-linux-arm64
+            runner: ubuntu-24.04-arm
     steps:
       - uses: actions/checkout@v6
         with:
@@ -104,9 +106,6 @@ jobs:
         env:
           BENCH_ENCRYPTION_KEY: "0000000000000000000000000000000000000000000000000000000000000000"
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-
       - name: Cache live-build packages
         uses: actions/cache@v4
         with:
@@ -118,7 +117,6 @@ jobs:
         run: |
           mkdir -p /tmp/lb-cache artifacts/
           docker run --rm --privileged \
-            --platform linux/${{ matrix.lb_arch }} \
             -v "${{ github.workspace }}:/work" \
             -v "/tmp/lb-cache:/tmp/bench-iso-build/cache" \
             -w /work \
@@ -137,7 +135,7 @@ jobs:
 
   build-sbc:
     name: Build SBC (${{ matrix.board }})
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     needs: release
     if: needs.release.outputs.build-iso == 'true'
     strategy:
@@ -173,9 +171,6 @@ jobs:
 
       - name: Free disk space
         uses: descriptinc/free-disk-space@main
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
 
       - name: Clone Armbian build framework
         run: git clone --depth=1 --branch=v26.2.1 https://github.com/armbian/build /tmp/armbian-build
