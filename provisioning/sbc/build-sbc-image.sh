@@ -109,10 +109,8 @@ cp "${SCRIPT_DIR}/../iso/first-boot.service" "${OVERLAY_DIR}/etc/systemd/system/
 # Copy customize script
 cp "${SCRIPT_DIR}/customize-image.sh" "${ARMBIAN_DIR}/userpatches/customize-image.sh"
 
-# Install host dependencies (mirrors what the official Armbian action does)
-# compile.sh calls sudo internally for apt — don't run the outer script as root
-# to avoid creating root-owned dirs that the build step can't write to
-./compile.sh requirements BOARD="${BOARD}" BRANCH="${BRANCH}" RELEASE=bookworm
+# Host dependencies are installed by the workflow (sudo compile.sh requirements)
+# before this script runs — not done here to avoid root ownership issues.
 
 # Build the image — let Armbian manage its own Docker container
 echo "Building ${BOARD} image (this may take a while)..."
