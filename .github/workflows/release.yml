@@ -113,7 +113,7 @@ jobs:
 
       - name: Build ISO (${{ matrix.arch }})
         run: |
-          mkdir -p /tmp/lb-cache
+          mkdir -p /tmp/lb-cache artifacts/
           docker run --rm --privileged \
             --platform linux/${{ matrix.lb_arch }} \
             -v "${{ github.workspace }}:/work" \
@@ -121,18 +121,16 @@ jobs:
             -w /work \
             debian:bookworm bash -c "
               apt-get update && apt-get install -y live-build &&
-              ./provisioning/iso/build-iso.sh packages/iso/dist/ ${{ matrix.lb_arch }}
+              ./provisioning/iso/build-iso.sh packages/iso/dist/ ${{ matrix.lb_arch }} artifacts/
             "
 
       - name: Create update archive (${{ matrix.arch }})
-        run: tar -czf packages/iso/dist/noron-update-linux-${{ matrix.arch }}.tar.gz -C packages/iso/dist .
+        run: tar -czf artifacts/noron-update-linux-${{ matrix.arch }}.tar.gz -C packages/iso/dist .
 
       - uses: actions/upload-artifact@v7
         with:
           name: benchmark-appliance-${{ matrix.arch }}
-          path: |
-            packages/iso/dist/benchmark-appliance-${{ matrix.arch }}.iso
-            packages/iso/dist/noron-update-linux-${{ matrix.arch }}.tar.gz
+          path: artifacts/
 
   build-sbc:
     name: Build SBC (${{ matrix.board }})
@@ -177,12 +175,14 @@ jobs:
         uses: docker/setup-qemu-action@v3
 
       - name: Build SBC image (${{ matrix.board }})
-        run: ./provisioning/sbc/build-sbc-image.sh ${{ matrix.board }} packages/iso/dist/
+        run: |
+          mkdir -p artifacts/
+          ./provisioning/sbc/build-sbc-image.sh ${{ matrix.board }} packages/iso/dist/ artifacts/
 
       - uses: actions/upload-artifact@v7
         with:
           name: benchmark-appliance-${{ matrix.board }}
-          path: packages/iso/dist/benchmark-appliance-${{ matrix.board }}.img
+          path: artifacts/
 
   github-release:
     name: GitHub Release

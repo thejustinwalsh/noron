@@ -4,16 +4,25 @@ set -euo pipefail
 # Build a bootable SBC disk image using the Armbian build framework.
 # Produces a .img file flashable via balenaEtcher / dd.
 #
-# Usage: ./build-sbc-image.sh <board> <dist-dir>
-#   board:    Armbian board identifier (orangepi5-plus, rpi4b)
-#   dist-dir: path to packages/iso/dist/ with collected binaries
+# Usage: ./build-sbc-image.sh <board> <dist-dir> [output-dir]
+#   board:      Armbian board identifier (orangepi5-plus, rpi4b)
+#   dist-dir:   path to packages/iso/dist/ with collected binaries
+#   output-dir: where to write the .img (default: dist-dir)
 #
 # Requires: Docker, ~30GB disk space
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-BOARD="${1:?Usage: $0 <board> <dist-dir>}"
-DIST_DIR="$(cd "${2:?Usage: $0 <board> <dist-dir>}" && pwd)"
+BOARD="${1:?Usage: $0 <board> <dist-dir> [output-dir]}"
+DIST_DIR="$(cd "${2:?Usage: $0 <board> <dist-dir> [output-dir]}" && pwd)"
 ARMBIAN_DIR="/tmp/armbian-build"
+
+# Resolve OUTPUT_DIR to absolute path before we cd to ARMBIAN_DIR
+if [ -n "${3:-}" ]; then
+    mkdir -p "${3}"
+    OUTPUT_DIR="$(cd "${3}" && pwd)"
+else
+    OUTPUT_DIR="${DIST_DIR}"
+fi
 ARMBIAN_VERSION="v26.2.1"
 
 echo "=== Building SBC Image for ${BOARD} ==="
@@ -101,7 +110,9 @@ cp "${SCRIPT_DIR}/../iso/first-boot.service" "${OVERLAY_DIR}/etc/systemd/system/
 cp "${SCRIPT_DIR}/customize-image.sh" "${ARMBIAN_DIR}/userpatches/customize-image.sh"
 
 # Install host dependencies (mirrors what the official Armbian action does)
-sudo ./compile.sh requirements BOARD="${BOARD}" BRANCH="${BRANCH}" RELEASE=bookworm
+# compile.sh calls sudo internally for apt — don't run the outer script as root
+# to avoid creating root-owned dirs that the build step can't write to
+./compile.sh requirements BOARD="${BOARD}" BRANCH="${BRANCH}" RELEASE=bookworm
 
 # Build the image — let Armbian manage its own Docker container
 echo "Building ${BOARD} image (this may take a while)..."
@@ -123,7 +134,7 @@ if [ -z "${OUTPUT_IMG}" ]; then
     exit 1
 fi
 
-FINAL_OUTPUT="${DIST_DIR}/benchmark-appliance-${BOARD}.img"
+FINAL_OUTPUT="${OUTPUT_DIR}/benchmark-appliance-${BOARD}.img"
 mv "${OUTPUT_IMG}" "${FINAL_OUTPUT}"
 
 echo ""

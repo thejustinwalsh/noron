@@ -5,9 +5,10 @@ set -euo pipefail
 # Requires: live-build, debootstrap (apt install live-build)
 # For cross-arch (e.g. arm64 on x64): also needs qemu-user-static
 #
-# Usage: ./build-iso.sh [dist-dir] [arch]
-#   dist-dir: path to packages/iso/dist/ (default: ../../packages/iso/dist)
-#   arch:     target architecture: amd64 or arm64 (default: host arch)
+# Usage: ./build-iso.sh [dist-dir] [arch] [output-dir]
+#   dist-dir:   path to packages/iso/dist/ (default: ../../packages/iso/dist)
+#   arch:       target architecture: amd64 or arm64 (default: host arch)
+#   output-dir: where to write the ISO (default: dist-dir)
 #
 # Expected dist layout (produced by @noron/iso collect.ts):
 #   dist/benchd/benchd              dist/benchd/hooks/job-started
@@ -21,6 +22,14 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 DIST_DIR="$(cd "${1:-${SCRIPT_DIR}/../../packages/iso/dist}" && pwd)"
 ARCH="${2:-$(dpkg --print-architecture 2>/dev/null || uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')}"
 BUILD_DIR="/tmp/bench-iso-build"
+
+# Resolve OUTPUT_DIR to absolute path before we cd to BUILD_DIR
+if [ -n "${3:-}" ]; then
+    mkdir -p "${3}"
+    OUTPUT_DIR="$(cd "${3}" && pwd)"
+else
+    OUTPUT_DIR="${DIST_DIR}"
+fi
 
 echo "=== Building Benchmark Appliance ISO (${ARCH}) ==="
 echo "Dist from: ${DIST_DIR}"
@@ -142,7 +151,7 @@ if [ -n "$ISO_FILE" ]; then
         amd64|x86_64)  ARCH_LABEL="x64" ;;
         *)             ARCH_LABEL="${ARCH}" ;;
     esac
-    OUTPUT="${DIST_DIR}/benchmark-appliance-${ARCH_LABEL}.iso"
+    OUTPUT="${OUTPUT_DIR}/benchmark-appliance-${ARCH_LABEL}.iso"
     mv "$ISO_FILE" "$OUTPUT"
     echo ""
     echo "ISO built successfully: ${OUTPUT}"
