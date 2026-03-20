@@ -104,8 +104,6 @@ cp "${SCRIPT_DIR}/customize-image.sh" "${ARMBIAN_DIR}/userpatches/customize-imag
 sudo ./compile.sh requirements BOARD="${BOARD}" BRANCH="${BRANCH}" RELEASE=bookworm
 
 # Build the image — let Armbian manage its own Docker container
-# Unset COLUMNS to work around Armbian patching.py crash when COLUMNS="" in CI
-unset COLUMNS
 echo "Building ${BOARD} image (this may take a while)..."
 ./compile.sh \
     BOARD="${BOARD}" \
