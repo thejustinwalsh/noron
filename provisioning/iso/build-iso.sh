@@ -43,9 +43,12 @@ for asset in dashboard/index.html benchd/hooks/job-started benchd/hooks/job-comp
     fi
 done
 
-# Clean previous build
-rm -rf "$BUILD_DIR"
-mkdir -p "$BUILD_DIR"
+# Clean previous build (preserve cache/ if it's a mount point)
+if [ -d "$BUILD_DIR" ]; then
+    find "$BUILD_DIR" -mindepth 1 -maxdepth 1 ! -name cache -exec rm -rf {} +
+else
+    mkdir -p "$BUILD_DIR"
+fi
 cd "$BUILD_DIR"
 
 # Set bootloader based on architecture
@@ -151,5 +154,5 @@ else
     exit 1
 fi
 
-# Cleanup
-rm -rf "$BUILD_DIR"
+# Cleanup (preserve cache/ if it's a mount point)
+find "$BUILD_DIR" -mindepth 1 -maxdepth 1 ! -name cache -exec rm -rf {} +

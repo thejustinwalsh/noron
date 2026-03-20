@@ -101,6 +101,8 @@ cp "${SCRIPT_DIR}/../iso/first-boot.service" "${OVERLAY_DIR}/etc/systemd/system/
 cp "${SCRIPT_DIR}/customize-image.sh" "${ARMBIAN_DIR}/userpatches/customize-image.sh"
 
 # Build the image — let Armbian manage its own Docker container
+# Unset COLUMNS to work around Armbian patching.py crash when COLUMNS="" in CI
+unset COLUMNS
 echo "Building ${BOARD} image (this may take a while)..."
 ./compile.sh \
     BOARD="${BOARD}" \
