@@ -171,10 +171,7 @@ jobs:
           BENCH_ENCRYPTION_KEY: "0000000000000000000000000000000000000000000000000000000000000000"
 
       - name: Free disk space
-        run: |
-          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache
-          sudo docker image prune -af
-          df -h /
+        uses: descriptinc/free-disk-space@main
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3

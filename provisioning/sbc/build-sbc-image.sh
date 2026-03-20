@@ -14,7 +14,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 BOARD="${1:?Usage: $0 <board> <dist-dir>}"
 DIST_DIR="$(cd "${2:?Usage: $0 <board> <dist-dir>}" && pwd)"
 ARMBIAN_DIR="/tmp/armbian-build"
-ARMBIAN_VERSION="v25.11"
+ARMBIAN_VERSION="v26.2.1"
 
 echo "=== Building SBC Image for ${BOARD} ==="
 echo "Dist from: ${DIST_DIR}"
@@ -100,6 +100,9 @@ cp "${SCRIPT_DIR}/../iso/first-boot.service" "${OVERLAY_DIR}/etc/systemd/system/
 # Copy customize script
 cp "${SCRIPT_DIR}/customize-image.sh" "${ARMBIAN_DIR}/userpatches/customize-image.sh"
 
+# Install host dependencies (mirrors what the official Armbian action does)
+sudo ./compile.sh requirements BOARD="${BOARD}" BRANCH="${BRANCH}" RELEASE=bookworm
+
 # Build the image — let Armbian manage its own Docker container
 # Unset COLUMNS to work around Armbian patching.py crash when COLUMNS="" in CI
 unset COLUMNS
@@ -112,6 +115,7 @@ echo "Building ${BOARD} image (this may take a while)..."
     BUILD_DESKTOP=no \
     KERNEL_CONFIGURE=no \
     COMPRESS_OUTPUTIMAGE=img,sha \
+    USE_TMPFS=no \
     EXTRA_PACKAGES="podman sqlite3 lm-sensors cpufrequtils util-linux sudo curl ca-certificates openssh-server htop"
 
 # Find and move the output image
