@@ -50,23 +50,31 @@ mkdir -p "$BUILD_DIR"
 cd "$BUILD_DIR"
 
 # Initialize live-build
-CROSS_ARGS=()
+EXTRA_ARGS=()
 if [ "${ARCH}" != "${HOST_ARCH}" ]; then
     QEMU_STATIC="/usr/bin/qemu-$(echo "${ARCH}" | sed 's/arm64/aarch64/;s/amd64/x86_64/')-static"
-    CROSS_ARGS=(--bootstrap-qemu-arch "${ARCH}" --bootstrap-qemu-static "${QEMU_STATIC}")
+    EXTRA_ARGS+=(--bootstrap-qemu-arch "${ARCH}" --bootstrap-qemu-static "${QEMU_STATIC}")
 fi
+
+DEBIAN_MIRROR="http://deb.debian.org/debian"
+DEBIAN_SECURITY="http://security.debian.org/debian-security"
 
 lb config \
     --mode debian \
     --distribution bookworm \
     --architectures "${ARCH}" \
     --archive-areas "main contrib non-free non-free-firmware" \
-    --mirror-bootstrap "http://deb.debian.org/debian" \
-    --mirror-chroot "http://deb.debian.org/debian" \
-    --mirror-chroot-security "http://security.debian.org/debian-security" \
-    --mirror-binary "http://deb.debian.org/debian" \
-    --mirror-binary-security "http://security.debian.org/debian-security" \
-    "${CROSS_ARGS[@]}" \
+    --mirror-bootstrap "${DEBIAN_MIRROR}" \
+    --mirror-chroot "${DEBIAN_MIRROR}" \
+    --mirror-chroot-security "${DEBIAN_SECURITY}" \
+    --mirror-binary "${DEBIAN_MIRROR}" \
+    --mirror-binary-security "${DEBIAN_SECURITY}" \
+    --parent-mirror-bootstrap "${DEBIAN_MIRROR}" \
+    --parent-mirror-chroot "${DEBIAN_MIRROR}" \
+    --parent-mirror-chroot-security "${DEBIAN_SECURITY}" \
+    --parent-mirror-binary "${DEBIAN_MIRROR}" \
+    --parent-mirror-binary-security "${DEBIAN_SECURITY}" \
+    ${EXTRA_ARGS[@]+"${EXTRA_ARGS[@]}"} \
     --debian-installer false \
     --memtest none \
     --iso-application "Benchmark Appliance" \
