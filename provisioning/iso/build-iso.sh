@@ -20,6 +20,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 DIST_DIR="$(cd "${1:-${SCRIPT_DIR}/../../packages/iso/dist}" && pwd)"
 ARCH="${2:-$(dpkg --print-architecture 2>/dev/null || uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')}"
+HOST_ARCH="$(dpkg --print-architecture 2>/dev/null || uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')"
 BUILD_DIR="/tmp/bench-iso-build"
 
 echo "=== Building Benchmark Appliance ISO (${ARCH}) ==="
@@ -49,6 +50,12 @@ mkdir -p "$BUILD_DIR"
 cd "$BUILD_DIR"
 
 # Initialize live-build
+CROSS_ARGS=()
+if [ "${ARCH}" != "${HOST_ARCH}" ]; then
+    QEMU_STATIC="/usr/bin/qemu-$(echo "${ARCH}" | sed 's/arm64/aarch64/;s/amd64/x86_64/')-static"
+    CROSS_ARGS=(--bootstrap-qemu-arch "${ARCH}" --bootstrap-qemu-static "${QEMU_STATIC}")
+fi
+
 lb config \
     --mode debian \
     --distribution bookworm \
@@ -57,6 +64,7 @@ lb config \
     --mirror-bootstrap "http://deb.debian.org/debian" \
     --mirror-chroot "http://deb.debian.org/debian" \
     --mirror-binary "http://deb.debian.org/debian" \
+    "${CROSS_ARGS[@]}" \
     --debian-installer false \
     --memtest none \
     --iso-application "Benchmark Appliance" \
