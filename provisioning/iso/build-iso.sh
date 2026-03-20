@@ -20,7 +20,6 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 DIST_DIR="$(cd "${1:-${SCRIPT_DIR}/../../packages/iso/dist}" && pwd)"
 ARCH="${2:-$(dpkg --print-architecture 2>/dev/null || uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')}"
-HOST_ARCH="$(dpkg --print-architecture 2>/dev/null || uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')"
 BUILD_DIR="/tmp/bench-iso-build"
 
 echo "=== Building Benchmark Appliance ISO (${ARCH}) ==="
@@ -49,32 +48,11 @@ rm -rf "$BUILD_DIR"
 mkdir -p "$BUILD_DIR"
 cd "$BUILD_DIR"
 
-# Initialize live-build
-EXTRA_ARGS=()
-if [ "${ARCH}" != "${HOST_ARCH}" ]; then
-    QEMU_STATIC="/usr/bin/qemu-$(echo "${ARCH}" | sed 's/arm64/aarch64/;s/amd64/x86_64/')-static"
-    EXTRA_ARGS+=(--bootstrap-qemu-arch "${ARCH}" --bootstrap-qemu-static "${QEMU_STATIC}")
-fi
-
-DEBIAN_MIRROR="http://deb.debian.org/debian"
-DEBIAN_SECURITY="http://security.debian.org/debian-security"
-
+# Initialize live-build — no mirror overrides needed when running on Debian
 lb config \
-    --mode debian \
     --distribution bookworm \
     --architectures "${ARCH}" \
     --archive-areas "main contrib non-free non-free-firmware" \
-    --mirror-bootstrap "${DEBIAN_MIRROR}" \
-    --mirror-chroot "${DEBIAN_MIRROR}" \
-    --mirror-chroot-security "${DEBIAN_SECURITY}" \
-    --mirror-binary "${DEBIAN_MIRROR}" \
-    --mirror-binary-security "${DEBIAN_SECURITY}" \
-    --parent-mirror-bootstrap "${DEBIAN_MIRROR}" \
-    --parent-mirror-chroot "${DEBIAN_MIRROR}" \
-    --parent-mirror-chroot-security "${DEBIAN_SECURITY}" \
-    --parent-mirror-binary "${DEBIAN_MIRROR}" \
-    --parent-mirror-binary-security "${DEBIAN_SECURITY}" \
-    ${EXTRA_ARGS[@]+"${EXTRA_ARGS[@]}"} \
     --debian-installer false \
     --memtest none \
     --iso-application "Benchmark Appliance" \

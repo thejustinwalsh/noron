@@ -101,15 +101,19 @@ jobs:
         env:
           BENCH_ENCRYPTION_KEY: "0000000000000000000000000000000000000000000000000000000000000000"
 
-      - name: Install live-build
-        run: sudo apt-get update && sudo apt-get install -y live-build debootstrap debian-archive-keyring
-
       - name: Install qemu for cross-arch
         if: matrix.arch == 'arm64'
-        run: sudo apt-get install -y qemu-user-static binfmt-support
+        run: sudo apt-get update && sudo apt-get install -y qemu-user-static binfmt-support
 
       - name: Build ISO (${{ matrix.arch }})
-        run: sudo ./provisioning/iso/build-iso.sh packages/iso/dist/ ${{ matrix.lb_arch }}
+        run: |
+          docker run --rm --privileged \
+            -v "${{ github.workspace }}:/work" \
+            -w /work \
+            debian:bookworm bash -c "
+              apt-get update && apt-get install -y live-build &&
+              ./provisioning/iso/build-iso.sh packages/iso/dist/ ${{ matrix.lb_arch }}
+            "
 
       - name: Create update archive (${{ matrix.arch }})
         run: tar -czf packages/iso/dist/noron-update-linux-${{ matrix.arch }}.tar.gz -C packages/iso/dist .
