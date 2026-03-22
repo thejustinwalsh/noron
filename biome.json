@@ -1,7 +1,15 @@
 {
 	"$schema": "https://biomejs.dev/schemas/1.9.0/schema.json",
 	"files": {
-		"ignore": ["dist/**", "node_modules/**", ".turbo/**", ".claude/**"]
+		"ignore": [
+			"dist/**",
+			"node_modules/**",
+			".turbo/**",
+			".claude/**",
+			"dev/.armbian/**",
+			"dev/.images/**",
+			"packages/iso/.iso-build/**"
+		]
 	},
 	"organizeImports": { "enabled": true },
 	"linter": {

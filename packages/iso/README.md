@@ -1,6 +1,6 @@
 # @noron/iso — Benchmark Appliance Images
 
-Builds bootable images for the Noron benchmark appliance: board-specific `.img` files for SBCs via Armbian, and generic `.iso` files for x86_64 and ARM64 servers via Debian live-build. These are the deployment artifacts — flash one to an SD card or SSD and boot into a fully configured benchmark runner.
+Builds bootable disk images for the Noron benchmark appliance: board-specific `.img` files for SBCs via Armbian, and generic `.img` files for x86_64 and ARM64 servers via debootstrap. These are the deployment artifacts — flash to disk, upload to a cloud provider, or boot from USB.
 
 ## What's inside
 
@@ -36,37 +36,40 @@ Download from the [latest release](https://github.com/thejustinwalsh/noron/relea
 | Orange Pi 5 Plus | `noron-orangepi5-plus.img.xz` | ARM64 (RK3588) |
 | Raspberry Pi 4/5 | `noron-rpi4b.img.xz` | ARM64 |
 
-**x86_64 / generic ARM64** — grab the `.iso`:
+**x86_64 / generic ARM64 servers** — grab the disk image:
 
 | Platform | Image |
 |----------|-------|
-| PC / server / cloud VM | `noron-x64.iso.xz` |
-| ARM64 server (generic) | `noron-arm64.iso.xz` |
+| x86_64 bare metal / cloud | `noron-x64.img.xz` |
+| ARM64 server | `noron-arm64.img.xz` |
 
-Flash with [balenaEtcher](https://etcher.balena.io/) (recommended) or the command line:
+Flash with [balenaEtcher](https://etcher.balena.io/) or the command line:
 
 ```bash
-# SBC image (xz-compressed — balenaEtcher handles .img.xz directly)
+# SBC (SD card / eMMC)
 xzcat noron-orangepi5-plus.img.xz | sudo dd of=/dev/sdX bs=4M status=progress
-sync
 
-# Or ISO
-xzcat noron-x64.iso.xz | sudo dd of=/dev/sdX bs=4M status=progress
-sync
+# Server (flash to disk or USB)
+xzcat noron-x64.img.xz | sudo dd of=/dev/sdX bs=4M status=progress
+
+# Cloud providers: decompress and upload the raw .img
+unxz noron-x64.img.xz
 ```
 
-Replace `/dev/sdX` with your SD card or drive (use `lsblk` to find it).
+Replace `/dev/sdX` with your target drive (use `lsblk` to find it).
 
-For cloud VMs, upload the ISO as a custom image and boot from it. Dedicated/metal instances are recommended — VMs with shared CPU cores won't achieve the same isolation as bare metal.
+Works with Hetzner (`dd` from rescue), OVH (BYOI raw upload), AWS (import-image to AMI), or any provider that accepts raw disk images.
+
+For cloud providers, upload the raw `.img` as a custom image. Dedicated/metal instances are recommended — VMs with shared CPU cores won't achieve the same isolation as bare metal.
 
 ### 2. First boot
 
 1. Insert the SD card (or boot from SSD/NVMe) and power on
 2. Connect via HDMI + keyboard, or SSH in (if your network assigns DHCP):
    ```bash
-   ssh user@<ip-address>
+   ssh bench@<ip-address>    # default password: noron
    ```
-3. The **setup wizard** runs automatically on first boot
+3. The **setup wizard** runs automatically on first login and prompts you to change the password
 
 ### 3. Setup wizard
 
@@ -75,21 +78,25 @@ The wizard detects your hardware and walks you through configuration:
 | Step | What happens |
 |------|-------------|
 | **Welcome** | Detects CPU cores, memory, thermal zones, network interfaces |
+| **Password** | Set the `bench` user account password (first boot only) |
+| **Timezone** | Select your timezone (first boot only) |
 | **Cores** | Review and adjust the core split. Detects big.LITTLE on ARM SBCs |
 | **OAuth** | Paste your GitHub OAuth App Client ID and Secret |
 | **Network** | Set hostname, optionally configure Tailscale VPN |
 | **Label** | Set the GitHub Actions runner label (default: `noron`) |
 | **Review** | Confirm all settings |
-| **Install** | Installs kernel params, builds runner container, starts services |
-| **Done** | Shows your dashboard URL and admin invite link (7-day expiry) |
+| **Install** | Installs packages, writes config, builds runner container, starts services |
+| **Done** | Shows your dashboard URL and admin invite link, prompts to reboot |
 
-After setup, **reboot** to apply kernel parameters (`isolcpus`, `nohz_full`, etc.).
+To re-run the wizard later: `sudo bench-setup --reconfigure` (skips password and timezone).
 
 ### 4. Access the dashboard
 
-1. Open the admin invite link shown on the Done screen
-2. Sign in with GitHub — you become the first admin
-3. From the dashboard, generate invite links for your team
+1. **Reboot** when prompted (kernel parameters require a reboot)
+2. Log in as **bench** (the password you set during the wizard)
+3. Open the admin invite link shown on the Done screen
+4. Sign in with GitHub — you become the first admin
+5. From the dashboard, generate invite links for your team
 
 ### 5. Register a repo
 
@@ -162,21 +169,21 @@ BUN_TARGET=bun-linux-x64 bun run collect-dist     # x64
 
 Turbo handles the full dependency graph — `shared` builds first, then binaries in parallel, then the iso package collects everything.
 
-### Building ISOs (x86_64, generic ARM64)
+### Building server images (x86_64, generic ARM64)
 
-ISOs are built with Debian `live-build` and must run on a Debian-based system (or inside Docker):
+Server images use debootstrap to create a minimal Debian 12 disk image with GRUB EFI boot. Must run as root on a Linux system (or via Docker):
 
 ```bash
-# Direct (on Debian/Ubuntu with live-build installed)
-./provisioning/iso/build-iso.sh packages/iso/dist/ amd64 artifacts/
-./provisioning/iso/build-iso.sh packages/iso/dist/ arm64 artifacts/
+# Direct (requires root, debootstrap, parted)
+sudo ./provisioning/img/build-img.sh amd64 packages/iso/dist/ artifacts/
+sudo ./provisioning/img/build-img.sh arm64 packages/iso/dist/ artifacts/
 
 # Via Docker (from any platform)
 docker run --rm --privileged \
   -v "$(pwd):/work" -w /work \
   debian:bookworm bash -c "
-    apt-get update && apt-get install -y live-build &&
-    ./provisioning/iso/build-iso.sh packages/iso/dist/ amd64 artifacts/
+    apt-get update && apt-get install -y debootstrap parted dosfstools e2fsprogs grub-efi-amd64-bin &&
+    ./provisioning/img/build-img.sh amd64 packages/iso/dist/ artifacts/
   "
 ```
 
@@ -208,9 +215,9 @@ Requires Docker and ~30GB disk space. Supported boards:
 The [release workflow](../../.github/workflows/release.yml) automates everything:
 
 1. **release** — Changesets version bump, tag `@noron/iso@X.Y.Z`
-2. **build-iso** — Matrix build: x64 on `ubuntu-latest`, arm64 on `ubuntu-24.04-arm`
-3. **build-sbc** — Matrix build: Orange Pi 5 Plus and RPi 4/5 on `ubuntu-24.04-arm`
-4. **github-release** — Collects all 6 artifacts (2 ISOs + 2 update archives + 2 SBC images) into a GitHub Release
+2. **build-img** — Matrix build: x64 on `ubuntu-latest`, arm64 on `ubuntu-24.04-arm` (debootstrap)
+3. **build-sbc** — Matrix build: Orange Pi 5 Plus and RPi 4/5 on `ubuntu-24.04-arm` (Armbian)
+4. **github-release** — Collects all 6 artifacts (2 server images + 2 update archives + 2 SBC images) into a GitHub Release
 
 ## Architecture-specific notes
 

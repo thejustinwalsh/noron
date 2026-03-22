@@ -1,5 +1,13 @@
 {
 	"$schema": "https://turbo.build/schema.json",
+	"globalPassThroughEnv": [
+		"BUN_TARGET",
+		"NORON_COMPRESS",
+		"NORON_VERSION",
+		"BENCH_ENCRYPTION_KEY",
+		"BOARD",
+		"ARCH"
+	],
 	"tasks": {
 		"build": {
 			"dependsOn": ["^build"],
@@ -10,7 +18,8 @@
 			"dependsOn": ["^build"]
 		},
 		"test": {
-			"dependsOn": ["^build"]
+			"dependsOn": ["^build"],
+			"env": ["BENCH_ENCRYPTION_KEY"]
 		}
 	}
 }

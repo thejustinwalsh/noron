@@ -110,8 +110,11 @@ export class ThermalMonitor {
 			this._currentTemp = temp;
 			this.history.push(temp);
 			this.updateBaseline(temp);
-			this.onUpdate();
 		}
+
+		// Always broadcast status updates — even without a thermal sensor
+		// (e.g., VMs, containers). Subscribers need CPU/memory/lock state.
+		this.onUpdate();
 
 		// Always check waiter deadlines — even without a sensor,
 		// thermal.wait requests must timeout so benchmarks proceed.

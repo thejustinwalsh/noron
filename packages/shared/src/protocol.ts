@@ -185,12 +185,6 @@ export interface StatusSubscribeRequest extends BaseRequest {
 	type: "status.subscribe";
 }
 
-export interface SystemInfo {
-	isolatedCores: number[];
-	housekeepingCore: number;
-	totalCores: number;
-}
-
 export interface StatusUpdate extends BaseResponse {
 	type: "status.update";
 	timestamp: number;
@@ -210,7 +204,6 @@ export interface StatusUpdate extends BaseResponse {
 	};
 	uptime: number; // daemon uptime ms
 	version: string;
-	system?: SystemInfo;
 }
 
 // --- Error ---

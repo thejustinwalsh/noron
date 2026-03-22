@@ -185,7 +185,7 @@ export function App() {
 						</div>
 					</div>
 					<LockStatus lock={status?.lock ?? null} queueDepth={status?.queueDepth ?? 0} />
-					<SystemInfo system={status?.system} uptime={status?.uptime ?? 0} />
+					<SystemInfo uptime={status?.uptime ?? 0} />
 				</div>
 			)}
 			{page === "runners" &&

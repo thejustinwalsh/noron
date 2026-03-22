@@ -1,5 +1,6 @@
+import { execSync } from "node:child_process";
 import { Box, Text, useInput } from "ink";
-import React from "react";
+import React, { useState } from "react";
 import type { SetupConfig } from "../generate";
 
 interface DoneProps {
@@ -9,9 +10,19 @@ interface DoneProps {
 }
 
 export function Done({ config, needsReboot, inviteUrl }: DoneProps) {
-	useInput((_input, key) => {
-		if (key.return) {
-			process.exit(0);
+	const [awaitingReboot, setAwaitingReboot] = useState(false);
+
+	useInput((input, key) => {
+		if (!awaitingReboot && key.return) {
+			setAwaitingReboot(true);
+			return;
+		}
+		if (awaitingReboot) {
+			if (input === "y" || input === "Y") {
+				execSync("reboot");
+			} else {
+				process.exit(0);
+			}
 		}
 	});
 
@@ -60,16 +71,13 @@ export function Done({ config, needsReboot, inviteUrl }: DoneProps) {
 				<Text> 4. Team members register repos for benchmarking</Text>
 			</Box>
 
-			{needsReboot && (
-				<Box flexDirection="column">
-					<Text bold color="yellow">
-						A reboot is required for kernel parameter changes (isolcpus, nohz_full).
-					</Text>
-					<Text color="yellow">Run: sudo reboot</Text>
-				</Box>
+			{awaitingReboot ? (
+				<Text bold color="yellow">
+					Reboot now? (y/n)
+				</Text>
+			) : (
+				<Text color="gray">Press Enter to continue...</Text>
 			)}
-
-			<Text color="gray">Press Enter to exit...</Text>
 		</Box>
 	);
 }

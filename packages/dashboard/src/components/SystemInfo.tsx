@@ -1,9 +1,7 @@
 import { WaCard, WaIcon } from "@awesome.me/webawesome/dist/react";
 import { useConfig } from "../hooks/useApi";
-import type { SystemInfo as SystemInfoType } from "../types";
 
 interface SystemInfoProps {
-	system: SystemInfoType | undefined;
 	uptime: number;
 }
 
@@ -14,7 +12,7 @@ function formatUptime(ms: number): string {
 	return `${minutes}m`;
 }
 
-export function SystemInfo({ system, uptime }: SystemInfoProps) {
+export function SystemInfo({ uptime }: SystemInfoProps) {
 	const { config } = useConfig();
 
 	return (
@@ -28,19 +26,19 @@ export function SystemInfo({ system, uptime }: SystemInfoProps) {
 					<span className="label">Uptime</span>
 					<span className="value">{formatUptime(uptime)}</span>
 				</div>
-				{system && (
+				{config && (
 					<>
 						<div className="info-row">
 							<span className="label">Total Cores</span>
-							<span className="value">{system.totalCores}</span>
+							<span className="value">{config.totalCores}</span>
 						</div>
 						<div className="info-row">
 							<span className="label">Housekeeping</span>
-							<span className="value">Core {system.housekeepingCore}</span>
+							<span className="value">Core {config.housekeepingCore}</span>
 						</div>
 						<div className="info-row">
 							<span className="label">Isolated</span>
-							<span className="value">Cores {system.isolatedCores.join(", ")}</span>
+							<span className="value">Cores {config.isolatedCores.join(", ")}</span>
 						</div>
 					</>
 				)}

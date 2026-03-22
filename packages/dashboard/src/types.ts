@@ -7,12 +7,6 @@ export interface LockHolder {
 	duration: number;
 }
 
-export interface SystemInfo {
-	isolatedCores: number[];
-	housekeepingCore: number;
-	totalCores: number;
-}
-
 export interface StatusUpdate {
 	type: "status.update";
 	requestId: string;
@@ -30,7 +24,6 @@ export interface StatusUpdate {
 		percent: number;
 	};
 	uptime: number;
-	system?: SystemInfo;
 }
 
 export interface ThermalHistory {

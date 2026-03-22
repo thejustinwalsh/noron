@@ -9,3 +9,6 @@ dist/
 *.db-shm
 *.db-wal
 .claude/settings.local.json
+dev/.images/
+dev/.armbian/
+packages/iso/.iso-build/

@@ -1,4 +1,4 @@
-import { execSync } from "node:child_process";
+import { execSync, spawn } from "node:child_process";
 import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import type { SetupConfig } from "./generate";
 import {
@@ -27,9 +27,37 @@ export interface InstallStep {
 }
 
 type ProgressCallback = (step: string, status: InstallStep["status"], error?: string) => void;
+type OutputCallback = (line: string) => void;
 
 function run(cmd: string): void {
 	execSync(cmd, { stdio: "pipe" });
+}
+
+/** Run a command asynchronously so Ink can keep rendering (spinner animation). */
+export function runAsync(cmd: string, onOutput?: (line: string) => void): Promise<void> {
+	return new Promise((resolve, reject) => {
+		const proc = spawn("bash", ["-c", cmd], { stdio: "pipe" });
+		if (onOutput) {
+			const handleData = (data: Buffer) => {
+				const lines = data.toString().split("\n").filter(Boolean);
+				for (const line of lines) {
+					onOutput(line.trim());
+				}
+			};
+			proc.stdout?.on("data", handleData);
+			proc.stderr?.on("data", handleData);
+		}
+		proc.on("close", (code: number) => {
+			if (code === 0) resolve();
+			else reject(new Error(`Command failed (exit ${code}): ${cmd}`));
+		});
+		proc.on("error", reject);
+	});
+}
+
+/** Yield to the event loop so Ink can re-render between install steps. */
+function tick(): Promise<void> {
+	return new Promise((resolve) => setTimeout(resolve, 50));
 }
 
 function ensureDir(path: string): void {
@@ -51,15 +79,19 @@ function isArm(): boolean {
 export async function runInstall(
 	config: SetupConfig,
 	onProgress: ProgressCallback,
+	options: { isFirstRun: boolean; onOutput?: OutputCallback } = { isFirstRun: true },
 ): Promise<{ needsReboot: boolean; inviteUrl: string | null }> {
+	const onOutput = options.onOutput;
 	let needsReboot = false;
 
 	// 1. Install OS packages
 	onProgress("Installing system packages", "running");
+	await tick();
 	try {
-		run("apt-get update -qq");
-		run(
+		await runAsync("apt-get update -qq", onOutput);
+		await runAsync(
 			"apt-get install -y -qq podman sqlite3 lm-sensors cpufrequtils util-linux sudo htop curl ca-certificates openssh-server",
+			onOutput,
 		);
 		onProgress("Installing system packages", "done");
 	} catch (err) {
@@ -68,6 +100,7 @@ export async function runInstall(
 
 	// 1b. Configure thermal sensors
 	onProgress("Configuring thermal sensors", "running");
+	await tick();
 	try {
 		// sensors-detect auto-mode writes modprobe configs for detected sensors
 		run("yes | sensors-detect --auto 2>/dev/null || true");
@@ -78,6 +111,7 @@ export async function runInstall(
 
 	// 1c. Disable irqbalance (conflicts with our IRQ pinning)
 	onProgress("Disabling irqbalance", "running");
+	await tick();
 	try {
 		run("systemctl stop irqbalance 2>/dev/null || true");
 		run("systemctl disable irqbalance 2>/dev/null || true");
@@ -89,16 +123,22 @@ export async function runInstall(
 
 	// 2. Create system users
 	onProgress("Creating system users", "running");
+	await tick();
 	try {
+		// bench user: may already exist from image build (customize-image.sh).
+		// On ISO installs, create as a regular login user. On SBC images, already exists.
 		try {
-			run("useradd -r -s /usr/sbin/nologin bench");
+			run("id bench");
 		} catch {
-			/* user may exist */
+			run("adduser --disabled-password --gecos 'Noron Benchmark' bench");
+			run("usermod -aG sudo bench");
 		}
+		// runner user: system user inside the container, but also needed on host
+		// for runner-ctl and podman operations
 		try {
-			run("useradd -r -s /bin/bash -G bench runner");
+			run("id runner");
 		} catch {
-			/* user may exist */
+			run("useradd -r -s /bin/bash -G bench runner");
 		}
 		ensureDir("/var/lib/bench");
 		run("chown bench:bench /var/lib/bench");
@@ -109,9 +149,13 @@ export async function runInstall(
 
 	// 3. Write config files
 	onProgress("Writing configuration", "running");
+	await tick();
 	try {
 		ensureDir("/etc/benchd");
+		run("chown root:bench /etc/benchd");
+		chmodSync("/etc/benchd", 0o770);
 		writeFileSync("/etc/benchd/config.toml", generateBenchdConfig(config));
+		run("chown root:bench /etc/benchd/config.toml");
 		chmodSync("/etc/benchd/config.toml", 0o640);
 		writeFileSync("/etc/sysctl.d/99-benchmark.conf", generateSysctlConfig());
 		run("sysctl --system -q");
@@ -122,6 +166,7 @@ export async function runInstall(
 
 	// 4. Write systemd units
 	onProgress("Installing systemd services", "running");
+	await tick();
 	try {
 		writeFileSync("/etc/systemd/system/benchd.service", generateBenchdService());
 		writeFileSync("/etc/systemd/system/benchmark.slice", generateBenchmarkSlice(config));
@@ -151,6 +196,7 @@ export async function runInstall(
 
 	// 5. Write helper scripts
 	onProgress("Installing helper scripts", "running");
+	await tick();
 	try {
 		// IRQ pin script
 		writeFileSync("/usr/local/bin/pin-irqs", generateIrqPinScript(config));
@@ -181,6 +227,7 @@ export async function runInstall(
 
 	// 6. Copy dashboard assets
 	onProgress("Installing dashboard", "running");
+	await tick();
 	try {
 		ensureDir("/var/lib/bench/dashboard");
 		if (existsSync("/usr/local/share/bench/dashboard")) {
@@ -199,6 +246,7 @@ export async function runInstall(
 
 	// 7. Install runner infrastructure (hooks, runner-ctl, Podman image)
 	onProgress("Installing runner infrastructure", "running");
+	await tick();
 	try {
 		// Create directories
 		ensureDir("/opt/runner/envs");
@@ -246,7 +294,10 @@ export async function runInstall(
 		// Build Podman image (may take a few minutes)
 		if (existsSync("/opt/runner/Containerfile")) {
 			const runnerArch = isArm() ? "arm64" : "x64";
-			run(`podman build --build-arg RUNNER_ARCH=${runnerArch} -t bench-runner /opt/runner/`);
+			await runAsync(
+				`podman build --build-arg RUNNER_ARCH=${runnerArch} -t bench-runner /opt/runner/`,
+				onOutput,
+			);
 		}
 
 		onProgress("Installing runner infrastructure", "done");
@@ -256,6 +307,7 @@ export async function runInstall(
 
 	// 8. Configure boot loader for CPU isolation
 	onProgress("Configuring boot parameters", "running");
+	await tick();
 	try {
 		if (config.isolatedCores.length > 0) {
 			const append = generateGrubAppend(config);
@@ -291,44 +343,59 @@ export async function runInstall(
 		onProgress("Configuring boot parameters", "error", String(err));
 	}
 
-	// 8. Create bootstrap invite (before bench-web starts so it finds the existing DB)
+	// 8. Create bootstrap invite (first run only — reconfigure preserves existing DB/users)
 	let inviteUrl: string | null = null;
-	onProgress("Creating bootstrap invite", "running");
-	try {
-		const dbPath = "/var/lib/bench/bench.db";
-		const token = crypto.randomUUID();
-		const now = Date.now();
-		const expiresAt = now + 7 * 24 * 3600_000; // 7 days
-		// Use sqlite3 CLI to create the invite — avoids pulling bun:sqlite into the setup binary
-		run(
-			`sqlite3 "${dbPath}" "CREATE TABLE IF NOT EXISTS invites (id TEXT PRIMARY KEY, token TEXT UNIQUE NOT NULL, created_at INTEGER NOT NULL, expires_at INTEGER NOT NULL, used_at INTEGER, used_by TEXT)"`,
-		);
-		run(
-			`sqlite3 "${dbPath}" "INSERT INTO invites (id, token, created_at, expires_at) VALUES ('${crypto.randomUUID()}', '${token}', ${now}, ${expiresAt})"`,
-		);
-		run(`chown bench:bench "${dbPath}"`);
-		chmodSync(dbPath, 0o640);
-		const baseUrl = `http://${config.hostname}:${config.webPort}`;
-		inviteUrl = `${baseUrl}/invite/${token}`;
-		onProgress("Creating bootstrap invite", "done");
-	} catch (err) {
-		onProgress("Creating bootstrap invite", "error", String(err));
+	if (options.isFirstRun) {
+		onProgress("Creating bootstrap invite", "running");
+		await tick();
+		try {
+			const dbPath = "/var/lib/bench/bench.db";
+			const token = crypto.randomUUID();
+			const now = Date.now();
+			const expiresAt = now + 7 * 24 * 3600_000; // 7 days
+			run(
+				`sqlite3 "${dbPath}" "CREATE TABLE IF NOT EXISTS invites (id TEXT PRIMARY KEY, token TEXT UNIQUE NOT NULL, created_at INTEGER NOT NULL, expires_at INTEGER NOT NULL, used_at INTEGER, used_by TEXT)"`,
+			);
+			run(
+				`sqlite3 "${dbPath}" "INSERT INTO invites (id, token, created_at, expires_at) VALUES ('${crypto.randomUUID()}', '${token}', ${now}, ${expiresAt})"`,
+			);
+			run(`chown bench:bench "${dbPath}"`);
+			chmodSync(dbPath, 0o640);
+			const baseUrl = `http://${config.hostname}:${config.webPort}`;
+			inviteUrl = `${baseUrl}/invite/${token}`;
+			onProgress("Creating bootstrap invite", "done");
+		} catch (err) {
+			onProgress("Creating bootstrap invite", "error", String(err));
+		}
 	}
 
 	// 9. Enable and start services
 	onProgress("Starting services", "running");
+	await tick();
 	try {
-		// Mount tmpfs if configured (skipped on low-memory devices)
-		if (recommendTmpfsSize(config.totalMemoryMB)) {
-			run("systemctl enable --now mnt-bench\\x2dtmpfs.mount");
-		}
-		// CPU tuning services (oneshot)
-		run("systemctl enable --now bench-irq-pin");
-		run("systemctl enable --now bench-tuning");
-		run("systemctl enable --now bench-cpu-governor");
-		// Core services
+		// Core services — must succeed
 		run("systemctl enable --now benchd");
 		run("systemctl enable --now bench-web");
+
+		// Tuning services — enable them but don't fail the whole setup if
+		// they can't start (e.g. in containers/VMs during testing).
+		// They'll start on next boot when running on real hardware.
+		const tuningServices = [
+			...(recommendTmpfsSize(config.totalMemoryMB) ? ["mnt-bench\\x2dtmpfs.mount"] : []),
+			"bench-irq-pin",
+			"bench-tuning",
+			"bench-cpu-governor",
+		];
+		for (const svc of tuningServices) {
+			try {
+				run(`systemctl enable ${svc}`);
+				run(`systemctl start ${svc}`);
+			} catch {
+				// Enable succeeded (will start on reboot) but start failed
+				// (missing kernel interfaces in this environment)
+			}
+		}
+
 		onProgress("Starting services", "done");
 	} catch (err) {
 		onProgress("Starting services", "error", String(err));
@@ -337,9 +404,10 @@ export async function runInstall(
 	// 10. Optional: Tailscale
 	if (config.tailscaleAuthKey) {
 		onProgress("Setting up Tailscale", "running");
+		await tick();
 		try {
 			if (!existsSync("/usr/bin/tailscale")) {
-				run("curl -fsSL https://tailscale.com/install.sh | sh");
+				await runAsync("curl -fsSL https://tailscale.com/install.sh | sh", onOutput);
 			}
 			run(`tailscale up --authkey=${config.tailscaleAuthKey} --hostname=bench-${config.hostname}`);
 			run(`tailscale funnel --bg ${config.webPort}`);
@@ -347,6 +415,23 @@ export async function runInstall(
 		} catch (err) {
 			onProgress("Setting up Tailscale", "error", String(err));
 		}
+	}
+
+	// 11. Mark setup complete — must happen before reboot prompt so it
+	// persists even if the user reboots or the process is killed.
+	try {
+		ensureDir("/var/lib/bench");
+		run("touch /var/lib/bench/.setup-complete");
+	} catch {
+		/* best effort */
+	}
+
+	// 12. Tighten permissions — remove bench from sudo group now that setup is complete.
+	// The scoped sudoers rules in /etc/sudoers.d/ provide the specific access bench needs.
+	try {
+		run("gpasswd -d bench sudo");
+	} catch {
+		/* may not be in sudo group (reconfigure path) */
 	}
 
 	return { needsReboot, inviteUrl };
