@@ -2,7 +2,7 @@ import type { Database } from "bun:sqlite";
 import { BenchdClient, SOCKET_PATH } from "@noron/shared";
 import { Hono } from "hono";
 import { createBunWebSocket } from "hono/bun";
-import { getUserByToken } from "../auth-middleware";
+import { extractToken, getUserByToken } from "../auth-middleware";
 
 const MAX_TOTAL_CONNECTIONS = 50;
 const MAX_PER_IP_CONNECTIONS = 5;
@@ -115,7 +115,12 @@ export function wsStatusHandler(
  */
 export function validateWsConnection(req: Request, db: Database): Response | null {
 	const url = new URL(req.url);
-	const token = url.searchParams.get("token");
+	const token =
+		url.searchParams.get("token") ??
+		extractToken(
+			req.headers.get("cookie") ?? undefined,
+			req.headers.get("authorization") ?? undefined,
+		);
 
 	// Auth check
 	if (!token) {

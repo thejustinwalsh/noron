@@ -1,3 +1,4 @@
+import { execSync } from "node:child_process";
 import { chmodSync, existsSync, readdirSync, rmSync, unlinkSync } from "node:fs";
 import { type Server, type Socket, createServer } from "node:net";
 import { join } from "node:path";
@@ -76,10 +77,17 @@ export class BenchdServer {
 			});
 
 			this.server.listen(this.options.socketPath, () => {
-				// Allow non-root services (bench-web) to connect
+				// Allow bench-web (runs as bench user) and runner containers to connect.
+				// Privileged ops are gated by job tokens, not socket permissions.
 				try {
+					execSync(`chown root:bench ${this.options.socketPath}`);
 					chmodSync(this.options.socketPath, 0o770);
-				} catch {}
+				} catch {
+					// chown may fail in containers (LXC/Docker) — fall back to
+					// world-accessible socket. Still safe: privileged IPC ops
+					// require valid job tokens regardless of socket permissions.
+					chmodSync(this.options.socketPath, 0o777);
+				}
 				log("info", "server", `Listening on ${this.options.socketPath}`);
 				resolve();
 			});
@@ -322,11 +330,6 @@ export class BenchdServer {
 			memory: this.sysMetrics.readMemory(),
 			uptime: Date.now() - this.startedAt,
 			version: process.env.NORON_VERSION ?? "dev",
-			system: {
-				isolatedCores: this.options.config.isolatedCores,
-				housekeepingCore: this.options.config.housekeepingCore,
-				totalCores: this.options.topology.totalCores,
-			},
 		};
 
 		if (this.lastThrottleResult) {

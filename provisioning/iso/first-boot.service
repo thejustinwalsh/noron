@@ -6,7 +6,11 @@ ConditionPathExists=!/var/lib/bench/.setup-complete
 [Service]
 Type=oneshot
 ExecStart=/usr/local/bin/bench-setup
-ExecStartPost=/usr/bin/touch /var/lib/bench/.setup-complete
+
+# After setup: disable console autologin. The installer already marks
+# .setup-complete internally, so we only need to clean up autologin here.
+ExecStartPost=/bin/bash -c 'rm -rf /etc/systemd/system/getty@.service.d /etc/systemd/system/getty@tty1.service.d'
+
 StandardInput=tty
 StandardOutput=tty
 TTYPath=/dev/tty1

@@ -70,8 +70,8 @@ jobs:
             echo "build=false" >> "$GITHUB_OUTPUT"
           fi
 
-  build-iso:
-    name: Build ISO (${{ matrix.arch }})
+  build-img:
+    name: Build Image (${{ matrix.arch }})
     runs-on: ${{ matrix.runner }}
     needs: release
     if: needs.release.outputs.build-iso == 'true'
@@ -79,11 +79,11 @@ jobs:
       matrix:
         include:
           - arch: x64
-            lb_arch: amd64
+            deb_arch: amd64
             bun_target: bun-linux-x64
             runner: ubuntu-latest
           - arch: arm64
-            lb_arch: arm64
+            deb_arch: arm64
             bun_target: bun-linux-arm64
             runner: ubuntu-24.04-arm
     steps:
@@ -107,24 +107,11 @@ jobs:
         env:
           BENCH_ENCRYPTION_KEY: "0000000000000000000000000000000000000000000000000000000000000000"
 
-      - name: Cache live-build packages
-        uses: actions/cache@v4
-        with:
-          path: /tmp/lb-cache
-          key: lb-cache-${{ matrix.lb_arch }}-bookworm
-          restore-keys: lb-cache-${{ matrix.lb_arch }}-
-
-      - name: Build ISO (${{ matrix.arch }})
+      - name: Build disk image (${{ matrix.arch }})
         run: |
-          mkdir -p /tmp/lb-cache artifacts/
-          docker run --rm --privileged \
-            -v "${{ github.workspace }}:/work" \
-            -v "/tmp/lb-cache:/tmp/bench-iso-build/cache" \
-            -w /work \
-            debian:bookworm bash -c "
-              apt-get update && apt-get install -y live-build &&
-              ./provisioning/iso/build-iso.sh packages/iso/dist/ ${{ matrix.lb_arch }} artifacts/
-            "
+          sudo apt-get install -y -qq debootstrap parted dosfstools e2fsprogs kpartx xz-utils qemu-user-static
+          mkdir -p artifacts/
+          sudo ./provisioning/img/build-img.sh ${{ matrix.deb_arch }} packages/iso/dist/ artifacts/ "${{ needs.release.outputs.iso-version || '0.0.0' }}"
 
       - name: Create update archive (${{ matrix.arch }})
         run: tar -czf artifacts/noron-update-linux-${{ matrix.arch }}.tar.gz -C packages/iso/dist .
@@ -173,6 +160,18 @@ jobs:
       - name: Clone Armbian build framework
         run: git clone --depth=1 --branch=${{ env.ARMBIAN_VERSION }} https://github.com/armbian/build /tmp/armbian-build
 
+      - name: Restore Armbian build cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            /tmp/armbian-build/cache/ccache
+            /tmp/armbian-build/cache/aptcache
+            /tmp/armbian-build/cache/sources
+            /tmp/armbian-build/cache/git-bare
+            /tmp/armbian-build/cache/git-bundles
+            /tmp/armbian-build/cache/patch
+          key: armbian-cache-${{ matrix.board }}-${{ env.ARMBIAN_VERSION }}
+
       - name: Install Armbian host dependencies
         run: |
           sudo /tmp/armbian-build/compile.sh requirements BOARD=${{ matrix.board }} BRANCH=${{ matrix.board == 'orangepi5-plus' && 'vendor' || 'current' }} RELEASE=bookworm
@@ -191,8 +190,8 @@ jobs:
   github-release:
     name: GitHub Release
     runs-on: ubuntu-latest
-    needs: [release, build-iso, build-sbc]
-    if: needs.release.outputs.build-iso == 'true' && (needs.build-iso.result == 'success')
+    needs: [release, build-img, build-sbc]
+    if: needs.release.outputs.build-iso == 'true' && needs.build-img.result == 'success' && needs.build-sbc.result == 'success'
     permissions:
       contents: write
     steps:
@@ -229,8 +228,8 @@ jobs:
 
           # Upload assets individually so a single failure doesn't block the rest
           for asset in \
-            "artifacts/noron-x64.iso.xz#Noron ISO (x64)" \
-            "artifacts/noron-arm64.iso.xz#Noron ISO (arm64 server)" \
+            "artifacts/noron-x64.img.xz#Noron Image (x64)" \
+            "artifacts/noron-arm64.img.xz#Noron Image (arm64 server)" \
             "artifacts/noron-update-linux-x64.tar.gz#Update Archive (x64)" \
             "artifacts/noron-update-linux-arm64.tar.gz#Update Archive (arm64)" \
             "artifacts/noron-orangepi5-plus.img.xz#Noron SBC Image (Orange Pi 5 Plus)" \

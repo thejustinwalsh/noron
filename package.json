@@ -15,6 +15,13 @@
 		"changeset": "changeset",
 		"changeset:version": "changeset version",
 		"collect-dist": "turbo run build --filter=@noron/iso...",
+		"dev:sbc": "bun run --cwd dev sbc",
+		"dev:emulate": "bun run --cwd dev emulate",
+		"dev:emulate:boot": "bun run --cwd dev emulate:boot",
+		"dev:test:img": "bun run --cwd dev test:img",
+		"dev:test:img:quick": "bun run --cwd dev test:img:quick",
+		"dev:emulate:fetch": "bun run --cwd dev emulate:fetch",
+		"dev:emulate:persist": "bun run --cwd dev emulate:persist",
 		"release": "bun run build && changeset publish"
 	},
 	"devDependencies": {

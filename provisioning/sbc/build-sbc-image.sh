@@ -15,7 +15,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 BOARD="${1:?Usage: $0 <board> <dist-dir> [output-dir] [revision]}"
 DIST_DIR="$(cd "${2:?Usage: $0 <board> <dist-dir> [output-dir] [revision]}" && pwd)"
-ARMBIAN_DIR="/tmp/armbian-build"
+ARMBIAN_DIR="${ARMBIAN_DIR:-/tmp/armbian-build}"
 REVISION="${4:-0.0.0}"
 
 # Resolve OUTPUT_DIR to absolute path before we cd to ARMBIAN_DIR
@@ -83,6 +83,7 @@ mkdir -p "${OVERLAY_DIR}/usr/local/share/bench/hooks"
 mkdir -p "${OVERLAY_DIR}/usr/local/share/bench/runner"
 mkdir -p "${OVERLAY_DIR}/etc/systemd/system"
 mkdir -p "${OVERLAY_DIR}/etc/sysctl.d"
+mkdir -p "${OVERLAY_DIR}/etc/profile.d"
 
 # Copy binaries
 cp "${DIST_DIR}/benchd/benchd"          "${OVERLAY_DIR}/usr/local/bin/benchd"
@@ -106,8 +107,9 @@ cp "${DIST_DIR}/runner-image/Containerfile"   "${OVERLAY_DIR}/usr/local/share/be
 cp "${DIST_DIR}/runner-image/start.sh"        "${OVERLAY_DIR}/usr/local/share/bench/runner/"
 cp "${DIST_DIR}/runner-image/runner-ctl.sh"   "${OVERLAY_DIR}/usr/local/share/bench/"
 
-# Copy first-boot service
+# Copy first-boot service and SSH login profile
 cp "${SCRIPT_DIR}/../iso/first-boot.service" "${OVERLAY_DIR}/etc/systemd/system/"
+cp "${SCRIPT_DIR}/../profile.d/bench-setup.sh" "${OVERLAY_DIR}/etc/profile.d/"
 
 # Write noron version for customize-image.sh to pick up
 echo "${NORON_VERSION}" > "${OVERLAY_DIR}/noron-version"
@@ -139,23 +141,35 @@ echo "Building ${BOARD} image (this may take a while)..."
     WIREGUARD=no \
     SYNC_CLOCK=no \
     PREFER_DOCKER=yes \
-    COMPRESS_OUTPUTIMAGE=xz,sha \
+    COMPRESS_OUTPUTIMAGE=${NORON_COMPRESS:-xz},sha \
     USE_TMPFS=no \
     EXTRA_PACKAGES="podman sqlite3 lm-sensors cpufrequtils util-linux sudo curl ca-certificates openssh-server htop"
 
-# Find and move the output image (Armbian compresses to .img.xz via COMPRESS_OUTPUTIMAGE)
-OUTPUT_IMG=$(find "${ARMBIAN_DIR}/output/images/" -name "*.img.xz" -type f | head -1)
+# Find and move the output image
+if [ "${NORON_COMPRESS:-xz}" = "img" ]; then
+    OUTPUT_IMG=$(find "${ARMBIAN_DIR}/output/images/" -name "*.img" -not -name "*.img.xz" -type f | head -1)
+    EXT="img"
+else
+    OUTPUT_IMG=$(find "${ARMBIAN_DIR}/output/images/" -name "*.img.xz" -type f | head -1)
+    EXT="img.xz"
+fi
+
 if [ -z "${OUTPUT_IMG}" ]; then
     echo "Error: No image produced"
     exit 1
 fi
 
-FINAL_OUTPUT="${OUTPUT_DIR}/noron-${BOARD}.img.xz"
+FINAL_OUTPUT="${OUTPUT_DIR}/noron-${BOARD}.${EXT}"
 mv "${OUTPUT_IMG}" "${FINAL_OUTPUT}"
 
 echo ""
 echo "SBC image built successfully: ${FINAL_OUTPUT}"
 echo "Size: $(du -h "${FINAL_OUTPUT}" | cut -f1)"
-echo ""
-echo "Flash with: xzcat ${FINAL_OUTPUT} | sudo dd of=/dev/sdX bs=4M status=progress"
-echo "Or use balenaEtcher which handles .img.xz directly"
+if [ "$EXT" = "img.xz" ]; then
+    echo ""
+    echo "Flash with: xzcat ${FINAL_OUTPUT} | sudo dd of=/dev/sdX bs=4M status=progress"
+    echo "Or use balenaEtcher which handles .img.xz directly"
+else
+    echo ""
+    echo "Flash with: sudo dd if=${FINAL_OUTPUT} of=/dev/sdX bs=4M status=progress"
+fi

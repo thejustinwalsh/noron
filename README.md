@@ -32,19 +32,25 @@ Or use [balenaEtcher](https://etcher.balena.io/) which handles `.img.xz` files d
 
 Boot, run the setup wizard, reboot, done. See the [deployment guide](packages/iso/README.md) for details.
 
-### Option 2: Bootable ISO (x86_64, generic ARM64)
+### Option 2: Disk image (x86_64, generic ARM64)
 
-For PCs, servers, or cloud VMs, download the ISO from the [latest release](../../releases):
+For bare metal servers, cloud dedicated instances, or self-hosted hardware, download from the [latest release](../../releases):
+
+| Platform | Image |
+|----------|-------|
+| x86_64 PC / server | `noron-x64.img.xz` |
+| ARM64 server | `noron-arm64.img.xz` |
 
 ```bash
-# x86_64
-xzcat noron-x64.iso.xz | sudo dd of=/dev/sdX bs=4M status=progress
+# Flash to disk (self-hosted hardware)
+xzcat noron-x64.img.xz | sudo dd of=/dev/sdX bs=4M status=progress
 
-# ARM64 server
-xzcat noron-arm64.iso.xz | sudo dd of=/dev/sdX bs=4M status=progress
+# Cloud providers: decompress and upload the raw .img
+unxz noron-x64.img.xz
+# Then upload via provider dashboard or API
 ```
 
-balenaEtcher handles `.iso.xz` files directly.
+Works with Hetzner (`dd` from rescue), OVH (BYOI raw upload), AWS (import-image), or any provider that accepts raw disk images.
 
 ### Option 3: Ansible (fleet management)
 
@@ -149,23 +155,30 @@ If you're using Tailscale, the hostname should be your Tailscale machine name (e
 
 ### Wizard steps
 
-| Step | What it does |
-|------|-------------|
-| **Welcome** | Detects CPU cores, memory, thermal zones, network interfaces |
-| **Cores** | Recommends core split (1 housekeeping + rest for benchmarks). Detects big.LITTLE topology on ARM SBCs |
-| **OAuth** | Paste your GitHub OAuth App Client ID and Secret |
-| **Network** | Sets hostname, optional Tailscale VPN |
-| **Label** | Configure the GitHub Actions runner label (default: `noron`) |
-| **Review** | Shows all settings for confirmation |
-| **Install** | Installs packages, writes config, builds runner container, starts services |
-| **Done** | Shows dashboard URL and admin invite link (7-day expiry) |
+On first boot, the wizard runs automatically when you log in. The default login user is `root` (SBC images) or `bench` (ISO installs).
+
+| Step | What it does | First boot | Reconfigure |
+|------|-------------|:---:|:---:|
+| **Welcome** | Detects CPU cores, memory, thermal zones, network interfaces | Yes | Yes |
+| **Password** | Set the `bench` user account password for SSH and console access | Yes | — |
+| **Timezone** | Select your timezone (defaults to UTC) | Yes | — |
+| **Cores** | Recommends core split (1 housekeeping + rest for benchmarks). Detects big.LITTLE topology on ARM SBCs | Yes | Yes |
+| **OAuth** | Paste your GitHub OAuth App Client ID and Secret | Yes | Yes |
+| **Network** | Sets hostname, optional Tailscale VPN | Yes | Yes |
+| **Label** | Configure the GitHub Actions runner label (default: `noron`) | Yes | Yes |
+| **Review** | Shows all settings for confirmation | Yes | Yes |
+| **Install** | Installs packages, writes config, builds runner container, starts services | Yes | Yes |
+| **Done** | Shows dashboard URL and admin invite link, prompts to reboot | Yes | Yes |
+
+To re-run the wizard later: `sudo bench-setup --reconfigure` (skips password and timezone).
 
 ### After setup
 
-1. **Reboot** if prompted (kernel parameters require a reboot to take effect)
-2. Open the **admin invite link** shown on the Done screen
-3. Sign in with GitHub — you become the first admin
-4. Generate invite links for your team from the admin panel
+1. **Reboot** when prompted (kernel parameters require a reboot to take effect)
+2. Log in as **bench** (the password you set during the wizard)
+3. Open the **admin invite link** shown on the Done screen
+4. Sign in with GitHub — you become the first admin
+5. Generate invite links for your team from the admin panel
 
 ## Inviting users
 
@@ -380,9 +393,9 @@ bun run lint:fix
 BUN_TARGET=bun-linux-arm64 bun run collect-dist   # ARM64
 BUN_TARGET=bun-linux-x64 bun run collect-dist     # x64
 
-# Build ISOs (requires live-build on Debian/Ubuntu, or Docker)
-./provisioning/iso/build-iso.sh packages/iso/dist/ arm64 artifacts/
-./provisioning/iso/build-iso.sh packages/iso/dist/ amd64 artifacts/
+# Build server disk images (requires root, debootstrap, or Docker)
+sudo ./provisioning/img/build-img.sh arm64 packages/iso/dist/ artifacts/
+sudo ./provisioning/img/build-img.sh amd64 packages/iso/dist/ artifacts/
 
 # Build SBC images (requires Armbian build framework + Docker)
 ./provisioning/sbc/build-sbc-image.sh orangepi5-plus packages/iso/dist/ artifacts/
@@ -390,6 +403,19 @@ BUN_TARGET=bun-linux-x64 bun run collect-dist     # x64
 ```
 
 See [packages/iso/README.md](packages/iso/README.md#building-from-source) for the full build process.
+
+### Local testing with QEMU
+
+Build and boot an SBC image locally (requires `brew install qemu mtools`):
+
+```bash
+bun run dev:emulate          # build + boot in QEMU
+bun run dev:emulate:boot     # boot existing image (no rebuild)
+bun run dev:emulate:fetch    # fetch latest GitHub release + boot
+bun run dev:emulate:persist  # persistent mode (changes survive reboot)
+```
+
+See [dev/README.md](dev/README.md) for the full local development guide.
 
 ## Hardware requirements
 

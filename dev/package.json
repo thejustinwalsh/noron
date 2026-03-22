@@ -7,10 +7,16 @@
 		"local-test": "bun local-test.ts",
 		"local-test:serve": "bun local-test.ts --serve",
 		"local-test:bench": "bun local-test.ts --bench-only",
+		"sbc": "./sbc.sh",
+		"emulate": "./sbc.sh && ./emulate-local.sh ${BOARD:-rpi4b}",
+		"emulate:boot": "./emulate-local.sh ${BOARD:-rpi4b}",
+		"emulate:persist": "./emulate-local.sh --persist ${BOARD:-rpi4b}",
+		"emulate:fetch": "./emulate.sh --fetch ${BOARD:-rpi4b}",
+		"test:img": "./test-img.sh",
+		"test:img:quick": "./test-img.sh --skip-build",
+		"test:img:shell": "orbctl run -m bench-test bash",
 		"iso": "make iso",
 		"iso:x64": "make iso ARCH=x64",
-		"test-vm": "make test-vm",
-		"test-vm:x64": "make test-vm ARCH=x64",
 		"vm:clean": "make vm-clean",
 		"clean": "make clean"
 	}

@@ -21,7 +21,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 DIST_DIR="$(cd "${1:-${SCRIPT_DIR}/../../packages/iso/dist}" && pwd)"
 ARCH="${2:-$(dpkg --print-architecture 2>/dev/null || uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')}"
-BUILD_DIR="/tmp/bench-iso-build"
+BUILD_DIR="${ISO_BUILD_DIR:-/tmp/bench-iso-build}"
 
 # Resolve OUTPUT_DIR to absolute path before we cd to BUILD_DIR
 if [ -n "${3:-}" ]; then
@@ -130,13 +130,54 @@ mkdir -p config/includes.chroot/etc/systemd/system/multi-user.target.wants
 ln -sf /etc/systemd/system/first-boot.service \
     config/includes.chroot/etc/systemd/system/multi-user.target.wants/first-boot.service
 
-# Add hook to enable SSH
+# Install profile script to launch setup wizard on SSH login
+mkdir -p config/includes.chroot/etc/profile.d
+cp "${SCRIPT_DIR}/../profile.d/bench-setup.sh" config/includes.chroot/etc/profile.d/
+
+# Add hook to create bench user, set locale, and enable SSH
 mkdir -p config/hooks/normal
-cat > config/hooks/normal/0100-enable-ssh.hook.chroot <<'HOOKEOF'
+cat > config/hooks/normal/0100-setup-users.hook.chroot <<'HOOKEOF'
 #!/bin/bash
+set -e
+
+# Create bench user (non-root admin account)
+if ! id bench &>/dev/null; then
+    adduser --disabled-password --gecos "Noron Benchmark" bench
+    usermod -aG sudo bench
+fi
+# Set a default password so SSH works on first boot.
+# The setup wizard forces the user to change it during the Password step.
+echo "bench:noron" | chpasswd
+
+# Sudoers for bench user
+mkdir -p /etc/sudoers.d
+echo "bench ALL=(root) NOPASSWD: /usr/local/bin/bench-setup" > /etc/sudoers.d/bench-setup
+echo "bench ALL=(root) NOPASSWD: /usr/local/bin/bench-updater" >> /etc/sudoers.d/bench-setup
+chmod 440 /etc/sudoers.d/bench-setup
+
+# Set default locale
+sed -i 's/^# *en_US.UTF-8/en_US.UTF-8/' /etc/locale.gen 2>/dev/null || true
+locale-gen en_US.UTF-8 2>/dev/null || true
+echo 'LANG=en_US.UTF-8' > /etc/default/locale
+
+# Auto-login as root on tty1 for first-boot (profile.d script launches wizard)
+mkdir -p /etc/systemd/system/getty@tty1.service.d
+cat > /etc/systemd/system/getty@tty1.service.d/override.conf <<INNER
+[Service]
+ExecStart=
+ExecStart=-/sbin/agetty --autologin root --noclear %I \$TERM
+INNER
+
+# Create config and data directories with correct ownership
+mkdir -p /etc/benchd
+chown root:bench /etc/benchd
+chmod 770 /etc/benchd
+mkdir -p /var/lib/bench
+chown bench:bench /var/lib/bench
+
 systemctl enable ssh
 HOOKEOF
-chmod +x config/hooks/normal/0100-enable-ssh.hook.chroot
+chmod +x config/hooks/normal/0100-setup-users.hook.chroot
 
 # Build the ISO
 echo "Building ISO (this may take a while)..."

@@ -6,25 +6,27 @@
 # Usage:
 #   make iso               # build full ISO (arm64 by default)
 #   make iso ARCH=x64      # build x64 ISO (emulated, slow)
+#   make sbc               # build SBC image (rpi4b by default)
+#   make emulate-sbc       # build + boot SBC in QEMU
+#   make emulate-iso       # build + boot ISO in QEMU
 #   make test-vm            # spin up a test VM with binaries + run setup wizard
-#   make vm-clean           # destroy build and test VMs
 #   make collect-dist       # build all packages and collect into packages/iso/dist/
 #   make clean              # remove all dist/ dirs and turbo cache
 
+# Load .env.local (or .env) — provides BUN_TARGET, NORON_COMPRESS, etc.
+ROOT_DIR := $(realpath $(dir $(firstword $(MAKEFILE_LIST)))/..)
+-include $(ROOT_DIR)/.env.local
+-include $(ROOT_DIR)/.env
+export
+
 ARCH ?= arm64
 
-# Derived variables
-ifeq ($(ARCH),arm64)
-  BUN_TARGET := bun-linux-arm64
-  RUNNER_ARCH := arm64
-else ifeq ($(ARCH),x64)
-  BUN_TARGET := bun-linux-x64
-  RUNNER_ARCH := x64
-else
-  $(error Unsupported ARCH=$(ARCH). Use arm64 or x64)
-endif
+# Derive BUN_TARGET from ARCH if not set via .env
+BUN_TARGET ?= $(if $(filter x64,$(ARCH)),bun-linux-x64,bun-linux-arm64)
+RUNNER_ARCH := $(if $(filter x64,$(ARCH)),x64,arm64)
+LB_ARCH := $(if $(filter x64,$(ARCH)),amd64,arm64)
 
-ROOT_DIR := $(realpath $(dir $(MAKEFILE_LIST))/..)
+ROOT_DIR := $(realpath $(dir $(firstword $(MAKEFILE_LIST)))/..)
 ISO_DIST := $(ROOT_DIR)/packages/iso/dist
 PKG := $(ROOT_DIR)/packages
 
@@ -35,7 +37,9 @@ TEST_VM := bench-test
 BINARIES := benchd bench-exec bench-web bench-setup bench
 HOOKS := job-started job-completed
 
-.PHONY: iso test-vm vm-clean collect-dist clean build-vm-create build-vm-deps
+BOARD ?= rpi4b
+
+.PHONY: iso test-vm vm-clean collect-dist clean build-vm-create build-vm-deps sbc emulate emulate-iso emulate-sbc
 
 # ─── Top-level targets ────────────────────────────────────────────────────────
 
@@ -70,7 +74,7 @@ test-vm: collect-dist
 	orbctl run -m $(TEST_VM) sudo mkdir -p /usr/local/lib/benchd/hooks
 	orbctl run -m $(TEST_VM) sudo cp /mnt/mac$(ISO_DIST)/benchd/hooks/job-started /usr/local/lib/benchd/hooks/job-started
 	orbctl run -m $(TEST_VM) sudo cp /mnt/mac$(ISO_DIST)/benchd/hooks/job-completed /usr/local/lib/benchd/hooks/job-completed
-	orbctl run -m $(TEST_VM) sudo chmod +x /usr/local/lib/benchd/hooks/*
+	orbctl run -m $(TEST_VM) sudo chmod +x /usr/local/lib/benchd/hooks/job-started /usr/local/lib/benchd/hooks/job-completed
 	@echo "--- Installing runner assets ---"
 	orbctl run -m $(TEST_VM) sudo mkdir -p /opt/runner/envs
 	orbctl run -m $(TEST_VM) sudo cp /mnt/mac$(ISO_DIST)/runner-image/Containerfile /opt/runner/Containerfile
@@ -80,15 +84,57 @@ test-vm: collect-dist
 	orbctl run -m $(TEST_VM) sudo chmod +x /usr/local/bin/runner-ctl
 	@echo "--- Building runner Podman image ---"
 	orbctl run -m $(TEST_VM) sudo podman build --build-arg RUNNER_ARCH=$(RUNNER_ARCH) -t bench-runner /opt/runner/
+	@echo "--- Creating bench user ---"
+	orbctl run -m $(TEST_VM) sudo bash -c '\
+		if ! id bench 2>/dev/null; then \
+			adduser --disabled-password --gecos "Noron Benchmark" bench && \
+			usermod -aG sudo bench; \
+		fi && \
+		echo "bench:noron" | chpasswd'
+	@echo "--- Installing sudoers ---"
+	orbctl run -m $(TEST_VM) sudo bash -c '\
+		mkdir -p /etc/sudoers.d && \
+		echo "bench ALL=(root) NOPASSWD: /usr/local/bin/bench-setup" > /etc/sudoers.d/bench-setup && \
+		echo "bench ALL=(root) NOPASSWD: /usr/local/bin/bench-updater" >> /etc/sudoers.d/bench-setup && \
+		chmod 440 /etc/sudoers.d/bench-setup'
+	@echo "--- Setting locale ---"
+	orbctl run -m $(TEST_VM) sudo bash -c '\
+		apt-get install -y -qq locales && \
+		sed -i "s/^# *en_US.UTF-8/en_US.UTF-8/" /etc/locale.gen && \
+		locale-gen en_US.UTF-8 && \
+		echo "LANG=en_US.UTF-8" > /etc/default/locale'
+	@echo "--- Installing profile script ---"
+	orbctl run -m $(TEST_VM) sudo cp /mnt/mac$(ROOT_DIR)/provisioning/profile.d/bench-setup.sh /etc/profile.d/
 	@echo "--- Installing systemd units ---"
+	orbctl run -m $(TEST_VM) sudo cp /mnt/mac$(ROOT_DIR)/provisioning/iso/first-boot.service /etc/systemd/system/
 	orbctl run -m $(TEST_VM) sudo cp /mnt/mac$(ROOT_DIR)/provisioning/systemd/benchd.service /etc/systemd/system/
 	orbctl run -m $(TEST_VM) sudo cp /mnt/mac$(ROOT_DIR)/provisioning/systemd/bench-web.service /etc/systemd/system/
 	orbctl run -m $(TEST_VM) sudo cp /mnt/mac$(ROOT_DIR)/provisioning/systemd/benchmark.slice /etc/systemd/system/
 	orbctl run -m $(TEST_VM) sudo cp /mnt/mac$(ROOT_DIR)/provisioning/sysctl.d/99-benchmark.conf /etc/sysctl.d/
 	orbctl run -m $(TEST_VM) sudo mkdir -p /var/lib/bench
+	orbctl run -m $(TEST_VM) sudo chown bench:bench /var/lib/bench
 	orbctl run -m $(TEST_VM) sudo systemctl daemon-reload
-	@echo "--- Launching setup wizard ---"
-	orbctl run -m $(TEST_VM) sudo /usr/local/bin/bench-setup
+	@echo ""
+	@echo "=== VM ready. Launch the setup wizard with: ==="
+	@echo "  orbctl run -m $(TEST_VM) sudo /usr/local/bin/bench-setup"
+	@echo ""
+	@echo "Or SSH in:"
+	@echo "  orbctl run -m $(TEST_VM) bash"
+	@echo ""
+
+sbc: collect-dist
+	@echo "=== Building SBC image ($(BOARD), NORON_COMPRESS=$(NORON_COMPRESS)) ==="
+	$(ROOT_DIR)/provisioning/sbc/build-sbc-image.sh $(BOARD) $(ISO_DIST) $(ISO_DIST)
+	@echo "Image ready: $(ISO_DIST)/noron-$(BOARD).img"
+
+emulate-sbc: sbc
+	$(ROOT_DIR)/dev/emulate.sh $(ISO_DIST)/noron-$(BOARD).img
+
+emulate-iso: iso
+	$(ROOT_DIR)/dev/emulate.sh $(ISO_DIST)/noron-$(ARCH).iso
+
+emulate-fetch:
+	$(ROOT_DIR)/dev/emulate.sh --fetch $(or $(BOARD),rpi4b)
 
 vm-clean:
 	-orbctl delete -f $(BUILD_VM) 2>/dev/null || true
@@ -98,7 +144,7 @@ vm-clean:
 # ─── Build via turbo → @noron/iso collects everything ────────────────────────
 
 collect-dist:
-	BUN_TARGET=$(BUN_TARGET) bun run collect-dist
+	cd $(ROOT_DIR) && bun run collect-dist
 
 # ─── Build VM management ──────────────────────────────────────────────────────
 

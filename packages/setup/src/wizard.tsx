@@ -9,12 +9,28 @@ import { Install } from "./steps/install";
 import { Label } from "./steps/label";
 import { Network } from "./steps/network";
 import { OAuth } from "./steps/oauth";
+import { Password } from "./steps/password";
 import { Review } from "./steps/review";
+import { Timezone } from "./steps/timezone";
 import { Welcome } from "./steps/welcome";
 
-type Step = "welcome" | "cores" | "oauth" | "network" | "label" | "review" | "install" | "done";
+type Step =
+	| "welcome"
+	| "password"
+	| "timezone"
+	| "cores"
+	| "oauth"
+	| "network"
+	| "label"
+	| "review"
+	| "install"
+	| "done";
 
-export function Wizard() {
+interface WizardProps {
+	isFirstRun: boolean;
+}
+
+export function Wizard({ isFirstRun }: WizardProps) {
 	const [step, setStep] = useState<Step>("welcome");
 	const [hardware] = useState<HardwareProfile>(() => detectHardware());
 	const [config, setConfig] = useState<Partial<SetupConfig>>({
@@ -32,16 +48,24 @@ export function Wizard() {
 		setConfig((prev) => ({ ...prev, ...partial }));
 	};
 
+	// First run: welcome → password → timezone → cores → ...
+	// Reconfigure: welcome → cores → ... (skip password/timezone)
+	const afterWelcome = isFirstRun ? "password" : "cores";
+	const afterPassword = "timezone";
+	const afterTimezone = "cores";
+
 	return (
 		<Box flexDirection="column" padding={1}>
 			<Box marginBottom={1}>
 				<Text bold color="blue">
-					Benchmark Appliance Setup
+					Noron Benchmark Appliance Setup
 				</Text>
-				<Text color="gray"> — Step: {step}</Text>
+				<Text color="gray"> — {step}</Text>
 			</Box>
 
-			{step === "welcome" && <Welcome hardware={hardware} onNext={() => setStep("cores")} />}
+			{step === "welcome" && <Welcome hardware={hardware} onNext={() => setStep(afterWelcome)} />}
+			{step === "password" && <Password onNext={() => setStep(afterPassword)} />}
+			{step === "timezone" && <Timezone onNext={() => setStep(afterTimezone)} />}
 			{step === "cores" && (
 				<Cores
 					hardware={hardware}
@@ -74,6 +98,7 @@ export function Wizard() {
 			{step === "install" && (
 				<Install
 					config={config as SetupConfig}
+					isFirstRun={isFirstRun}
 					onDone={(reboot, invite) => {
 						setNeedsReboot(reboot);
 						setInviteUrl(invite);

@@ -55,7 +55,20 @@ A malicious workflow step with socket access can only read system metrics (CPU t
 
 ## Privilege model
 
-`bench-exec` runs via `sudo` inside the container. Sudoers is scoped to the specific binary path. bench-exec validates its job token with benchd, applies CPU affinity/nice/ionice, then **drops root** before exec'ing the user's command. User code never runs as root.
+The appliance uses a non-root `bench` user for administration (SSH, bench-web service). Sudoers rules are scoped to specific binaries:
+
+| User | Rule | Purpose |
+|------|------|---------|
+| `runner` | `NOPASSWD: /usr/local/bin/bench-exec` | Execute benchmarks with CPU isolation |
+| `bench` | `NOPASSWD: /usr/local/bin/runner-ctl` | Manage runner containers |
+| `bench` | `NOPASSWD: /usr/local/bin/bench-updater` | Apply self-updates |
+| `bench` | `NOPASSWD: /usr/local/bin/bench-setup` | Re-run setup wizard |
+
+`bench-exec` runs via `sudo` inside the runner container. bench-exec validates its job token with benchd, applies CPU affinity/nice/ionice, then **drops root** before exec'ing the user's command. User code never runs as root.
+
+The `bench` user is added to the `sudo` group during setup (for the wizard) and **removed after setup completes**. Post-setup, only the scoped rules above apply.
+
+The benchd socket is owned by `root:bench` with mode `0770`. In container environments where `chown` fails, it falls back to `0777` — this is safe because all privileged IPC operations require valid job tokens regardless of socket permissions.
 
 ## Data isolation
 
