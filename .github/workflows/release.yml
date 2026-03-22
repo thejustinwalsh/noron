@@ -109,7 +109,8 @@ jobs:
 
       - name: Build disk image (${{ matrix.arch }})
         run: |
-          sudo apt-get install -y -qq debootstrap parted dosfstools e2fsprogs kpartx xz-utils qemu-user-static
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq debootstrap parted dosfstools e2fsprogs kpartx xz-utils
           mkdir -p artifacts/
           sudo ./provisioning/img/build-img.sh ${{ matrix.deb_arch }} packages/iso/dist/ artifacts/ "${{ needs.release.outputs.iso-version || '0.0.0' }}"
 
