@@ -40,7 +40,8 @@ for bin in benchd/benchd bench-exec/bench-exec web/bench-web setup/bench-setup c
 done
 
 for asset in dashboard/index.html benchd/hooks/job-started benchd/hooks/job-completed \
-             runner-image/Containerfile runner-image/start.sh runner-image/runner-ctl.sh; do
+             runner-image/Containerfile runner-image/start.sh runner-image/runner-ctl.sh \
+             runner-image/bench-runner-update.sh; do
     if [ ! -e "${DIST_DIR}/${asset}" ]; then
         echo "Error: Missing asset: ${DIST_DIR}/${asset}"
         exit 1
@@ -106,6 +107,7 @@ chmod +x "${OVERLAY_DIR}/usr/local/share/bench/hooks/"*
 cp "${DIST_DIR}/runner-image/Containerfile"   "${OVERLAY_DIR}/usr/local/share/bench/runner/"
 cp "${DIST_DIR}/runner-image/start.sh"        "${OVERLAY_DIR}/usr/local/share/bench/runner/"
 cp "${DIST_DIR}/runner-image/runner-ctl.sh"   "${OVERLAY_DIR}/usr/local/share/bench/"
+cp "${DIST_DIR}/runner-image/bench-runner-update.sh" "${OVERLAY_DIR}/usr/local/share/bench/"
 
 # Copy first-boot service and SSH login profile
 cp "${SCRIPT_DIR}/../iso/first-boot.service" "${OVERLAY_DIR}/etc/systemd/system/"
@@ -143,7 +145,7 @@ echo "Building ${BOARD} image (this may take a while)..."
     PREFER_DOCKER=yes \
     COMPRESS_OUTPUTIMAGE=${NORON_COMPRESS:-xz},sha \
     USE_TMPFS=no \
-    EXTRA_PACKAGES="podman sqlite3 lm-sensors cpufrequtils util-linux sudo curl ca-certificates openssh-server htop"
+    EXTRA_PACKAGES="podman sqlite3 lm-sensors cpufrequtils util-linux sudo curl ca-certificates openssh-server htop linux-perf socat"
 
 # Find and move the output image
 if [ "${NORON_COMPRESS:-xz}" = "img" ]; then

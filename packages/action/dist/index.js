@@ -1,6 +1,6 @@
 // src/index.ts
-import { readFileSync } from "node:fs";
 import { spawn } from "node:child_process";
+import { appendFileSync, readFileSync } from "node:fs";
 import { connect } from "node:net";
 var SOCKET_PATH = process.env.BENCHD_SOCKET ?? "/var/run/benchd.sock";
 var JOB_TOKEN_PATH = process.env.JOB_TOKEN_PATH ?? "/opt/actions-runner/.benchd-token";
@@ -55,7 +55,7 @@ async function run() {
     process.exitCode = 1;
     return;
   }
-  const targetTemp = Number.parseInt(process.env.BENCH_TARGET_TEMP ?? "45", 10);
+  const targetTemp = Number.parseInt(process.env.BENCH_TARGET_TEMP ?? "0", 10);
   const timeoutSec = Number.parseInt(process.env.BENCH_TIMEOUT ?? "300", 10);
   try {
     const checkin = await sendRequest(SOCKET_PATH, {
@@ -97,7 +97,7 @@ async function run() {
       cores = "1,2,3";
     }
   }
-  console.log(`::group::Thermal stabilization (target: ${targetTemp}°C)`);
+  console.log(`::group::Thermal stabilization (target: ${targetTemp === 0 ? "auto" : `${targetTemp}°C`})`);
   try {
     const thermal = await sendRequest(SOCKET_PATH, {
       type: "thermal.wait",
@@ -143,28 +143,36 @@ async function run() {
     BENCH_SESSION_ID: sessionId,
     BENCH_JOB_TOKEN: jobToken
   };
-  if (benchTmpfs) {
+  const useTmpfs = process.env.BENCH_USE_TMPFS !== "false";
+  if (benchTmpfs && useTmpfs) {
     benchEnv.TMPDIR = benchTmpfs;
     benchEnv.BENCH_TMPFS = benchTmpfs;
     console.log(`Using tmpfs at ${benchTmpfs} for benchmark I/O (TMPDIR set automatically)`);
     console.log("All temp file operations will use RAM-backed storage for consistent I/O latency.");
+  } else if (!useTmpfs) {
+    console.log("Tmpfs disabled for this run (use-tmpfs: false). Benchmark I/O will use disk.");
   } else {
     console.log("::notice::No tmpfs available — benchmark I/O will use disk. For lower variance, configure tmpfs in /etc/benchd/config.toml (requires sufficient RAM).");
   }
+  const usePerfStat = process.env.BENCH_PERF_STAT === "true";
+  const perfStatOutput = benchTmpfs ? `${benchTmpfs}/perf-stat.tsv` : "/tmp/bench-perf-stat.tsv";
+  const perfStatJson = perfStatOutput.replace(/\.\w+$/, ".json");
   console.log(`::group::Benchmark: ${command}`);
   const exitCode = await new Promise((resolve) => {
-    const args = [
+    const benchExecArgs = [
       "/usr/local/bin/bench-exec",
       "--cores",
       cores,
       "--nice",
       "-20",
       "--ionice",
-      "1",
-      "--",
-      ...command.split(" ")
+      "1"
     ];
-    const child = spawn("sudo", args, {
+    if (usePerfStat) {
+      benchExecArgs.push("--perf-stat", "--perf-stat-output", perfStatOutput);
+    }
+    benchExecArgs.push("--", ...command.split(" "));
+    const child = spawn("sudo", benchExecArgs, {
       stdio: "inherit",
       env: benchEnv
     });
@@ -178,6 +186,36 @@ async function run() {
   if (exitCode !== 0) {
     console.log(`::error::Benchmark exited with code ${exitCode}`);
     process.exitCode = exitCode;
+  }
+  if (usePerfStat) {
+    console.log("::group::Perf stat");
+    try {
+      const perfJson = JSON.parse(readFileSync(perfStatJson, "utf-8"));
+      const healthy = perfJson.isolationHealthy;
+      const ctxSw = perfJson.contextSwitches;
+      const cpuMig = perfJson.cpuMigrations;
+      console.log(`Isolation: ${healthy ? "HEALTHY" : "WARNING"}` + `  (context-switches: ${ctxSw}, cpu-migrations: ${cpuMig})`);
+      if (perfJson.ipc != null) {
+        console.log(`IPC: ${perfJson.ipc.toFixed(2)} instructions/cycle`);
+      }
+      if (perfJson.branchMissRate != null) {
+        console.log(`Branch miss rate: ${perfJson.branchMissRate.toFixed(2)}%`);
+      }
+      if (perfJson.l1MissRate != null) {
+        console.log(`L1 dcache miss rate: ${perfJson.l1MissRate.toFixed(2)}%`);
+      }
+      if (!healthy) {
+        console.log(`::warning::CPU isolation may be compromised: context-switches=${ctxSw}, cpu-migrations=${cpuMig}`);
+      }
+      const githubOutput = process.env.GITHUB_OUTPUT;
+      if (githubOutput) {
+        appendFileSync(githubOutput, `perf-stat-json=${perfStatJson}
+`);
+      }
+    } catch (err) {
+      console.log(`::warning::Could not read perf stat results: ${err}`);
+    }
+    console.log("::endgroup::");
   }
 }
 run().catch((err) => {

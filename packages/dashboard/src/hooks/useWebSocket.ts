@@ -11,7 +11,7 @@ export interface WebSocketState {
 	connected: boolean;
 }
 
-export function useWebSocket(): WebSocketState {
+export function useWebSocket(enabled = true): WebSocketState {
 	const [status, setStatus] = useState<StatusUpdate | null>(null);
 	const [thermalHistory, setThermalHistory] = useState<number[]>([]);
 	const [cpuHistory, setCpuHistory] = useState<number[]>([]);
@@ -19,6 +19,8 @@ export function useWebSocket(): WebSocketState {
 	const [connected, setConnected] = useState(false);
 	const wsRef = useRef<WebSocket | null>(null);
 	const reconnectTimerRef = useRef<ReturnType<typeof setTimeout>>();
+	const enabledRef = useRef(enabled);
+	enabledRef.current = enabled;
 
 	const connect = useCallback(() => {
 		const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
@@ -62,8 +64,10 @@ export function useWebSocket(): WebSocketState {
 		ws.onclose = () => {
 			setConnected(false);
 			wsRef.current = null;
-			// Reconnect after 3 seconds
-			reconnectTimerRef.current = setTimeout(connect, 3000);
+			// Only reconnect if still enabled
+			if (enabledRef.current) {
+				reconnectTimerRef.current = setTimeout(connect, 3000);
+			}
 		};
 
 		ws.onerror = () => {
@@ -72,12 +76,19 @@ export function useWebSocket(): WebSocketState {
 	}, []);
 
 	useEffect(() => {
+		if (!enabled) {
+			clearTimeout(reconnectTimerRef.current);
+			wsRef.current?.close();
+			wsRef.current = null;
+			setConnected(false);
+			return;
+		}
 		connect();
 		return () => {
 			clearTimeout(reconnectTimerRef.current);
 			wsRef.current?.close();
 		};
-	}, [connect]);
+	}, [connect, enabled]);
 
 	return { status, thermalHistory, cpuHistory, memoryHistory, connected };
 }

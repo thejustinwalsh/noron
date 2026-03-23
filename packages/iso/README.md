@@ -85,7 +85,7 @@ The wizard detects your hardware and walks you through configuration:
 | **Network** | Set hostname, optionally configure Tailscale VPN |
 | **Label** | Set the GitHub Actions runner label (default: `noron`) |
 | **Review** | Confirm all settings |
-| **Install** | Installs packages, writes config, builds runner container, starts services |
+| **Install** | Updates packages, writes config, builds runner container, starts services |
 | **Done** | Shows your dashboard URL and admin invite link, prompts to reboot |
 
 To re-run the wizard later: `sudo bench-setup --reconfigure` (skips password and timezone).

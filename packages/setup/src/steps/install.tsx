@@ -2,7 +2,7 @@ import { Box, Text } from "ink";
 import Spinner from "ink-spinner";
 import React, { useCallback, useEffect, useState } from "react";
 import type { SetupConfig } from "../generate";
-import { type InstallStep, runInstall } from "../installer";
+import { type InstallStep, getInstallSteps, runInstall } from "../installer";
 
 interface InstallProps {
 	config: SetupConfig;
@@ -12,27 +12,12 @@ interface InstallProps {
 
 const MAX_OUTPUT_LINES = 3;
 
-const STEP_NAMES = [
-	"Installing system packages",
-	"Configuring thermal sensors",
-	"Disabling irqbalance",
-	"Creating system users",
-	"Writing configuration",
-	"Installing systemd services",
-	"Installing helper scripts",
-	"Installing dashboard",
-	"Installing runner infrastructure",
-	"Configuring boot parameters",
-	"Creating bootstrap invite",
-	"Starting services",
-	"Setting up Tailscale",
-];
-
 export function Install({ config, isFirstRun, onDone }: InstallProps) {
 	const [steps, setSteps] = useState<InstallStep[]>(
-		STEP_NAMES.map((name) => ({ name, status: "pending" })),
+		getInstallSteps(config, isFirstRun).map((name) => ({ name, status: "pending" })),
 	);
 	const [outputLines, setOutputLines] = useState<string[]>([]);
+	const [fatalError, setFatalError] = useState<string | null>(null);
 	const [started, setStarted] = useState(false);
 
 	const handleOutput = useCallback((line: string) => {
@@ -56,14 +41,18 @@ export function Install({ config, isFirstRun, onDone }: InstallProps) {
 				}
 			},
 			{ isFirstRun, onOutput: handleOutput },
-		).then(({ needsReboot, inviteUrl }) => {
-			onDone(needsReboot, inviteUrl);
+		).then(({ needsReboot, inviteUrl, fatal }) => {
+			if (fatal) {
+				setFatalError(fatal);
+			} else {
+				onDone(needsReboot, inviteUrl);
+			}
 		});
 	}, [started, config, isFirstRun, handleOutput, onDone]);
 
 	return (
 		<Box flexDirection="column" gap={1}>
-			<Text bold>Installing...</Text>
+			<Text bold>{fatalError ? "Setup failed" : "Installing..."}</Text>
 
 			<Box flexDirection="column" paddingLeft={2}>
 				{steps.map((step) => (
@@ -85,28 +74,49 @@ export function Install({ config, isFirstRun, onDone }: InstallProps) {
 									: step.status === "done"
 										? "green"
 										: step.status === "running"
-											? "white"
+											? "whiteBright"
 											: "gray"
 							}
 						>
 							{step.name}
 						</Text>
-						{step.error && <Text color="red"> — {step.error.slice(0, 80)}</Text>}
+						{step.error && !fatalError && <Text color="red"> — {step.error.slice(0, 80)}</Text>}
 					</Box>
 				))}
 			</Box>
 
-			<Box flexDirection="column" paddingLeft={4} marginTop={1} height={MAX_OUTPUT_LINES}>
-				{Array.from({ length: MAX_OUTPUT_LINES }, (_, i) => {
-					const line = outputLines[i];
-					return (
-						// biome-ignore lint/suspicious/noArrayIndexKey: fixed-size placeholder slots
-						<Text key={i} color="gray" dimColor>
-							{line ? (line.length > 80 ? `${line.slice(0, 77)}...` : line) : " "}
+			{fatalError ? (
+				<Box flexDirection="column" paddingLeft={2} marginTop={1}>
+					<Text color="red" bold>
+						Setup cannot continue.
+					</Text>
+					<Text color="white" dimColor>
+						{"\n"}Error details:
+					</Text>
+					{fatalError.split("\n").map((line, i) => (
+						// biome-ignore lint/suspicious/noArrayIndexKey: error output lines
+						<Text key={i} color="white">
+							{"  "}
+							{line}
 						</Text>
-					);
-				})}
-			</Box>
+					))}
+					<Text color="yellow" dimColor>
+						{"\n"}Check your network connection and try running: sudo bench-setup --reconfigure
+					</Text>
+				</Box>
+			) : (
+				<Box flexDirection="column" paddingLeft={4} marginTop={1} height={MAX_OUTPUT_LINES}>
+					{Array.from({ length: MAX_OUTPUT_LINES }, (_, i) => {
+						const line = outputLines[i];
+						return (
+							// biome-ignore lint/suspicious/noArrayIndexKey: fixed-size placeholder slots
+							<Text key={i} color="white">
+								{line ? (line.length > 80 ? `${line.slice(0, 77)}...` : line) : " "}
+							</Text>
+						);
+					})}
+				</Box>
+			)}
 		</Box>
 	);
 }

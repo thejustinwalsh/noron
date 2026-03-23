@@ -3,8 +3,8 @@
 //
 // Usage: bun run src/report.ts results/*.json --out report.html
 
-import { readFileSync, readdirSync } from "node:fs";
-import { basename, resolve } from "node:path";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { basename, dirname, resolve } from "node:path";
 
 interface Meta {
 	runner: string;
@@ -31,11 +31,24 @@ interface RunFile {
 	results: BenchEntry[];
 }
 
+interface PerfStatData {
+	ipc: number | null;
+	contextSwitches: number;
+	cpuMigrations: number;
+	branchMissRate: number | null;
+	l1MissRate: number | null;
+	isolationHealthy: boolean;
+}
+
 // Parse args
 const args = process.argv.slice(2);
 const outIdx = args.indexOf("--out");
 const outPath = outIdx >= 0 ? args[outIdx + 1] : "report.html";
-const inputArgs = args.filter((_, i) => i !== outIdx && i !== outIdx + 1);
+const perfStatIdx = args.indexOf("--perf-stat");
+const perfStatDir = perfStatIdx >= 0 ? args[perfStatIdx + 1] : "";
+const inputArgs = args.filter(
+	(_, i) => i !== outIdx && i !== outIdx + 1 && i !== perfStatIdx && i !== perfStatIdx + 1,
+);
 
 // Collect input files (args can be files or dirs)
 const files: string[] = [];
@@ -55,6 +68,35 @@ if (files.length === 0) {
 
 // Load all runs
 const runs: RunFile[] = files.map((f) => JSON.parse(readFileSync(f, "utf-8")));
+
+// Load perf stat sidecar files if available
+// Look for perf-stat.json next to result files, or in --perf-stat dir
+const perfStatFiles: PerfStatData[] = [];
+if (perfStatDir) {
+	try {
+		const entries = readdirSync(perfStatDir);
+		for (const e of entries) {
+			if (e.endsWith(".json") && e.includes("perf-stat")) {
+				perfStatFiles.push(JSON.parse(readFileSync(resolve(perfStatDir, e), "utf-8")));
+			}
+		}
+	} catch {
+		// perf stat dir not found or not readable — skip
+	}
+} else {
+	// Auto-detect: look for perf-stat.json next to each result file
+	for (const f of files) {
+		const sidecar = resolve(dirname(f), "perf-stat.json");
+		if (existsSync(sidecar)) {
+			try {
+				perfStatFiles.push(JSON.parse(readFileSync(sidecar, "utf-8")));
+			} catch {
+				// skip malformed
+			}
+		}
+	}
+}
+const hasPerfStat = perfStatFiles.length > 0;
 
 // Group by runner
 const byRunner = new Map<string, RunFile[]>();
@@ -279,6 +321,39 @@ const countersSection = !hasCounters
 </table>`;
 		})();
 
+// Build isolation health section from perf stat data
+const isolationSection = !hasPerfStat
+	? ""
+	: (() => {
+			const healthBadge = (healthy: boolean) =>
+				healthy
+					? '<span class="badge excellent">HEALTHY</span>'
+					: '<span class="badge poor">WARNING</span>';
+
+			const fmtVal = (v: number | null, suffix = "") =>
+				v != null ? `${v.toFixed(2)}${suffix}` : "-";
+
+			const rows = perfStatFiles
+				.map(
+					(p, i) =>
+						`<tr><td>Run ${i + 1}</td><td>${healthBadge(p.isolationHealthy)}</td>` +
+						`<td>${p.contextSwitches}</td><td>${p.cpuMigrations}</td>` +
+						`<td>${fmtVal(p.ipc)}</td><td>${fmtVal(p.branchMissRate, "%")}</td>` +
+						`<td>${fmtVal(p.l1MissRate, "%")}</td></tr>`,
+				)
+				.join("\n");
+
+			return `
+<h2>Isolation Health</h2>
+<p class="subtitle">Hardware counters from perf stat. Context switches and CPU migrations should be 0 on isolated cores.</p>
+<table>
+<thead>
+<tr><th>Run</th><th>Status</th><th>Context Switches</th><th>CPU Migrations</th><th>IPC</th><th>Branch Miss Rate</th><th>L1 Miss Rate</th></tr>
+</thead>
+<tbody>${rows}</tbody>
+</table>`;
+		})();
+
 const html = `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -335,6 +410,8 @@ const html = `<!DOCTYPE html>
 
 <h2>Variance by Benchmark</h2>
 <div class="chart-container" id="charts"></div>
+
+${isolationSection}
 
 ${countersSection}
 

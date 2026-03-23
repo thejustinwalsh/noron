@@ -20,10 +20,19 @@ inputs:
     description: "Use tmpfs for benchmark I/O (TMPDIR). Set to false for disk-based benchmarks."
     required: false
     default: "true"
+  perf-stat:
+    description: "Collect hardware performance counters via perf stat. Reports isolation health (context switches, CPU migrations) and cache/branch/IPC metrics."
+    required: false
+    default: "false"
+outputs:
+  perf-stat-json:
+    description: "Path to perf stat JSON results (only set when perf-stat: true)"
+    value: ${{ steps.benchmark.outputs.perf-stat-json }}
 runs:
   using: "composite"
   steps:
     - name: Run benchmark with isolation
+      id: benchmark
       shell: bash
       run: node "${{ github.action_path }}/dist/index.js"
       env:
@@ -32,3 +41,4 @@ runs:
         BENCH_CORES: ${{ inputs.cores }}
         BENCH_TIMEOUT: ${{ inputs.timeout }}
         BENCH_USE_TMPFS: ${{ inputs.use-tmpfs }}
+        BENCH_PERF_STAT: ${{ inputs.perf-stat }}

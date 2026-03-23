@@ -44,7 +44,8 @@ for bin in benchd/benchd bench-exec/bench-exec web/bench-web setup/bench-setup c
 done
 
 for asset in dashboard/index.html benchd/hooks/job-started benchd/hooks/job-completed \
-             runner-image/Containerfile runner-image/start.sh runner-image/runner-ctl.sh; do
+             runner-image/Containerfile runner-image/start.sh runner-image/runner-ctl.sh \
+             runner-image/bench-runner-update.sh; do
     if [ ! -e "${DIST_DIR}/${asset}" ]; then
         echo "Error: Missing asset: ${DIST_DIR}/${asset}"
         echo "Run: BUN_TARGET=... turbo run build --filter=@noron/iso..."
@@ -93,6 +94,8 @@ ca-certificates
 systemd-sysv
 openssh-server
 htop
+linux-perf
+socat
 EOF
 
 # Copy binaries into the ISO
@@ -120,6 +123,7 @@ mkdir -p config/includes.chroot/usr/local/share/bench/runner
 cp "${DIST_DIR}/runner-image/Containerfile" config/includes.chroot/usr/local/share/bench/runner/
 cp "${DIST_DIR}/runner-image/start.sh" config/includes.chroot/usr/local/share/bench/runner/
 cp "${DIST_DIR}/runner-image/runner-ctl.sh" config/includes.chroot/usr/local/share/bench/
+cp "${DIST_DIR}/runner-image/bench-runner-update.sh" config/includes.chroot/usr/local/share/bench/
 
 # Copy first-boot service
 mkdir -p config/includes.chroot/etc/systemd/system

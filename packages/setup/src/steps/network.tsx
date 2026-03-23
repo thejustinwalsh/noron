@@ -1,4 +1,4 @@
-import { Box, Text, useInput } from "ink";
+import { Box, Text } from "ink";
 import TextInput from "ink-text-input";
 import React, { useState } from "react";
 import type { HardwareProfile } from "../detect";
@@ -31,16 +31,6 @@ export function Network({ hardware, config, onUpdate, onNext }: NetworkProps) {
 		});
 		onNext();
 	};
-
-	useInput((_input, key) => {
-		if (key.return && field === "tailscale") {
-			onUpdate({
-				hostname,
-				tailscaleAuthKey: tailscaleKey || undefined,
-			});
-			onNext();
-		}
-	});
 
 	return (
 		<Box flexDirection="column" gap={1}>

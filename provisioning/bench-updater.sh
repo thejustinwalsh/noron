@@ -18,10 +18,11 @@ HOOKS_DIR="/usr/local/lib/benchd/hooks"
 HOOKS=(job-started job-completed)
 DASHBOARD_DIR="/var/lib/bench/dashboard"
 RUNNER_DIR="/opt/runner"
-RUNNER_FILES=(Containerfile start.sh runner-ctl.sh)
+RUNNER_FILES=(Containerfile start.sh runner-ctl.sh bench-runner-update.sh)
 VERSION_FILE="/var/lib/bench/version"
 UPDATES_DIR="/var/lib/bench/updates"
 SELF_NAME="bench-updater"
+SOCKET="/var/run/benchd.sock"
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -43,6 +44,27 @@ require_root() {
 read_version() {
 	[[ -f "$VERSION_FILE" ]] || die "version file not found: $VERSION_FILE"
 	cat "$VERSION_FILE"
+}
+
+ipc_request() {
+	echo "$1" | socat - UNIX-CONNECT:"$SOCKET" 2>/dev/null || echo '{}'
+}
+
+# Check that no benchmark is running. Refuses to proceed if the lock is held.
+ensure_idle() {
+	if [[ ! -S "$SOCKET" ]]; then
+		info "benchd socket not found — assuming idle (service may be stopped)"
+		return 0
+	fi
+
+	local resp
+	resp=$(ipc_request "{\"type\":\"lock.status\",\"requestId\":\"idle-check\"}")
+
+	if echo "$resp" | grep -q '"held":true'; then
+		die "A benchmark is currently running. Cannot update while the lock is held. Try again later."
+	fi
+
+	info "No benchmark running — safe to proceed"
 }
 
 stop_services() {
@@ -191,6 +213,9 @@ cmd_apply() {
 		install -m 0755 "$src/bench-updater.sh" "$(readlink -f "$0")"
 	fi
 
+	# Refuse to update if a benchmark is running.
+	ensure_idle
+
 	stop_services
 	install_from_source "$src"
 	start_services
@@ -209,6 +234,8 @@ cmd_rollback() {
 	[[ -n "$latest" ]] || die "no rollback backups found in $UPDATES_DIR"
 
 	info "rolling back from $latest"
+
+	ensure_idle
 
 	stop_services
 	install_from_source "$latest"

@@ -165,7 +165,7 @@ export function useGithubRepos(hasRepoScope?: boolean) {
 	return { repos, loading, refetch, fetchNextPage, hasNextPage, isFetchingNextPage };
 }
 
-export function useUserInfo() {
+export function useUserInfo(enabled = true) {
 	const {
 		data: userInfo = null,
 		isLoading: loading,
@@ -173,16 +173,18 @@ export function useUserInfo() {
 	} = useQuery({
 		queryKey: ["auth", "me"],
 		queryFn: () => fetchJson<UserInfo>("/api/auth/me"),
+		enabled,
 	});
 
 	return { userInfo, loading, refetch };
 }
 
-export function useWorkflowCounts() {
+export function useWorkflowCounts(enabled = true) {
 	const { data: counts = null } = useQuery({
 		queryKey: ["workflows", "counts"],
 		queryFn: () => fetchJson<WorkflowCounts>("/api/workflows/counts"),
-		refetchInterval: 30_000,
+		refetchInterval: enabled ? 30_000 : false,
+		enabled,
 	});
 
 	return { counts };

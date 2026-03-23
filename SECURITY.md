@@ -66,6 +66,8 @@ The appliance uses a non-root `bench` user for administration (SSH, bench-web se
 
 `bench-exec` runs via `sudo` inside the runner container. bench-exec validates its job token with benchd, applies CPU affinity/nice/ionice, then **drops root** before exec'ing the user's command. User code never runs as root.
 
+`bench-runner-update` runs as root via a systemd timer (weekly). It is not exposed via sudoers — only systemd can invoke it.
+
 The `bench` user is added to the `sudo` group during setup (for the wizard) and **removed after setup completes**. Post-setup, only the scoped rules above apply.
 
 The benchd socket is owned by `root:bench` with mode `0770`. In container environments where `chown` fails, it falls back to `0777` — this is safe because all privileged IPC operations require valid job tokens regardless of socket permissions.

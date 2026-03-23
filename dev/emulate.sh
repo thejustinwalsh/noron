@@ -175,11 +175,30 @@ with open('${img}', 'rb') as f:
     fi
 }
 
+expand_image() {
+    local img="$1"
+    local target_size="8G"
+    local current_size
+    current_size=$(stat -f%z "$img" 2>/dev/null || stat -c%s "$img" 2>/dev/null)
+    local target_bytes=$((8 * 1024 * 1024 * 1024))
+
+    if [ "$current_size" -lt "$target_bytes" ]; then
+        echo "Expanding image to ${target_size} for podman build space..."
+        qemu-img resize "$img" "$target_size"
+        echo "Image expanded. The filesystem will be resized on first boot."
+    fi
+}
+
 boot_sbc_image() {
     local img="$1"
     local boot_dir="${WORK_DIR}/boot"
 
     check_mtools
+
+    # Expand the disk image so there's room for podman to build containers.
+    # On real hardware the SD card is 16-32GB+; the raw image is only ~4GB.
+    # Armbian's first-boot service auto-resizes the filesystem to fill the disk.
+    expand_image "$img"
 
     # Extract kernel/dtb from the image
     rm -rf "$boot_dir"
@@ -245,6 +264,7 @@ boot_sbc_image() {
         echo "  Mode:    persistent (changes saved, reboot works)"
     else
         echo "  Mode:    snapshot (changes discarded on exit)"
+        echo "  Tip:     use --persist to test full setup (podman build needs disk space)"
     fi
     echo "  Quit:    close the window"
     echo ""

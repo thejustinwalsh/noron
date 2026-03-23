@@ -32,10 +32,11 @@ function tempColor(temp: number): string {
 
 export function App() {
 	const [page, setPage] = useState("dashboard");
-	const { status, thermalHistory, cpuHistory, memoryHistory, connected } = useWebSocket();
-	const { authenticated, login, logout } = useAuth();
-	const { userInfo } = useUserInfo();
-	const { counts: workflowCounts } = useWorkflowCounts();
+	const { authenticated, login, logout, loading: authLoading } = useAuth();
+	const { status, thermalHistory, cpuHistory, memoryHistory, connected } =
+		useWebSocket(authenticated);
+	const { userInfo } = useUserInfo(authenticated);
+	const { counts: workflowCounts } = useWorkflowCounts(authenticated);
 	const queryClient = useQueryClient();
 	const isAdmin = userInfo?.role === "admin";
 	const [autoAddRunner, setAutoAddRunner] = useState(false);
@@ -80,6 +81,34 @@ export function App() {
 			max: +Math.max(...cpuHistory).toFixed(1),
 		};
 	}, [cpuHistory]);
+
+	if (authLoading) {
+		return (
+			<div className="layout">
+				<header className="header">
+					<div className="header-left">
+						<h1 className="header-title">Benchmark</h1>
+					</div>
+				</header>
+				<main className="main" />
+			</div>
+		);
+	}
+
+	if (!authenticated) {
+		return (
+			<div className="layout">
+				<header className="header">
+					<div className="header-left">
+						<h1 className="header-title">Benchmark</h1>
+					</div>
+				</header>
+				<main className="main">
+					<LoginPrompt />
+				</main>
+			</div>
+		);
+	}
 
 	return (
 		<Layout
@@ -189,23 +218,19 @@ export function App() {
 				</div>
 			)}
 			{page === "runners" &&
-				(authenticated ? (
-					userInfo && !userInfo.hasRepoScope && userInfo.runnerCount === 0 ? (
-						<Onboarding
-							onComplete={() => queryClient.invalidateQueries({ queryKey: ["auth", "me"] })}
-						/>
-					) : (
-						<RunnerList
-							hasRepoScope={userInfo?.hasRepoScope}
-							autoAdd={autoAddRunner}
-							onAutoAddConsumed={() => setAutoAddRunner(false)}
-						/>
-					)
+				(userInfo && !userInfo.hasRepoScope && userInfo.runnerCount === 0 ? (
+					<Onboarding
+						onComplete={() => queryClient.invalidateQueries({ queryKey: ["auth", "me"] })}
+					/>
 				) : (
-					<LoginPrompt />
+					<RunnerList
+						hasRepoScope={userInfo?.hasRepoScope}
+						autoAdd={autoAddRunner}
+						onAutoAddConsumed={() => setAutoAddRunner(false)}
+					/>
 				))}
-			{page === "workflows" && (authenticated ? <WorkflowsPage /> : <LoginPrompt />)}
-			{page === "admin" && (authenticated && isAdmin ? <AdminPanel /> : <LoginPrompt />)}
+			{page === "workflows" && <WorkflowsPage />}
+			{page === "admin" && (isAdmin ? <AdminPanel /> : <LoginPrompt />)}
 		</Layout>
 	);
 }

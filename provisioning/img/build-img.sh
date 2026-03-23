@@ -47,6 +47,15 @@ for bin in benchd/benchd bench-exec/bench-exec web/bench-web setup/bench-setup c
     fi
 done
 
+for asset in dashboard/index.html benchd/hooks/job-started benchd/hooks/job-completed \
+             runner-image/Containerfile runner-image/start.sh runner-image/runner-ctl.sh \
+             runner-image/bench-runner-update.sh; do
+    if [ ! -e "${DIST_DIR}/${asset}" ]; then
+        echo "Error: Missing asset: ${DIST_DIR}/${asset}"
+        exit 1
+    fi
+done
+
 # Clean previous build
 rm -rf "${WORK_DIR}"
 mkdir -p "${WORK_DIR}" "${MNT}"
@@ -150,7 +159,7 @@ chroot "${MNT}" bash -c "
     apt-get install -y -qq \
         linux-image-${DEB_ARCH} grub-efi-${DEB_ARCH} \
         podman sqlite3 lm-sensors cpufrequtils util-linux \
-        sudo curl ca-certificates openssh-server htop \
+        sudo curl ca-certificates openssh-server htop linux-perf socat \
         systemd-sysv locales
 
     # Set locale
@@ -206,6 +215,7 @@ mkdir -p "${MNT}/usr/local/share/bench/runner"
 cp "${DIST_DIR}/runner-image/Containerfile"   "${MNT}/usr/local/share/bench/runner/"
 cp "${DIST_DIR}/runner-image/start.sh"        "${MNT}/usr/local/share/bench/runner/"
 cp "${DIST_DIR}/runner-image/runner-ctl.sh"   "${MNT}/usr/local/share/bench/"
+cp "${DIST_DIR}/runner-image/bench-runner-update.sh" "${MNT}/usr/local/share/bench/"
 
 # Install first-boot service
 cp "${SCRIPT_DIR}/../iso/first-boot.service" "${MNT}/etc/systemd/system/"

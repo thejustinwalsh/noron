@@ -6,7 +6,7 @@ import { spawn } from "node:child_process";
  *
  * Orchestrates: action.checkin → thermal wait → cgroup prepare → bench-exec spawn
  */
-import { readFileSync } from "node:fs";
+import { appendFileSync, readFileSync } from "node:fs";
 import { type Socket, connect } from "node:net";
 
 const SOCKET_PATH = process.env.BENCHD_SOCKET ?? "/var/run/benchd.sock";
@@ -191,9 +191,13 @@ async function run(): Promise<void> {
 		);
 	}
 
+	const usePerfStat = process.env.BENCH_PERF_STAT === "true";
+	const perfStatOutput = benchTmpfs ? `${benchTmpfs}/perf-stat.tsv` : "/tmp/bench-perf-stat.tsv";
+	const perfStatJson = perfStatOutput.replace(/\.\w+$/, ".json");
+
 	console.log(`::group::Benchmark: ${command}`);
 	const exitCode = await new Promise<number>((resolve) => {
-		const args = [
+		const benchExecArgs = [
 			"/usr/local/bin/bench-exec",
 			"--cores",
 			cores,
@@ -201,11 +205,15 @@ async function run(): Promise<void> {
 			"-20",
 			"--ionice",
 			"1",
-			"--",
-			...command.split(" "),
 		];
 
-		const child = spawn("sudo", args, {
+		if (usePerfStat) {
+			benchExecArgs.push("--perf-stat", "--perf-stat-output", perfStatOutput);
+		}
+
+		benchExecArgs.push("--", ...command.split(" "));
+
+		const child = spawn("sudo", benchExecArgs, {
 			stdio: "inherit",
 			env: benchEnv,
 		});
@@ -221,6 +229,47 @@ async function run(): Promise<void> {
 	if (exitCode !== 0) {
 		console.log(`::error::Benchmark exited with code ${exitCode}`);
 		process.exitCode = exitCode;
+	}
+
+	// Report perf stat results if enabled
+	if (usePerfStat) {
+		console.log("::group::Perf stat");
+		try {
+			const perfJson = JSON.parse(readFileSync(perfStatJson, "utf-8"));
+			const healthy = perfJson.isolationHealthy as boolean;
+			const ctxSw = perfJson.contextSwitches as number;
+			const cpuMig = perfJson.cpuMigrations as number;
+
+			console.log(
+				`Isolation: ${healthy ? "HEALTHY" : "WARNING"}` +
+					`  (context-switches: ${ctxSw}, cpu-migrations: ${cpuMig})`,
+			);
+
+			if (perfJson.ipc != null) {
+				console.log(`IPC: ${(perfJson.ipc as number).toFixed(2)} instructions/cycle`);
+			}
+			if (perfJson.branchMissRate != null) {
+				console.log(`Branch miss rate: ${(perfJson.branchMissRate as number).toFixed(2)}%`);
+			}
+			if (perfJson.l1MissRate != null) {
+				console.log(`L1 dcache miss rate: ${(perfJson.l1MissRate as number).toFixed(2)}%`);
+			}
+
+			if (!healthy) {
+				console.log(
+					`::warning::CPU isolation may be compromised: context-switches=${ctxSw}, cpu-migrations=${cpuMig}`,
+				);
+			}
+
+			// Set output for downstream steps
+			const githubOutput = process.env.GITHUB_OUTPUT;
+			if (githubOutput) {
+				appendFileSync(githubOutput, `perf-stat-json=${perfStatJson}\n`);
+			}
+		} catch (err) {
+			console.log(`::warning::Could not read perf stat results: ${err}`);
+		}
+		console.log("::endgroup::");
 	}
 }
 

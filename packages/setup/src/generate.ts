@@ -243,6 +243,38 @@ WantedBy=local-fs.target
 `;
 }
 
+export function generateRunnerUpdateService(): string {
+	return `[Unit]
+Description=Rebuild runner container image
+After=network-online.target benchd.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/bench-runner-update
+CPUAffinity=0
+Nice=19
+IOSchedulingClass=idle
+
+[Install]
+WantedBy=multi-user.target
+`;
+}
+
+export function generateRunnerUpdateTimer(): string {
+	return `[Unit]
+Description=Weekly runner container image rebuild
+
+[Timer]
+OnCalendar=Sun 04:00
+RandomizedDelaySec=1h
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+`;
+}
+
 export function generateCpuGovernorService(): string {
 	return `[Unit]
 Description=Set CPU governor to performance for benchmark consistency

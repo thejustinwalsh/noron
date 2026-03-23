@@ -12,6 +12,8 @@
       - cpufrequtils
       - util-linux
       - irqbalance
+      - linux-perf
+      - socat
     state: present
     update_cache: true
 
