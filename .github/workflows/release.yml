@@ -26,7 +26,6 @@ jobs:
 
     outputs:
       released: ${{ steps.release.outputs.released }}
-      tagged: ${{ steps.release.outputs.tagged-packages }}
       iso-version: ${{ steps.iso-out.outputs.version }}
       build-iso: ${{ steps.iso-out.outputs.build }}
 
@@ -50,20 +49,17 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Check if ISO was tagged
-        id: iso
-        if: steps.release.outputs.released == 'true'
-        uses: thejustinwalsh/workflows/filter-packages@main
-        with:
-          packages: ${{ steps.release.outputs.tagged-packages }}
-          filter: "@noron/iso"
-
-      - name: Set ISO outputs
+      - name: Check if ISO was released
         id: iso-out
         if: steps.release.outputs.released == 'true'
         run: |
-          if [ "${{ steps.iso.outputs.empty }}" = "false" ]; then
-            version=$(echo '${{ steps.iso.outputs.packages }}' | node -e "const d=JSON.parse(require('fs').readFileSync('/dev/stdin','utf-8'));console.log(d[0]?.version||'')")
+          published='${{ steps.release.outputs.published-packages }}'
+          version=$(node -e "
+            const pkgs = JSON.parse(process.argv[1] || '[]');
+            const iso = pkgs.find(p => p.name === '@noron/iso');
+            console.log(iso?.version || '');
+          " "$published")
+          if [ -n "$version" ]; then
             echo "version=$version" >> "$GITHUB_OUTPUT"
             echo "build=true" >> "$GITHUB_OUTPUT"
           else
