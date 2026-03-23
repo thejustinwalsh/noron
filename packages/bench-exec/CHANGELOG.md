@@ -1,5 +1,12 @@
 # @noron/bench-exec
 
+## 0.2.2
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @noron/shared@0.2.2
+
 ## 0.2.1
 
 ### Patch Changes
