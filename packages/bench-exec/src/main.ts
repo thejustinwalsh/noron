@@ -11,6 +11,7 @@
  */
 import { parseArgs } from "node:util";
 import { BenchdClient, SOCKET_PATH } from "@noron/shared";
+import { formatPerfStatSummary, isPerfAvailable, parsePerfStat } from "./perf-stat";
 import { applyCpuAffinity, applyIonice, applyNice, dropPrivileges } from "./syscalls";
 
 const { values, positionals } = parseArgs({
@@ -19,6 +20,8 @@ const { values, positionals } = parseArgs({
 		cores: { type: "string" },
 		nice: { type: "string", default: "-20" },
 		ionice: { type: "string", default: "1" },
+		"perf-stat": { type: "boolean", default: false },
+		"perf-stat-output": { type: "string", default: "/tmp/bench-perf-stat.tsv" },
 	},
 	allowPositionals: true,
 	strict: true,
@@ -26,7 +29,7 @@ const { values, positionals } = parseArgs({
 
 if (positionals.length === 0) {
 	console.error(
-		"Usage: bench-exec [--cores 1,2,3] [--nice -20] [--ionice 1] -- <command> [args...]",
+		"Usage: bench-exec [--cores 1,2,3] [--nice -20] [--ionice 1] [--perf-stat] [--perf-stat-output path] -- <command> [args...]",
 	);
 	process.exit(1);
 }
@@ -119,12 +122,43 @@ try {
 	process.exit(1);
 }
 
-// Step 5: Exec the command (inherits stdio)
+// Step 5: Exec the command (inherits stdio), optionally wrapped in perf stat
 const [command, ...args] = positionals;
-const proc = Bun.spawn([command, ...args], {
+const usePerfStat = values["perf-stat"];
+const perfStatOutput = values["perf-stat-output"] as string;
+const cleanEnv = { ...process.env, BENCH_SESSION_ID: undefined, BENCH_JOB_TOKEN: undefined };
+
+let spawnArgs: string[];
+if (usePerfStat) {
+	if (!isPerfAvailable()) {
+		console.error("bench-exec: --perf-stat requested but perf is not available on this system");
+		process.exit(1);
+	}
+	spawnArgs = ["perf", "stat", "-d", "-x", "\t", "-o", perfStatOutput, "--", command, ...args];
+} else {
+	spawnArgs = [command, ...args];
+}
+
+const proc = Bun.spawn(spawnArgs, {
 	stdio: ["inherit", "inherit", "inherit"],
-	env: { ...process.env, BENCH_SESSION_ID: undefined, BENCH_JOB_TOKEN: undefined },
+	env: cleanEnv,
 });
 
 const exitCode = await proc.exited;
+
+// Parse and write perf stat results if enabled
+if (usePerfStat) {
+	try {
+		const raw = await Bun.file(perfStatOutput).text();
+		const result = parsePerfStat(raw);
+		const jsonPath = perfStatOutput.replace(/\.\w+$/, ".json");
+		await Bun.write(jsonPath, JSON.stringify(result, null, 2));
+		console.error("\n--- perf stat summary ---");
+		console.error(formatPerfStatSummary(result));
+		console.error(`Full results: ${jsonPath}`);
+	} catch (err) {
+		console.error(`bench-exec: Failed to parse perf stat output: ${err}`);
+	}
+}
+
 process.exit(exitCode);
