@@ -288,8 +288,7 @@ export async function runInstall(
 		}
 		if (!foundUpdateScript) {
 			throw new Error(
-				"bench-runner-update.sh not found. Searched:\n" +
-					updateSources.map((s) => `  ${s}`).join("\n"),
+				`bench-runner-update.sh not found. Searched:\n${updateSources.map((s) => `  ${s}`).join("\n")}`,
 			);
 		}
 
