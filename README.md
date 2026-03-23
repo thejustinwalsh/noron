@@ -95,6 +95,13 @@ The action automatically:
 | `cores` | (auto) | CPU cores to use. Leave empty to auto-detect from benchd |
 | `timeout` | `300` | Max seconds to wait for thermal stabilization |
 | `use-tmpfs` | `true` | Set `TMPDIR` to the tmpfs mount. Set to `false` to disable |
+| `perf-stat` | `false` | Collect hardware performance counters via `perf stat`. Reports isolation health (context switches, CPU migrations) and cache/branch/IPC metrics |
+
+#### Action outputs
+
+| Output | Description |
+|--------|-------------|
+| `perf-stat-json` | Path to perf stat JSON results (only set when `perf-stat: true`) |
 
 ### Environment variables
 
@@ -167,7 +174,7 @@ On first boot, the wizard runs automatically when you log in. The default login 
 | **Network** | Sets hostname, optional Tailscale VPN | Yes | Yes |
 | **Label** | Configure the GitHub Actions runner label (default: `noron`) | Yes | Yes |
 | **Review** | Shows all settings for confirmation | Yes | Yes |
-| **Install** | Installs packages, writes config, builds runner container, starts services | Yes | Yes |
+| **Install** | Updates packages, writes config, builds runner container, starts services | Yes | Yes |
 | **Done** | Shows dashboard URL and admin invite link, prompts to reboot | Yes | Yes |
 
 To re-run the wizard later: `sudo bench-setup --reconfigure` (skips password and timezone).
@@ -346,11 +353,15 @@ Core allocation is auto-detected during setup based on your hardware:
 The appliance updates itself automatically from GitHub Releases. Configure with `update_repo`, `update_auto`, and `update_check_interval_hours` in config.toml.
 
 Updates are **safe by design**:
-- Never runs during a benchmark (paused by the benchmark gate)
-- Downloads the update archive, then waits for the lock to be idle
+- Never runs during a benchmark — waits for the lock to be idle before applying
+- Refuses to proceed if a benchmark is currently running
 - Backs up current binaries before replacing
 - Health-checks after restart — auto-rolls back if anything fails
 - Rebuilds the runner container with new assets
+
+### Runner container updates
+
+The GitHub Actions runner container image is rebuilt weekly via a systemd timer (`bench-runner-update.timer`). The Containerfile fetches the latest runner release automatically. The rebuild acquires the benchd lock so no benchmark can start during the process; if a benchmark is already running, it skips and retries next cycle.
 
 Manual update via CLI:
 ```bash

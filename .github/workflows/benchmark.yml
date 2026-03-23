@@ -51,18 +51,26 @@ jobs:
       - run: bun install --frozen-lockfile
 
       - name: Run benchmark with thermal wait + CPU isolation
+        id: bench
         uses: ./packages/action
         with:
           command: bun run packages/benchmark/src/bench.ts
+          perf-stat: true
         env:
           BENCH_RUNNER: noron
           BENCH_RUN_INDEX: ${{ matrix.run }}
           BENCH_OUTPUT: results-noron-${{ matrix.run }}.json
 
+      - name: Copy perf stat results
+        if: steps.bench.outputs.perf-stat-json != ''
+        run: cp "${{ steps.bench.outputs.perf-stat-json }}" perf-stat-noron-${{ matrix.run }}.json
+
       - uses: actions/upload-artifact@v7
         with:
           name: bench-noron-${{ matrix.run }}
-          path: results-noron-${{ matrix.run }}.json
+          path: |
+            results-noron-${{ matrix.run }}.json
+            perf-stat-noron-${{ matrix.run }}.json
 
   report:
     name: Generate Report
@@ -80,7 +88,7 @@ jobs:
           merge-multiple: true
 
       - name: Generate HTML report
-        run: bun run packages/benchmark/src/report.ts results/ --out benchmark-report.html
+        run: bun run packages/benchmark/src/report.ts results/ --perf-stat results/ --out benchmark-report.html
 
       - uses: actions/upload-artifact@v7
         with:

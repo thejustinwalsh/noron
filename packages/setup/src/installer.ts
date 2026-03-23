@@ -11,6 +11,8 @@ import {
 	generateGrubAppend,
 	generateIrqPinScript,
 	generateIrqPinService,
+	generateRunnerUpdateService,
+	generateRunnerUpdateTimer,
 	generateSudoersConfig,
 	generateSysctlConfig,
 	generateTmpfsMount,
@@ -19,6 +21,43 @@ import {
 	updateCmdline,
 	updateGrubDefault,
 } from "./generate";
+
+/** Step name constants — single source of truth for installer ↔ UI mapping. */
+export const STEPS = {
+	UPDATE_PACKAGES: "Updating system packages",
+	THERMAL_SENSORS: "Configuring thermal sensors",
+	DISABLE_IRQBALANCE: "Disabling irqbalance",
+	CREATE_USERS: "Creating system users",
+	WRITE_CONFIG: "Writing configuration",
+	SYSTEMD_SERVICES: "Installing systemd services",
+	HELPER_SCRIPTS: "Installing helper scripts",
+	DASHBOARD: "Installing dashboard",
+	RUNNER_INFRA: "Installing runner infrastructure",
+	BOOT_PARAMS: "Configuring boot parameters",
+	BOOTSTRAP_INVITE: "Creating bootstrap invite",
+	START_SERVICES: "Starting services",
+	TAILSCALE: "Setting up Tailscale",
+} as const;
+
+/** Returns the ordered step names for the given config. */
+export function getInstallSteps(config: SetupConfig, isFirstRun: boolean): string[] {
+	const steps: string[] = [
+		STEPS.UPDATE_PACKAGES,
+		STEPS.THERMAL_SENSORS,
+		STEPS.DISABLE_IRQBALANCE,
+		STEPS.CREATE_USERS,
+		STEPS.WRITE_CONFIG,
+		STEPS.SYSTEMD_SERVICES,
+		STEPS.HELPER_SCRIPTS,
+		STEPS.DASHBOARD,
+		STEPS.RUNNER_INFRA,
+		STEPS.BOOT_PARAMS,
+	];
+	if (isFirstRun) steps.push(STEPS.BOOTSTRAP_INVITE);
+	steps.push(STEPS.START_SERVICES);
+	if (config.tailscaleAuthKey) steps.push(STEPS.TAILSCALE);
+	return steps;
+}
 
 export interface InstallStep {
 	name: string;
@@ -37,19 +76,24 @@ function run(cmd: string): void {
 export function runAsync(cmd: string, onOutput?: (line: string) => void): Promise<void> {
 	return new Promise((resolve, reject) => {
 		const proc = spawn("bash", ["-c", cmd], { stdio: "pipe" });
-		if (onOutput) {
-			const handleData = (data: Buffer) => {
-				const lines = data.toString().split("\n").filter(Boolean);
-				for (const line of lines) {
-					onOutput(line.trim());
-				}
-			};
-			proc.stdout?.on("data", handleData);
-			proc.stderr?.on("data", handleData);
-		}
+		const tail: string[] = [];
+		const handleData = (data: Buffer) => {
+			const lines = data.toString().split("\n").filter(Boolean);
+			for (const line of lines) {
+				const trimmed = line.trim();
+				tail.push(trimmed);
+				if (tail.length > 20) tail.shift();
+				onOutput?.(trimmed);
+			}
+		};
+		proc.stdout?.on("data", handleData);
+		proc.stderr?.on("data", handleData);
 		proc.on("close", (code: number) => {
 			if (code === 0) resolve();
-			else reject(new Error(`Command failed (exit ${code}): ${cmd}`));
+			else {
+				const detail = tail.length > 0 ? `\n${tail.join("\n")}` : "";
+				reject(new Error(`Command failed (exit ${code}): ${cmd}${detail}`));
+			}
 		});
 		proc.on("error", reject);
 	});
@@ -58,6 +102,13 @@ export function runAsync(cmd: string, onOutput?: (line: string) => void): Promis
 /** Yield to the event loop so Ink can re-render between install steps. */
 function tick(): Promise<void> {
 	return new Promise((resolve) => setTimeout(resolve, 50));
+}
+
+type InstallResult = { needsReboot: boolean; inviteUrl: string | null; fatal?: string };
+
+function fatal(step: string, err: unknown, onProgress: ProgressCallback): InstallResult {
+	onProgress(step, "error", String(err));
+	return { needsReboot: false, inviteUrl: null, fatal: String(err) };
 }
 
 function ensureDir(path: string): void {
@@ -80,49 +131,51 @@ export async function runInstall(
 	config: SetupConfig,
 	onProgress: ProgressCallback,
 	options: { isFirstRun: boolean; onOutput?: OutputCallback } = { isFirstRun: true },
-): Promise<{ needsReboot: boolean; inviteUrl: string | null }> {
+): Promise<InstallResult> {
 	const onOutput = options.onOutput;
 	let needsReboot = false;
 
-	// 1. Install OS packages
-	onProgress("Installing system packages", "running");
+	// 1. System packages — pre-installed in the image, but apt-get install
+	// is a no-op for already-installed packages, and the update pulls
+	// security patches on first boot.
+	onProgress(STEPS.UPDATE_PACKAGES, "running");
 	await tick();
 	try {
-		await runAsync("apt-get update -qq", onOutput);
+		await runAsync("apt-get update -q", onOutput);
 		await runAsync(
-			"apt-get install -y -qq podman sqlite3 lm-sensors cpufrequtils util-linux sudo htop curl ca-certificates openssh-server",
+			"apt-get install -y -q podman sqlite3 lm-sensors cpufrequtils util-linux sudo htop curl ca-certificates openssh-server linux-perf socat",
 			onOutput,
 		);
-		onProgress("Installing system packages", "done");
+		onProgress(STEPS.UPDATE_PACKAGES, "done");
 	} catch (err) {
-		onProgress("Installing system packages", "error", String(err));
+		onProgress(STEPS.UPDATE_PACKAGES, "error", String(err));
 	}
 
 	// 1b. Configure thermal sensors
-	onProgress("Configuring thermal sensors", "running");
+	onProgress(STEPS.THERMAL_SENSORS, "running");
 	await tick();
 	try {
 		// sensors-detect auto-mode writes modprobe configs for detected sensors
 		run("yes | sensors-detect --auto 2>/dev/null || true");
-		onProgress("Configuring thermal sensors", "done");
+		onProgress(STEPS.THERMAL_SENSORS, "done");
 	} catch (err) {
-		onProgress("Configuring thermal sensors", "error", String(err));
+		onProgress(STEPS.THERMAL_SENSORS, "error", String(err));
 	}
 
 	// 1c. Disable irqbalance (conflicts with our IRQ pinning)
-	onProgress("Disabling irqbalance", "running");
+	onProgress(STEPS.DISABLE_IRQBALANCE, "running");
 	await tick();
 	try {
 		run("systemctl stop irqbalance 2>/dev/null || true");
 		run("systemctl disable irqbalance 2>/dev/null || true");
 		run("systemctl mask irqbalance 2>/dev/null || true");
-		onProgress("Disabling irqbalance", "done");
+		onProgress(STEPS.DISABLE_IRQBALANCE, "done");
 	} catch (err) {
-		onProgress("Disabling irqbalance", "error", String(err));
+		onProgress(STEPS.DISABLE_IRQBALANCE, "error", String(err));
 	}
 
 	// 2. Create system users
-	onProgress("Creating system users", "running");
+	onProgress(STEPS.CREATE_USERS, "running");
 	await tick();
 	try {
 		// bench user: may already exist from image build (customize-image.sh).
@@ -142,13 +195,13 @@ export async function runInstall(
 		}
 		ensureDir("/var/lib/bench");
 		run("chown bench:bench /var/lib/bench");
-		onProgress("Creating system users", "done");
+		onProgress(STEPS.CREATE_USERS, "done");
 	} catch (err) {
-		onProgress("Creating system users", "error", String(err));
+		return fatal(STEPS.CREATE_USERS, err, onProgress);
 	}
 
 	// 3. Write config files
-	onProgress("Writing configuration", "running");
+	onProgress(STEPS.WRITE_CONFIG, "running");
 	await tick();
 	try {
 		ensureDir("/etc/benchd");
@@ -159,13 +212,13 @@ export async function runInstall(
 		chmodSync("/etc/benchd/config.toml", 0o640);
 		writeFileSync("/etc/sysctl.d/99-benchmark.conf", generateSysctlConfig());
 		run("sysctl --system -q");
-		onProgress("Writing configuration", "done");
+		onProgress(STEPS.WRITE_CONFIG, "done");
 	} catch (err) {
-		onProgress("Writing configuration", "error", String(err));
+		return fatal(STEPS.WRITE_CONFIG, err, onProgress);
 	}
 
 	// 4. Write systemd units
-	onProgress("Installing systemd services", "running");
+	onProgress(STEPS.SYSTEMD_SERVICES, "running");
 	await tick();
 	try {
 		writeFileSync("/etc/systemd/system/benchd.service", generateBenchdService());
@@ -174,6 +227,8 @@ export async function runInstall(
 		writeFileSync("/etc/systemd/system/bench-irq-pin.service", generateIrqPinService(config));
 		writeFileSync("/etc/systemd/system/bench-tuning.service", generateDisableTurboService());
 		writeFileSync("/etc/systemd/system/bench-cpu-governor.service", generateCpuGovernorService());
+		writeFileSync("/etc/systemd/system/bench-runner-update.service", generateRunnerUpdateService());
+		writeFileSync("/etc/systemd/system/bench-runner-update.timer", generateRunnerUpdateTimer());
 
 		// Tmpfs mount unit for benchmark I/O isolation (LLVM guideline)
 		// Size based on available RAM — skip entirely on low-memory devices
@@ -189,13 +244,13 @@ export async function runInstall(
 		}
 
 		run("systemctl daemon-reload");
-		onProgress("Installing systemd services", "done");
+		onProgress(STEPS.SYSTEMD_SERVICES, "done");
 	} catch (err) {
-		onProgress("Installing systemd services", "error", String(err));
+		return fatal(STEPS.SYSTEMD_SERVICES, err, onProgress);
 	}
 
 	// 5. Write helper scripts
-	onProgress("Installing helper scripts", "running");
+	onProgress(STEPS.HELPER_SCRIPTS, "running");
 	await tick();
 	try {
 		// IRQ pin script
@@ -216,17 +271,39 @@ export async function runInstall(
 		);
 		chmodSync("/usr/local/bin/disable-thp", 0o755);
 
+		// Runner update script — search all known locations
+		const updateSources = [
+			"/usr/local/share/bench/bench-runner-update.sh",
+			"/usr/local/share/bench/runner/bench-runner-update.sh",
+			`${import.meta.dir}/../../../runner-image/bench-runner-update.sh`,
+		];
+		let foundUpdateScript = false;
+		for (const src of updateSources) {
+			if (existsSync(src)) {
+				run(`cp ${src} /usr/local/bin/bench-runner-update`);
+				chmodSync("/usr/local/bin/bench-runner-update", 0o755);
+				foundUpdateScript = true;
+				break;
+			}
+		}
+		if (!foundUpdateScript) {
+			throw new Error(
+				"bench-runner-update.sh not found. Searched:\n" +
+					updateSources.map((s) => `  ${s}`).join("\n"),
+			);
+		}
+
 		// Sudoers
 		writeFileSync("/etc/sudoers.d/bench-exec", generateSudoersConfig());
 		chmodSync("/etc/sudoers.d/bench-exec", 0o440);
 
-		onProgress("Installing helper scripts", "done");
+		onProgress(STEPS.HELPER_SCRIPTS, "done");
 	} catch (err) {
-		onProgress("Installing helper scripts", "error", String(err));
+		onProgress(STEPS.HELPER_SCRIPTS, "error", String(err));
 	}
 
 	// 6. Copy dashboard assets
-	onProgress("Installing dashboard", "running");
+	onProgress(STEPS.DASHBOARD, "running");
 	await tick();
 	try {
 		ensureDir("/var/lib/bench/dashboard");
@@ -239,13 +316,13 @@ export async function runInstall(
 				run(`cp -r ${altPath}/* /var/lib/bench/dashboard/`);
 			}
 		}
-		onProgress("Installing dashboard", "done");
+		onProgress(STEPS.DASHBOARD, "done");
 	} catch (err) {
-		onProgress("Installing dashboard", "error", String(err));
+		onProgress(STEPS.DASHBOARD, "error", String(err));
 	}
 
 	// 7. Install runner infrastructure (hooks, runner-ctl, Podman image)
-	onProgress("Installing runner infrastructure", "running");
+	onProgress(STEPS.RUNNER_INFRA, "running");
 	await tick();
 	try {
 		// Create directories
@@ -291,22 +368,24 @@ export async function runInstall(
 			}
 		}
 
-		// Build Podman image (may take a few minutes)
-		if (existsSync("/opt/runner/Containerfile")) {
-			const runnerArch = isArm() ? "arm64" : "x64";
-			await runAsync(
-				`podman build --build-arg RUNNER_ARCH=${runnerArch} -t bench-runner /opt/runner/`,
-				onOutput,
-			);
+		// Build runner container image (may take a few minutes on first setup).
+		// bench-runner-update --force skips the lock check since benchd isn't running yet.
+		// This is also the script the weekly timer uses for subsequent rebuilds.
+		// Retry once on failure — network issues during image pull are transient.
+		try {
+			await runAsync("bench-runner-update --force", onOutput);
+		} catch (firstErr) {
+			onOutput?.("Runner image build failed, retrying...");
+			await runAsync("bench-runner-update --force", onOutput);
 		}
 
-		onProgress("Installing runner infrastructure", "done");
+		onProgress(STEPS.RUNNER_INFRA, "done");
 	} catch (err) {
-		onProgress("Installing runner infrastructure", "error", String(err));
+		return fatal(STEPS.RUNNER_INFRA, err, onProgress);
 	}
 
 	// 8. Configure boot loader for CPU isolation
-	onProgress("Configuring boot parameters", "running");
+	onProgress(STEPS.BOOT_PARAMS, "running");
 	await tick();
 	try {
 		if (config.isolatedCores.length > 0) {
@@ -338,15 +417,15 @@ export async function runInstall(
 				}
 			}
 		}
-		onProgress("Configuring boot parameters", "done");
+		onProgress(STEPS.BOOT_PARAMS, "done");
 	} catch (err) {
-		onProgress("Configuring boot parameters", "error", String(err));
+		onProgress(STEPS.BOOT_PARAMS, "error", String(err));
 	}
 
 	// 8. Create bootstrap invite (first run only — reconfigure preserves existing DB/users)
 	let inviteUrl: string | null = null;
 	if (options.isFirstRun) {
-		onProgress("Creating bootstrap invite", "running");
+		onProgress(STEPS.BOOTSTRAP_INVITE, "running");
 		await tick();
 		try {
 			const dbPath = "/var/lib/bench/bench.db";
@@ -363,14 +442,14 @@ export async function runInstall(
 			chmodSync(dbPath, 0o640);
 			const baseUrl = `http://${config.hostname}:${config.webPort}`;
 			inviteUrl = `${baseUrl}/invite/${token}`;
-			onProgress("Creating bootstrap invite", "done");
+			onProgress(STEPS.BOOTSTRAP_INVITE, "done");
 		} catch (err) {
-			onProgress("Creating bootstrap invite", "error", String(err));
+			onProgress(STEPS.BOOTSTRAP_INVITE, "error", String(err));
 		}
 	}
 
 	// 9. Enable and start services
-	onProgress("Starting services", "running");
+	onProgress(STEPS.START_SERVICES, "running");
 	await tick();
 	try {
 		// Core services — must succeed
@@ -385,6 +464,7 @@ export async function runInstall(
 			"bench-irq-pin",
 			"bench-tuning",
 			"bench-cpu-governor",
+			"bench-runner-update.timer",
 		];
 		for (const svc of tuningServices) {
 			try {
@@ -396,14 +476,14 @@ export async function runInstall(
 			}
 		}
 
-		onProgress("Starting services", "done");
+		onProgress(STEPS.START_SERVICES, "done");
 	} catch (err) {
-		onProgress("Starting services", "error", String(err));
+		return fatal(STEPS.START_SERVICES, err, onProgress);
 	}
 
 	// 10. Optional: Tailscale
 	if (config.tailscaleAuthKey) {
-		onProgress("Setting up Tailscale", "running");
+		onProgress(STEPS.TAILSCALE, "running");
 		await tick();
 		try {
 			if (!existsSync("/usr/bin/tailscale")) {
@@ -411,9 +491,9 @@ export async function runInstall(
 			}
 			run(`tailscale up --authkey=${config.tailscaleAuthKey} --hostname=bench-${config.hostname}`);
 			run(`tailscale funnel --bg ${config.webPort}`);
-			onProgress("Setting up Tailscale", "done");
+			onProgress(STEPS.TAILSCALE, "done");
 		} catch (err) {
-			onProgress("Setting up Tailscale", "error", String(err));
+			onProgress(STEPS.TAILSCALE, "error", String(err));
 		}
 	}
 

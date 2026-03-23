@@ -26,12 +26,14 @@ RUN useradd -m -s /bin/bash runner \
     && chmod 0440 /etc/sudoers.d/runner
 
 # Install GitHub Actions runner
+# Fetches the latest release automatically via the GitHub API.
 # RUNNER_ARCH: x64 for amd64, arm64 for aarch64. Auto-detected from platform
 # but can be overridden: podman build --build-arg RUNNER_ARCH=arm64
-ARG RUNNER_VERSION=2.321.0
 ARG TARGETARCH
 ARG RUNNER_ARCH
 RUN ARCH="${RUNNER_ARCH:-$(case "${TARGETARCH:-$(dpkg --print-architecture)}" in arm64|aarch64) echo arm64;; *) echo x64;; esac)}" \
+    && RUNNER_VERSION=$(curl -fsSL https://api.github.com/repos/actions/runner/releases/latest | jq -r '.tag_name' | sed 's/^v//') \
+    && echo "Installing actions-runner ${RUNNER_VERSION} (${ARCH})" \
     && mkdir -p /opt/actions-runner \
     && cd /opt/actions-runner \
     && curl -fsSL "https://github.com/actions/runner/releases/download/v${RUNNER_VERSION}/actions-runner-linux-${ARCH}-${RUNNER_VERSION}.tar.gz" \
