@@ -1,5 +1,19 @@
 # @noron/iso
 
+## 0.2.2
+
+### Patch Changes
+
+- [#7](https://github.com/thejustinwalsh/noron/pull/7) [`3b519f7`](https://github.com/thejustinwalsh/noron/commit/3b519f77cb1ed2c44ef11f817809949b38dcabbe) Thanks [@thejustinwalsh](https://github.com/thejustinwalsh)! - fix: use fixed-github-release for single aggregated release with artifacts
+
+- Updated dependencies []:
+  - @noron/shared@0.2.2
+  - @noron/benchd@0.2.2
+  - @noron/bench-exec@0.2.2
+  - @noron/web@0.2.2
+  - @noron/cli@0.2.2
+  - @noron/setup@0.1.0
+
 ## 0.2.1
 
 ### Patch Changes
