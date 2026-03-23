@@ -33,7 +33,8 @@ function tempColor(temp: number): string {
 export function App() {
 	const [page, setPage] = useState("dashboard");
 	const { authenticated, login, logout, loading: authLoading } = useAuth();
-	const { status, thermalHistory, cpuHistory, memoryHistory, connected } = useWebSocket(authenticated);
+	const { status, thermalHistory, cpuHistory, memoryHistory, connected } =
+		useWebSocket(authenticated);
 	const { userInfo } = useUserInfo(authenticated);
 	const { counts: workflowCounts } = useWorkflowCounts(authenticated);
 	const queryClient = useQueryClient();
