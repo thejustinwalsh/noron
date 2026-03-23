@@ -46,6 +46,7 @@ jobs:
         uses: thejustinwalsh/workflows/release@main
         with:
           version-command: bun run changeset:version
+          create-github-releases: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -219,21 +220,14 @@ jobs:
           name: noron-rpi4b
           path: artifacts/
 
-      - name: Create GitHub Release
+      - uses: thejustinwalsh/workflows/fixed-github-release@main
+        with:
+          artifacts: |
+            artifacts/noron-x64.img.xz#Noron Image (x64)
+            artifacts/noron-arm64.img.xz#Noron Image (arm64 server)
+            artifacts/noron-update-linux-x64.tar.gz#Update Archive (x64)
+            artifacts/noron-update-linux-arm64.tar.gz#Update Archive (arm64)
+            artifacts/noron-orangepi5-plus.img.xz#Noron SBC Image (Orange Pi 5 Plus)
+            artifacts/noron-rpi4b.img.xz#Noron SBC Image (Raspberry Pi 4/5)
         env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          TAG="@noron/iso@${{ needs.release.outputs.iso-version }}"
-          gh release create "${TAG}" --repo "${{ github.repository }}" --generate-notes
-
-          # Upload assets individually so a single failure doesn't block the rest
-          for asset in \
-            "artifacts/noron-x64.img.xz#Noron Image (x64)" \
-            "artifacts/noron-arm64.img.xz#Noron Image (arm64 server)" \
-            "artifacts/noron-update-linux-x64.tar.gz#Update Archive (x64)" \
-            "artifacts/noron-update-linux-arm64.tar.gz#Update Archive (arm64)" \
-            "artifacts/noron-orangepi5-plus.img.xz#Noron SBC Image (Orange Pi 5 Plus)" \
-            "artifacts/noron-rpi4b.img.xz#Noron SBC Image (Raspberry Pi 4/5)"; do
-            echo "Uploading: ${asset}"
-            gh release upload "${TAG}" "${asset}" --repo "${{ github.repository }}" --clobber
-          done
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
