@@ -1,5 +1,19 @@
 # @noron/iso
 
+## 0.2.1
+
+### Patch Changes
+
+- [#5](https://github.com/thejustinwalsh/noron/pull/5) [`021c5cc`](https://github.com/thejustinwalsh/noron/commit/021c5cc43d189a9ae9fe8e02e6e7bc0a23c8db0d) Thanks [@thejustinwalsh](https://github.com/thejustinwalsh)! - fix: release workflow gating and runner update infrastructure
+
+- Updated dependencies []:
+  - @noron/shared@0.2.1
+  - @noron/benchd@0.2.1
+  - @noron/bench-exec@0.2.1
+  - @noron/web@0.2.1
+  - @noron/cli@0.2.1
+  - @noron/setup@0.1.0
+
 ## 0.2.0
 
 ### Minor Changes
