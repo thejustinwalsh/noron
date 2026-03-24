@@ -163,10 +163,16 @@ async function run(): Promise<void> {
 			console.log(`Cgroup: ${exec.cgroupPath}`);
 			console.log(`Session: ${sessionId}`);
 		} else {
-			console.log(`::warning::Cgroup setup failed: ${JSON.stringify(exec)}`);
+			console.log(`::error::Cgroup setup failed: ${JSON.stringify(exec)}`);
+			console.log("::endgroup::");
+			process.exitCode = 1;
+			return;
 		}
 	} catch (err) {
-		console.log(`::warning::Could not reach benchd for exec setup: ${err}`);
+		console.log(`::error::Could not reach benchd for exec setup: ${err}`);
+		console.log("::endgroup::");
+		process.exitCode = 1;
+		return;
 	}
 	console.log("::endgroup::");
 
@@ -212,10 +218,14 @@ async function run(): Promise<void> {
 
 		benchExecArgs.push("--", ...command.split(" "));
 
-		const child = spawn("sudo", benchExecArgs, {
-			stdio: "inherit",
-			env: benchEnv,
-		});
+		const child = spawn(
+			"sudo",
+			["--preserve-env=BENCH_SESSION_ID,BENCH_JOB_TOKEN,TMPDIR,BENCH_TMPFS", ...benchExecArgs],
+			{
+				stdio: "inherit",
+				env: benchEnv,
+			},
+		);
 
 		child.on("close", (code) => resolve(code ?? 1));
 		child.on("error", (err) => {

@@ -132,10 +132,16 @@ async function run() {
       console.log(`Cgroup: ${exec.cgroupPath}`);
       console.log(`Session: ${sessionId}`);
     } else {
-      console.log(`::warning::Cgroup setup failed: ${JSON.stringify(exec)}`);
+      console.log(`::error::Cgroup setup failed: ${JSON.stringify(exec)}`);
+      console.log("::endgroup::");
+      process.exitCode = 1;
+      return;
     }
   } catch (err) {
-    console.log(`::warning::Could not reach benchd for exec setup: ${err}`);
+    console.log(`::error::Could not reach benchd for exec setup: ${err}`);
+    console.log("::endgroup::");
+    process.exitCode = 1;
+    return;
   }
   console.log("::endgroup::");
   const benchEnv = {
