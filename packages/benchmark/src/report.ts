@@ -66,8 +66,10 @@ if (files.length === 0) {
 	process.exit(1);
 }
 
-// Load all runs
-const runs: RunFile[] = files.map((f) => JSON.parse(readFileSync(f, "utf-8")));
+// Load all runs (exclude perf-stat files — they have a different schema)
+const runs: RunFile[] = files
+	.filter((f) => !f.includes("perf-stat"))
+	.map((f) => JSON.parse(readFileSync(f, "utf-8")));
 
 // Load perf stat sidecar files if available
 // Look for perf-stat.json next to result files, or in --perf-stat dir
