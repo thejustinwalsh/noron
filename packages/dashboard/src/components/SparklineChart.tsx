@@ -73,15 +73,32 @@ export function SparklineChart({
 				return;
 			}
 
-			// Interpolate
+			// When the buffer is full and a new point is appended, the oldest is
+			// dropped, shifting every index by 1.  Offset the prevData lookup so
+			// existing points keep their Y value and only the new tail animates.
+			const isScrolling =
+				prevData.length > 1 && data.length === prevData.length;
+			const offset = isScrolling ? 1 : 0;
+
 			const interp: number[] = [];
 			for (let i = 0; i < data.length; i++) {
-				const prevVal = i < prevData.length ? prevData[i] : data[i];
-				interp.push(prevVal + (data[i] - prevVal) * ease);
+				const prevIdx = i + offset;
+				if (prevIdx < prevData.length) {
+					// Existing point that shifted position — no Y animation
+					interp.push(data[i]);
+				} else {
+					// New tail point — animate from previous last value
+					const fromVal =
+						prevData.length > 0
+							? prevData[prevData.length - 1]
+							: data[i];
+					interp.push(fromVal + (data[i] - fromVal) * ease);
+				}
 			}
 
-			const lo = fixedMin ?? Math.min(...interp);
-			const hi = fixedMax ?? Math.max(...interp);
+			// Use final data for scale so the Y axis doesn't wobble mid-animation
+			const lo = fixedMin ?? Math.min(...data);
+			const hi = fixedMax ?? Math.max(...data);
 			const range = hi - lo || 1;
 			const pad = 7; // enough for dot (3px) + glow (6px radius)
 

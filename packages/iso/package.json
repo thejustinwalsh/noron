@@ -13,6 +13,7 @@
 		"@noron/bench-exec": "workspace:*",
 		"@noron/web": "workspace:*",
 		"@noron/setup": "workspace:*",
+		"@noron/runner-ctl": "workspace:*",
 		"@noron/cli": "workspace:*",
 		"@noron/dashboard": "workspace:*"
 	}

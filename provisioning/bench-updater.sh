@@ -12,17 +12,18 @@ set -euo pipefail
 # Constants
 # ---------------------------------------------------------------------------
 
-BINARIES=(benchd bench-exec bench-web bench-setup bench)
+BINARIES=(benchd bench-exec bench-web bench-setup bench runner-ctld)
 BIN_DIR="/usr/local/bin"
 HOOKS_DIR="/usr/local/lib/benchd/hooks"
 HOOKS=(job-started job-completed)
 DASHBOARD_DIR="/var/lib/bench/dashboard"
 RUNNER_DIR="/opt/runner"
-RUNNER_FILES=(Containerfile start.sh runner-ctl.sh bench-runner-update.sh)
+RUNNER_FILES=(Containerfile start.sh bench-runner-update.sh)
 VERSION_FILE="/var/lib/bench/version"
 UPDATES_DIR="/var/lib/bench/updates"
 SELF_NAME="bench-updater"
 SOCKET="/var/run/benchd.sock"
+RUNNER_CTLD_SERVICE="/etc/systemd/system/runner-ctld.service"
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -67,18 +68,74 @@ ensure_idle() {
 	info "No benchmark running — safe to proceed"
 }
 
+stop_service() {
+	local svc="$1"
+	info "stopping $svc"
+	if ! timeout 10 systemctl stop "$svc" 2>/dev/null; then
+		info "$svc did not stop in time — killing"
+		systemctl kill -s KILL "$svc" 2>/dev/null || true
+		# Wait briefly for systemd to process the kill
+		timeout 5 systemctl stop "$svc" 2>/dev/null || true
+	fi
+}
+
 stop_services() {
-	info "stopping bench-web.service"
-	systemctl stop bench-web.service || true
-	info "stopping benchd.service"
-	systemctl stop benchd.service || true
+	stop_service bench-web.service
+	stop_service runner-ctld.service
+	stop_service benchd.service
 }
 
 start_services() {
 	info "starting benchd.service"
 	systemctl start benchd.service
+	info "starting runner-ctld.service"
+	systemctl start runner-ctld.service
 	info "starting bench-web.service"
 	systemctl start bench-web.service
+
+	# Stop runner containers so they pick up the new benchd socket on next start.
+	# Containers use --rm so they're auto-removed on stop. The health check will
+	# detect them as offline and trigger heal workflows to reprovision them.
+	local containers
+	containers=$(podman ps -q --filter "name=bench-" 2>/dev/null || true)
+	if [[ -n "$containers" ]]; then
+		info "stopping runner containers (heal will reprovision with fresh socket mounts)"
+		podman stop -t 10 $containers 2>/dev/null || podman kill $containers 2>/dev/null || true
+	fi
+}
+
+# Bootstrap runner-ctld systemd unit if not yet installed (pre-runner-ctld appliances)
+ensure_runner_ctld_service() {
+	if [[ -f "$RUNNER_CTLD_SERVICE" ]]; then
+		return 0
+	fi
+
+	info "installing runner-ctld.service (first-time bootstrap)"
+	cat > "$RUNNER_CTLD_SERVICE" <<'UNIT'
+[Unit]
+Description=Runner Container Lifecycle Daemon
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/runner-ctld
+User=root
+Group=root
+Restart=on-failure
+RestartSec=5
+
+# Pin to housekeeping core — never steal benchmark CPU time
+CPUAffinity=0
+
+ExecStartPre=/bin/rm -f /var/run/runner-ctl.sock
+Environment=RUNNER_CTL_SOCKET=/var/run/runner-ctl.sock
+
+[Install]
+WantedBy=multi-user.target
+UNIT
+
+	systemctl daemon-reload
+	systemctl enable runner-ctld.service
 }
 
 # install_from_source <source_dir>
@@ -94,6 +151,11 @@ install_from_source() {
 	install -m 0755 "$src/web/bench-web"        "$BIN_DIR/bench-web"
 	install -m 0755 "$src/setup/bench-setup"    "$BIN_DIR/bench-setup"
 	install -m 0755 "$src/cli/bench"            "$BIN_DIR/bench"
+
+	# --- runner-ctld ---
+	info "installing runner-ctld to $BIN_DIR"
+	install -m 0755 "$src/runner-ctl/runner-ctld" "$BIN_DIR/runner-ctld"
+	ensure_runner_ctld_service
 
 	# --- hooks ---
 	info "installing hooks to $HOOKS_DIR"
@@ -158,6 +220,10 @@ cmd_backup() {
 	cp "$BIN_DIR/bench-setup" "$backup_dir/setup/bench-setup"
 	cp "$BIN_DIR/bench"       "$backup_dir/cli/bench"
 
+	# runner-ctld
+	mkdir -p "$backup_dir/runner-ctl"
+	cp "$BIN_DIR/runner-ctld" "$backup_dir/runner-ctl/runner-ctld"
+
 	# hooks
 	for hook in "${HOOKS[@]}"; do
 		if [[ -f "$HOOKS_DIR/$hook" ]]; then
@@ -201,6 +267,7 @@ cmd_apply() {
 		"web/bench-web"
 		"setup/bench-setup"
 		"cli/bench"
+		"runner-ctl/runner-ctld"
 	)
 	for f in "${required[@]}"; do
 		[[ -f "$src/$f" ]] || die "missing required file in source: $f"

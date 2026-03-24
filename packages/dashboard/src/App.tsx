@@ -1,4 +1,4 @@
-import { WaCard, WaIcon } from "@awesome.me/webawesome/dist/react";
+import { WaCard, WaIcon, WaSpinner } from "@awesome.me/webawesome/dist/react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { AdminPanel } from "./components/AdminPanel";
@@ -24,6 +24,12 @@ function memColor(pct: number): string {
 	return "#e02c2b";
 }
 
+function diskColor(pct: number): string {
+	if (pct < 50) return "#06b6d4";
+	if (pct < 80) return "#d78000";
+	return "#e02c2b";
+}
+
 function tempColor(temp: number): string {
 	if (temp < 40) return "#21ab52";
 	if (temp < 55) return "#d78000";
@@ -33,13 +39,12 @@ function tempColor(temp: number): string {
 export function App() {
 	const [page, setPage] = useState("dashboard");
 	const { authenticated, login, logout, loading: authLoading } = useAuth();
-	const { status, thermalHistory, cpuHistory, memoryHistory, connected } =
+	const { status, thermalHistory, cpuHistory, memoryHistory, diskHistory, connected } =
 		useWebSocket(authenticated);
-	const { userInfo } = useUserInfo(authenticated);
+	const { userInfo, loading: userInfoLoading } = useUserInfo(authenticated);
 	const { counts: workflowCounts } = useWorkflowCounts(authenticated);
 	const queryClient = useQueryClient();
 	const isAdmin = userInfo?.role === "admin";
-	const [autoAddRunner, setAutoAddRunner] = useState(false);
 
 	// Detect ?upgraded=1 from OAuth upgrade redirect
 	useEffect(() => {
@@ -47,7 +52,6 @@ export function App() {
 		if (params.get("upgraded") === "1") {
 			queryClient.invalidateQueries({ queryKey: ["auth", "me"] });
 			setPage("runners");
-			setAutoAddRunner(true);
 			const url = new URL(window.location.href);
 			url.searchParams.delete("upgraded");
 			window.history.replaceState({}, "", url.pathname + url.search);
@@ -59,6 +63,9 @@ export function App() {
 	const currentMem = status?.memory?.percent ?? 0;
 	const memUsed = status?.memory?.usedMb ?? 0;
 	const memTotal = status?.memory?.totalMb ?? 0;
+	const currentDisk = status?.disk?.percent ?? 0;
+	const diskUsed = status?.disk?.usedGb ?? 0;
+	const diskTotal = status?.disk?.totalGb ?? 0;
 
 	// Dynamic ranges from recorded data
 	const tempStats = useMemo(() => {
@@ -211,6 +218,34 @@ export function App() {
 									</div>
 								</div>
 							</WaCard>
+							<WaCard>
+								<div className="sparkline-card">
+									<div className="sparkline-header">
+										<span className="sparkline-label">
+											<WaIcon
+												name="hard-drive"
+												family="classic"
+												variant="solid"
+												style={{ marginRight: "6px", color: diskColor(currentDisk) }}
+											/>
+											Disk
+										</span>
+										<span className="sparkline-value" style={{ color: diskColor(currentDisk) }}>
+											{(diskTotal - diskUsed).toFixed(1)} GB free
+										</span>
+									</div>
+									<SparklineChart
+										data={diskHistory}
+										color={diskColor(currentDisk)}
+										min={0}
+										max={100}
+									/>
+									<div className="sparkline-footer">
+										<span>{diskUsed.toFixed(1)} GB used</span>
+										<span>{diskTotal.toFixed(1)} GB total</span>
+									</div>
+								</div>
+							</WaCard>
 						</div>
 					</div>
 					<LockStatus lock={status?.lock ?? null} queueDepth={status?.queueDepth ?? 0} />
@@ -218,15 +253,18 @@ export function App() {
 				</div>
 			)}
 			{page === "runners" &&
-				(userInfo && !userInfo.hasRepoScope && userInfo.runnerCount === 0 ? (
+				(userInfoLoading ? (
+					<div style={{ display: "flex", justifyContent: "center", padding: "48px" }}>
+						<WaSpinner />
+					</div>
+				) : userInfo && !userInfo.hasRepoScope && userInfo.runnerCount === 0 ? (
 					<Onboarding
 						onComplete={() => queryClient.invalidateQueries({ queryKey: ["auth", "me"] })}
 					/>
 				) : (
 					<RunnerList
 						hasRepoScope={userInfo?.hasRepoScope}
-						autoAdd={autoAddRunner}
-						onAutoAddConsumed={() => setAutoAddRunner(false)}
+						onPermissionFixed={() => queryClient.invalidateQueries({ queryKey: ["auth", "me"] })}
 					/>
 				))}
 			{page === "workflows" && <WorkflowsPage />}

@@ -17,7 +17,7 @@ if [ ! -f .runner ]; then
         --url "$URL" \
         --token "${RUNNER_TOKEN}" \
         --name "${RUNNER_NAME:-bench-runner}" \
-        --labels "${RUNNER_LABELS:-noron}" \
+        --labels "noron,${RUNNER_LABELS:-noron}" \
         --unattended \
         --replace
 

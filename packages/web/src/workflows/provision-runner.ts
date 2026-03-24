@@ -1,4 +1,4 @@
-import { DEFAULT_CONFIG, loadConfig } from "@noron/shared";
+import { DEFAULT_CONFIG, RunnerCtlClient, loadConfig } from "@noron/shared";
 import {
 	getGithubToken,
 	getWorkflowDb,
@@ -85,29 +85,25 @@ const provisionRunner = ow.defineWorkflow<ProvisionInput, ProvisionOutput>(
 						}
 						const data = (await res.json()) as { token: string };
 
-						// Provision container (idempotent — stops existing first)
+						// Provision container via runner-ctld IPC
 						const port = process.env.PORT ?? "3000";
-						const callbackUrl = `http://localhost:${port}/api/runners/${input.runnerId}/callback`;
+						const callbackUrl = `http://host.containers.internal:${port}/api/runners/${input.runnerId}/callback`;
 						const label = (loadConfig() ?? DEFAULT_CONFIG).runnerLabel;
-						// Trim defensively — workflow serialization could introduce whitespace
-						const proc = Bun.spawn(
-							[
-								"sudo",
-								"runner-ctl",
-								"provision",
-								input.name.trim(),
-								input.repo.trim(),
-								data.token,
+						const client = new RunnerCtlClient();
+						await client.connect();
+						try {
+							await client.request({
+								type: "provision",
+								requestId: crypto.randomUUID(),
+								name: input.name.trim(),
+								repo: input.repo.trim(),
+								registrationToken: data.token,
 								callbackUrl,
 								callbackToken,
 								label,
-							],
-							{ stdout: "pipe", stderr: "pipe" },
-						);
-						const exitCode = await proc.exited;
-						if (exitCode !== 0) {
-							const stderr = await new Response(proc.stderr).text();
-							throw new Error(`runner-ctl provision failed (${exitCode}): ${stderr}`);
+							});
+						} finally {
+							client.close();
 						}
 					}),
 			);
@@ -142,6 +138,10 @@ const provisionRunner = ow.defineWorkflow<ProvisionInput, ProvisionOutput>(
 			);
 			throw new Error("Runner did not register within 3 minutes");
 		} catch (err) {
+			// Re-throw workflow control signals (SleepSignal, etc.) without
+			// marking the runner as failed — these are not errors.
+			if (err instanceof Error && err.name === "SleepSignal") throw err;
+
 			// Mark runner as failed so the dashboard shows the error state
 			const message = err instanceof Error ? err.message : String(err);
 			try {
@@ -159,7 +159,7 @@ const provisionRunner = ow.defineWorkflow<ProvisionInput, ProvisionOutput>(
  *  Idempotent: calling twice with the same runnerId reuses the existing run. */
 export async function startProvisionWorkflow(input: ProvisionInput): Promise<string> {
 	const handle = await provisionRunner.run(input, {
-		idempotencyKey: `provision:${input.repo}`,
+		idempotencyKey: `provision:${input.runnerId}`,
 	});
 	return handle.workflowRun.id;
 }

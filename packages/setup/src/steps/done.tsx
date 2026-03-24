@@ -26,7 +26,14 @@ export function Done({ config, needsReboot, inviteUrl }: DoneProps) {
 		}
 	});
 
-	const dashboardUrl = `http://${config.hostname}:${config.webPort}/dashboard/`;
+	const hostname = config.hostname ?? "";
+	const hasProtocol = /^https?:\/\//.test(hostname);
+	const base = hasProtocol
+		? hostname.startsWith("http://")
+			? `${hostname.replace(/\/+$/, "")}:${config.webPort}`
+			: hostname.replace(/\/+$/, "")
+		: `https://${hostname}`;
+	const dashboardUrl = `${base}/dashboard/`;
 
 	return (
 		<Box flexDirection="column" gap={1}>

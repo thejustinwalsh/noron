@@ -82,8 +82,12 @@ export function useRunners() {
 				queryClient.setQueryData(["runners"], context.previous);
 			}
 		},
-		onSettled: () => {
-			queryClient.invalidateQueries({ queryKey: ["runners"] });
+		onSettled: async () => {
+			// Remove optimistic entries before refetching server truth
+			queryClient.setQueryData<Runner[]>(["runners"], (old = []) =>
+				old.filter((r) => !r.id.startsWith("optimistic-")),
+			);
+			await queryClient.invalidateQueries({ queryKey: ["runners"] });
 		},
 	});
 

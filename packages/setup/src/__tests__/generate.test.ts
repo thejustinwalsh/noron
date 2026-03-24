@@ -62,12 +62,24 @@ describe("generateBenchdService", () => {
 });
 
 describe("generateBenchWebService", () => {
-	test("uses config values for port and hostname", () => {
+	test("bare hostname defaults to https without port", () => {
 		const result = generateBenchWebService(baseConfig);
 		expect(result).toContain("PORT=9216");
-		expect(result).toContain("PUBLIC_URL=http://bench-box:9216");
+		expect(result).toContain("PUBLIC_URL=https://bench-box");
 		expect(result).toContain("CPUAffinity=0");
 		expect(result).toContain("User=bench");
+	});
+
+	test("explicit http:// URL gets port appended", () => {
+		const cfg = { ...baseConfig, hostname: "http://localhost" };
+		const result = generateBenchWebService(cfg);
+		expect(result).toContain("PUBLIC_URL=http://localhost:9216");
+	});
+
+	test("explicit https:// URL used as-is without port", () => {
+		const cfg = { ...baseConfig, hostname: "https://noron.tjw.dev" };
+		const result = generateBenchWebService(cfg);
+		expect(result).toContain("PUBLIC_URL=https://noron.tjw.dev");
 	});
 
 	test("custom housekeeping core", () => {
@@ -98,7 +110,8 @@ describe("generateSudoersConfig", () => {
 	test("allows runner and bench users", () => {
 		const result = generateSudoersConfig();
 		expect(result).toContain("runner ALL=(root) NOPASSWD: /usr/local/bin/bench-exec");
-		expect(result).toContain("bench ALL=(root) NOPASSWD: /usr/local/bin/runner-ctl");
+		expect(result).toContain("bench ALL=(root) NOPASSWD: /usr/local/bin/bench-updater");
+		expect(result).not.toContain("runner-ctl");
 	});
 });
 

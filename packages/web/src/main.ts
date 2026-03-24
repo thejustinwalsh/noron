@@ -190,7 +190,7 @@ app.on("POST", ["/api/runners/*/callback"], runnerCallbackRateLimit);
 app.route("/invite", inviteRoutes(db));
 app.route("/auth", authRoutes(db));
 app.route("/api", statusRoutes(db));
-app.route("/api", adminRoutes(db));
+app.route("/api", adminRoutes(db, config));
 app.route("/api", workflowRoutes(db));
 app.route("/api", updateRoutes(db, config));
 app.route("/api", violationRoutes(db));

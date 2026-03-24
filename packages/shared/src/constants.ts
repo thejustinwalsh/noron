@@ -45,6 +45,9 @@ export const THERMAL_TIMEOUT_MS = 300_000; // 5 minutes
 /** tmpfs mount point for benchmark I/O (LLVM guideline: avoid disk variance) */
 export const BENCHMARK_TMPFS = "/mnt/bench-tmpfs";
 
+/** Path to the runner-ctld Unix domain socket */
+export const RUNNER_CTL_SOCKET_PATH = "/var/run/runner-ctl.sock";
+
 /** Path where the job-started hook writes the job token for the action to read */
 export const JOB_TOKEN_PATH = "/opt/actions-runner/.benchd-token";
 

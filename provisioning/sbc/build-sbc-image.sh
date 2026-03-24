@@ -32,7 +32,7 @@ echo "=== Building SBC Image for ${BOARD} ==="
 echo "Dist from: ${DIST_DIR}"
 
 # Verify required assets exist
-for bin in benchd/benchd bench-exec/bench-exec web/bench-web setup/bench-setup cli/bench; do
+for bin in benchd/benchd bench-exec/bench-exec web/bench-web setup/bench-setup cli/bench runner-ctl/runner-ctld; do
     if [ ! -f "${DIST_DIR}/${bin}" ]; then
         echo "Error: Missing binary: ${DIST_DIR}/${bin}"
         exit 1
@@ -40,7 +40,7 @@ for bin in benchd/benchd bench-exec/bench-exec web/bench-web setup/bench-setup c
 done
 
 for asset in dashboard/index.html benchd/hooks/job-started benchd/hooks/job-completed \
-             runner-image/Containerfile runner-image/start.sh runner-image/runner-ctl.sh \
+             runner-image/Containerfile runner-image/start.sh \
              runner-image/bench-runner-update.sh; do
     if [ ! -e "${DIST_DIR}/${asset}" ]; then
         echo "Error: Missing asset: ${DIST_DIR}/${asset}"
@@ -92,6 +92,7 @@ cp "${DIST_DIR}/bench-exec/bench-exec"  "${OVERLAY_DIR}/usr/local/bin/bench-exec
 cp "${DIST_DIR}/web/bench-web"          "${OVERLAY_DIR}/usr/local/bin/bench-web"
 cp "${DIST_DIR}/setup/bench-setup"      "${OVERLAY_DIR}/usr/local/bin/bench-setup"
 cp "${DIST_DIR}/cli/bench"              "${OVERLAY_DIR}/usr/local/bin/bench"
+cp "${DIST_DIR}/runner-ctl/runner-ctld" "${OVERLAY_DIR}/usr/local/bin/runner-ctld"
 cp "${SCRIPT_DIR}/../bench-updater.sh"  "${OVERLAY_DIR}/usr/local/bin/bench-updater"
 chmod +x "${OVERLAY_DIR}/usr/local/bin/"*
 

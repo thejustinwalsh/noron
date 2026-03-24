@@ -67,6 +67,7 @@ describe("Protocol types", () => {
 			thermal: { currentTemp: 42.3, trend: "falling" },
 			cpu: 12.5,
 			memory: { usedMb: 1024, totalMb: 4096, percent: 25.0 },
+			disk: { usedGb: 12.5, totalGb: 50.0, percent: 25.0 },
 			uptime: 3600000,
 			version: "0.1.0",
 		};

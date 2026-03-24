@@ -1,4 +1,5 @@
 import type { Database } from "bun:sqlite";
+import { RunnerCtlClient } from "@noron/shared";
 import { startHealWorkflow } from "./workflows/heal-runner";
 
 interface ActiveRunner {
@@ -25,26 +26,22 @@ export async function checkRunners(db: Database): Promise<number> {
 
 	for (const runner of runners) {
 		try {
-			const proc = Bun.spawn(["sudo", "runner-ctl", "status", runner.name], {
-				stdout: "pipe",
-				stderr: "pipe",
-			});
-			const exitCode = await proc.exited;
-			const stdout = await new Response(proc.stdout).text();
-
-			if (exitCode !== 0) {
-				// runner-ctl status failed — container likely not found
-				markOfflineAndHeal(db, runner);
-				continue;
-			}
-
+			const client = new RunnerCtlClient();
+			await client.connect();
 			let result: RunnerCtlStatus;
 			try {
-				result = JSON.parse(stdout.trim()) as RunnerCtlStatus;
+				const response = await client.request({
+					type: "status",
+					requestId: crypto.randomUUID(),
+					name: runner.name,
+				});
+				result = { status: response.state as RunnerCtlStatus["status"] };
 			} catch {
-				// Unparseable output — treat as not running
+				// Connection or command failed — treat as not running
 				markOfflineAndHeal(db, runner);
 				continue;
+			} finally {
+				client.close();
 			}
 
 			if (result.status === "running") {

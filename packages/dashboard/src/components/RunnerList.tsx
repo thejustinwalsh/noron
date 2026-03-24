@@ -7,8 +7,9 @@ import {
 	WaInput,
 	WaSpinner,
 } from "@awesome.me/webawesome/dist/react";
-import { useEffect, useState } from "react";
-import { useRunners } from "../hooks/useApi";
+import { useState } from "react";
+import { useConfig, useRunners } from "../hooks/useApi";
+import { PermissionWizard } from "./PermissionWizard";
 import { RepoCombobox } from "./RepoCombobox";
 import { RunnerSetup } from "./RunnerSetup";
 
@@ -26,10 +27,10 @@ const STATUS_VARIANT: Record<string, "success" | "warning" | "neutral" | "danger
 
 export function RunnerList({
 	hasRepoScope,
-	autoAdd,
-	onAutoAddConsumed,
-}: { hasRepoScope?: boolean; autoAdd?: boolean; onAutoAddConsumed?: () => void }) {
+	onPermissionFixed,
+}: { hasRepoScope?: boolean; onPermissionFixed?: () => void }) {
 	const { runners, loading, refetch, registerRunner, removeRunner } = useRunners();
+	const { config } = useConfig();
 	const [showForm, setShowForm] = useState(false);
 	const [name, setName] = useState("");
 	const [repo, setRepo] = useState("");
@@ -41,14 +42,6 @@ export function RunnerList({
 		repo: string;
 		status: string;
 	} | null>(null);
-
-	// Auto-open form when redirected from OAuth upgrade (onboarding continuation)
-	useEffect(() => {
-		if (autoAdd) {
-			setShowForm(true);
-			onAutoAddConsumed?.();
-		}
-	}, [autoAdd, onAutoAddConsumed]);
 
 	const handleSubmit = async () => {
 		if (!name.trim() || !repo.trim()) return;
@@ -113,38 +106,48 @@ export function RunnerList({
 				</div>
 			</div>
 
-			{showForm && (
-				<div className="runner-form">
-					<RepoCombobox
-						value={repo}
-						onChange={setRepo}
-						onSelect={handleRepoSelect}
-						hasRepoScope={hasRepoScope}
-					/>
-					<WaInput
-						label="Name"
-						placeholder="my-benchmark-runner"
-						size="small"
-						value={name}
-						onInput={(e) => setName((e.target as unknown as WaInputEl).value ?? "")}
-					/>
-					{error && <p style={{ color: "var(--red)", fontSize: "13px", margin: 0 }}>{error}</p>}
-					<WaButton
-						variant="brand"
-						size="small"
-						loading={submitting}
-						disabled={submitting || !name.trim() || !repo.trim()}
-						onClick={handleSubmit}
-					>
-						Register
-					</WaButton>
-				</div>
-			)}
+			{showForm &&
+				(!hasRepoScope ? (
+					<WaCard style={{ marginBottom: "12px" }}>
+						<PermissionWizard
+							onPatSaved={() => {
+								onPermissionFixed?.();
+							}}
+						/>
+					</WaCard>
+				) : (
+					<div className="runner-form">
+						<RepoCombobox
+							value={repo}
+							onChange={setRepo}
+							onSelect={handleRepoSelect}
+							hasRepoScope={hasRepoScope}
+						/>
+						<WaInput
+							label="Name"
+							placeholder="my-benchmark-runner"
+							size="small"
+							value={name}
+							onInput={(e) => setName((e.target as unknown as WaInputEl).value ?? "")}
+						/>
+						{error && <p style={{ color: "var(--red)", fontSize: "13px", margin: 0 }}>{error}</p>}
+						<WaButton
+							variant="brand"
+							size="small"
+							loading={submitting}
+							disabled={submitting || !name.trim() || !repo.trim()}
+							onClick={handleSubmit}
+						>
+							Register
+						</WaButton>
+					</div>
+				))}
 
 			{setupRunner && (
 				<RunnerSetup
 					runnerId={setupRunner.id}
 					repo={setupRunner.repo}
+					runnerLabel={config?.runnerLabel ?? "noron"}
 					initialStatus={setupRunner.status}
 					onDismiss={() => {
 						setSetupRunner(null);

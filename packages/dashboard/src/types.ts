@@ -23,6 +23,11 @@ export interface StatusUpdate {
 		totalMb: number;
 		percent: number;
 	};
+	disk: {
+		usedGb: number;
+		totalGb: number;
+		percent: number;
+	};
 	uptime: number;
 }
 
@@ -96,6 +101,7 @@ export interface ConfigInfo {
 	totalCores: number;
 	thermalZones: string[];
 	configPath: string;
+	runnerLabel: string;
 }
 
 export type WorkflowRunStatus =

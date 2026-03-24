@@ -1,3 +1,4 @@
+import { RunnerCtlClient } from "@noron/shared";
 import {
 	deleteRunner,
 	getGithubToken,
@@ -45,14 +46,16 @@ const deprovisionRunner = ow.defineWorkflow<DeprovisionInput, DeprovisionOutput>
 				},
 				() =>
 					withGate(async () => {
-						const proc = Bun.spawn(["sudo", "runner-ctl", "deprovision", input.name], {
-							stdout: "pipe",
-							stderr: "pipe",
-						});
-						const exitCode = await proc.exited;
-						if (exitCode !== 0) {
-							const stderr = await new Response(proc.stderr).text();
-							throw new Error(`runner-ctl deprovision failed (${exitCode}): ${stderr}`);
+						const client = new RunnerCtlClient();
+						await client.connect();
+						try {
+							await client.request({
+								type: "deprovision",
+								requestId: crypto.randomUUID(),
+								name: input.name,
+							});
+						} finally {
+							client.close();
 						}
 					}),
 			);
@@ -103,6 +106,9 @@ const deprovisionRunner = ow.defineWorkflow<DeprovisionInput, DeprovisionOutput>
 
 			return { status: "removed" as const };
 		} catch (err) {
+			// Re-throw workflow control signals without marking as failed
+			if (err instanceof Error && err.name === "SleepSignal") throw err;
+
 			// Mark runner as failed so the dashboard shows the error state
 			const message = err instanceof Error ? err.message : String(err);
 			try {
@@ -120,7 +126,7 @@ const deprovisionRunner = ow.defineWorkflow<DeprovisionInput, DeprovisionOutput>
  *  Idempotent: calling twice with the same runnerId reuses the existing run. */
 export async function startDeprovisionWorkflow(input: DeprovisionInput): Promise<string> {
 	const handle = await deprovisionRunner.run(input, {
-		idempotencyKey: `deprovision:${input.repo}`,
+		idempotencyKey: `deprovision:${input.runnerId}`,
 	});
 	return handle.workflowRun.id;
 }

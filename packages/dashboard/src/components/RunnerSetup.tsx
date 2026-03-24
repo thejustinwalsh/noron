@@ -1,23 +1,27 @@
 import { WaBadge, WaButton, WaIcon } from "@awesome.me/webawesome/dist/react";
 import { useCallback, useEffect, useState } from "react";
+import { PermissionWizard } from "./PermissionWizard";
 
 interface RunnerSetupProps {
 	runnerId: string;
 	repo: string;
+	runnerLabel: string;
 	initialStatus: string;
 	onDismiss: () => void;
 }
 
-const WORKFLOW_YAML = `name: Benchmark
+function buildWorkflowYaml(label: string): string {
+	return `name: Benchmark
 on: [push]
 
 jobs:
   benchmark:
-    runs-on: [self-hosted, benchmark]
+    runs-on: [self-hosted, noron, ${label}]
     steps:
       - uses: actions/checkout@v4
       - run: ./your-benchmark.sh
 `;
+}
 
 const STATUS_LABELS: Record<
 	string,
@@ -31,10 +35,12 @@ const STATUS_LABELS: Record<
 	healing: { text: "Healing...", variant: "warning" },
 };
 
-export function RunnerSetup({ runnerId, repo, initialStatus, onDismiss }: RunnerSetupProps) {
+export function RunnerSetup({ runnerId, repo, runnerLabel, initialStatus, onDismiss }: RunnerSetupProps) {
+	const workflowYaml = buildWorkflowYaml(runnerLabel);
 	const [status, setStatus] = useState(initialStatus);
 	const [statusMessage, setStatusMessage] = useState<string | null>(null);
 	const [copied, setCopied] = useState(false);
+	const [showPermissionFix, setShowPermissionFix] = useState(false);
 
 	// Poll for status updates until terminal state
 	useEffect(() => {
@@ -58,7 +64,7 @@ export function RunnerSetup({ runnerId, repo, initialStatus, onDismiss }: Runner
 	}, [runnerId, status]);
 
 	const handleCopy = useCallback(async () => {
-		await navigator.clipboard.writeText(WORKFLOW_YAML);
+		await navigator.clipboard.writeText(workflowYaml);
 		setCopied(true);
 		setTimeout(() => setCopied(false), 2000);
 	}, []);
@@ -66,6 +72,7 @@ export function RunnerSetup({ runnerId, repo, initialStatus, onDismiss }: Runner
 	const statusInfo = STATUS_LABELS[status] ?? STATUS_LABELS.pending;
 	const isReady = status === "online";
 	const isFailed = status === "failed";
+	const isPermissionError = statusMessage?.includes("GitHub API 403") ?? false;
 
 	return (
 		<div className="runner-setup">
@@ -83,10 +90,31 @@ export function RunnerSetup({ runnerId, repo, initialStatus, onDismiss }: Runner
 
 			{isFailed && (
 				<div className="runner-setup-progress">
-					<p style={{ color: "var(--red)", fontSize: "13px", margin: 0 }}>
-						{statusMessage ? `Provisioning failed: ${statusMessage}` : "Provisioning failed."} You
-						can remove this runner and try again.
-					</p>
+					{isPermissionError ? (
+						<>
+							<p style={{ color: "var(--red)", fontSize: "13px", margin: 0 }}>
+								Your token doesn't have permission to register runners on <strong>{repo}</strong>.
+								Fix your permissions below, then remove this runner and try again.
+							</p>
+							{showPermissionFix ? (
+								<PermissionWizard repo={repo} onPatSaved={() => setShowPermissionFix(false)} />
+							) : (
+								<WaButton
+									variant="brand"
+									size="small"
+									onClick={() => setShowPermissionFix(true)}
+									style={{ marginTop: "8px" }}
+								>
+									Fix Permissions
+								</WaButton>
+							)}
+						</>
+					) : (
+						<p style={{ color: "var(--red)", fontSize: "13px", margin: 0 }}>
+							{statusMessage ? `Provisioning failed: ${statusMessage}` : "Provisioning failed."} You
+							can remove this runner and try again.
+						</p>
+					)}
 				</div>
 			)}
 
@@ -117,7 +145,7 @@ export function RunnerSetup({ runnerId, repo, initialStatus, onDismiss }: Runner
 						Add this workflow to <code>.github/workflows/benchmark.yml</code> in your repo:
 					</p>
 					<div className="setup-code-wrap">
-						<pre className="setup-code">{WORKFLOW_YAML}</pre>
+						<pre className="setup-code">{workflowYaml}</pre>
 						<WaButton
 							variant="neutral"
 							appearance="outlined"

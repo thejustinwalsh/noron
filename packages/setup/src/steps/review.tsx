@@ -111,7 +111,15 @@ export function Review({ config, onConfirm, onBack }: ReviewProps) {
 				<Text>
 					<Text color="gray"> Dashboard: </Text>
 					<Text>
-						http://{config.hostname}:{config.webPort}/dashboard/
+						{(() => {
+							const h = config.hostname ?? "";
+							if (/^https?:\/\//.test(h)) {
+								return h.startsWith("http://")
+									? `${h.replace(/\/+$/, "")}:${config.webPort}/dashboard/`
+									: `${h.replace(/\/+$/, "")}/dashboard/`;
+							}
+							return `https://${h}/dashboard/`;
+						})()}
 					</Text>
 				</Text>
 			</Box>

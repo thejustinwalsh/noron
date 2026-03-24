@@ -202,6 +202,11 @@ export interface StatusUpdate extends BaseResponse {
 		totalMb: number;
 		percent: number; // 0–100
 	};
+	disk: {
+		usedGb: number;
+		totalGb: number;
+		percent: number; // 0–100
+	};
 	uptime: number; // daemon uptime ms
 	version: string;
 }

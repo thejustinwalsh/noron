@@ -41,9 +41,14 @@ RUN ARCH="${RUNNER_ARCH:-$(case "${TARGETARCH:-$(dpkg --print-architecture)}" in
     && chown -R runner:runner /opt/actions-runner
 
 # Job hooks: acquire/release machine-wide lock
-# These binaries are bind-mounted from the host at runtime
-ENV ACTIONS_RUNNER_HOOK_JOB_STARTED=/usr/local/lib/benchd/hooks/job-started
-ENV ACTIONS_RUNNER_HOOK_JOB_COMPLETED=/usr/local/lib/benchd/hooks/job-completed
+# The compiled binaries are bind-mounted from the host at runtime.
+# GitHub Actions requires hook scripts to have a .sh/.ps1/.js extension,
+# so we create thin wrappers that exec the binaries.
+RUN printf '#!/bin/bash\nexec /usr/local/lib/benchd/hooks/job-started "$@"\n' > /opt/actions-runner/hook-job-started.sh \
+    && printf '#!/bin/bash\nexec /usr/local/lib/benchd/hooks/job-completed "$@"\n' > /opt/actions-runner/hook-job-completed.sh \
+    && chmod +x /opt/actions-runner/hook-job-started.sh /opt/actions-runner/hook-job-completed.sh
+ENV ACTIONS_RUNNER_HOOK_JOB_STARTED=/opt/actions-runner/hook-job-started.sh
+ENV ACTIONS_RUNNER_HOOK_JOB_COMPLETED=/opt/actions-runner/hook-job-completed.sh
 
 COPY start.sh /opt/actions-runner/start.sh
 

@@ -10,6 +10,7 @@ export function mockBenchd(): Plugin {
 	let temp = 38 + Math.random() * 5;
 	let cpu = 8 + Math.random() * 10;
 	let mem = 30 + Math.random() * 10;
+	let disk = 35 + Math.random() * 5;
 	let tick = 0;
 
 	function buildUpdate() {
@@ -21,6 +22,8 @@ export function mockBenchd(): Plugin {
 		cpu = Math.max(1, Math.min(95, cpu));
 		mem += (Math.random() - 0.5) * 1.5;
 		mem = Math.max(15, Math.min(85, mem));
+		disk += (Math.random() - 0.48) * 0.1;
+		disk = Math.max(10, Math.min(90, disk));
 
 		const trend = temp > 45 ? "rising" : temp < 35 ? "falling" : "stable";
 		return JSON.stringify({
@@ -36,6 +39,11 @@ export function mockBenchd(): Plugin {
 				totalMb: 8192,
 				percent: +mem.toFixed(1),
 			},
+			disk: {
+				usedGb: +((disk / 100) * 256).toFixed(1),
+				totalGb: 256,
+				percent: +disk.toFixed(1),
+			},
 			uptime: tick * 1000,
 			system: {
 				isolatedCores: [1, 2, 3],
@@ -50,6 +58,33 @@ export function mockBenchd(): Plugin {
 		configureServer(server) {
 			// REST stubs
 			server.middlewares.use((req, res, next) => {
+				if (req.url === "/api/auth/me") {
+					res.setHeader("Content-Type", "application/json");
+					res.end(
+						JSON.stringify({
+							login: "dev-user",
+							role: "admin",
+							hasRepoScope: true,
+							hasPat: true,
+							runnerCount: 3,
+						}),
+					);
+					return;
+				}
+				if (req.url === "/api/workflows/counts") {
+					res.setHeader("Content-Type", "application/json");
+					res.end(
+						JSON.stringify({
+							pending: 0,
+							running: 0,
+							sleeping: 0,
+							completed: 5,
+							failed: 0,
+							canceled: 0,
+						}),
+					);
+					return;
+				}
 				if (req.url === "/api/config") {
 					res.setHeader("Content-Type", "application/json");
 					res.end(
