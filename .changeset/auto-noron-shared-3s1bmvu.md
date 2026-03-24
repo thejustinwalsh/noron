@@ -5,13 +5,13 @@
 > Branch: fix-runner-auth-flow
 > PR: https://github.com/thejustinwalsh/noron/pull/9
 
-**Protocol additions**
+**Protocol**
+- Lock status response now includes `timeoutMs` (effective job timeout for the current holder)
+- `StatusUpdate` type extended with `disk` field (`usedGb`, `totalGb`, `percent`)
 
-- `LockStatusInfo` now includes `timeoutMs: number` — the effective job timeout for the current lock holder
-- Added new IPC constants for runner-ctl socket paths and message types
+**Runner-ctl client**
+- Added `RunnerCtlClient` for IPC communication with the `runner-ctld` daemon (provision, deprovision, status requests over a Unix socket)
+- Added shared constants for runner-ctl socket path, image name, and default values
+- Updated package index exports
 
-**New: `RunnerCtlClient`**
-
-- Added `RunnerCtlClient` class for typed Unix socket IPC with `runner-ctld`, used by `bench-web` workflows to provision and deprovision runner containers
-
-Extends the shared IPC protocol to cover the new runner-ctl daemon and exposes lock timeout info for dashboard display.
+Extends the IPC protocol with lock timeout visibility and disk metrics, and adds the client-side interface for the new runner-ctld daemon.

@@ -6,13 +6,10 @@
 > PR: https://github.com/thejustinwalsh/noron/pull/9
 
 **Lock manager**
+- Lock holder disconnecting no longer triggers an auto-release grace period; lock stays held until the job-completed hook fires or the job timeout expires — this matches the expected lifecycle where the job-started hook process exits immediately after writing the token
+- Lock status response now includes `timeoutMs` (the effective timeout for the current holder)
 
-- `LockStatus` now includes `timeoutMs` (the effective job timeout in ms)
-- Fixed disconnect behavior: lock-holder disconnecting is expected (hook process exits after writing the token); removed the grace-period auto-release timer — lock now stays held until the `job-completed` hook fires or the job timeout expires
+**System metrics**
+- Disk usage for the root filesystem now included in status broadcasts (`usedGb`, `totalGb`, `percent`) via `statfsSync`
 
-**Disk metrics**
-
-- Added `readDisk()` to `SysMetrics` using `statfsSync("/")`, reporting used/total GB and percent
-- Disk stats are now included in the IPC status broadcast
-
-These changes improve lock correctness for the two-connection hook flow and surface disk utilization in real-time status responses.
+These changes stabilize lock handling for short-lived hook processes and extend status data to include disk metrics.
