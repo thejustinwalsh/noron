@@ -178,10 +178,15 @@ async function run(): Promise<void> {
 
 	// Step 3: Run the benchmark via bench-exec
 	// If tmpfs is available, set TMPDIR so all temp I/O goes to RAM automatically.
+	// Resolve BENCH_OUTPUT to absolute path — sudo may change cwd
+	const cwd = process.cwd();
 	const benchEnv: Record<string, string> = {
 		...(process.env as Record<string, string>),
 		BENCH_SESSION_ID: sessionId,
 		BENCH_JOB_TOKEN: jobToken,
+		...(process.env.BENCH_OUTPUT
+			? { BENCH_OUTPUT: require("path").resolve(cwd, process.env.BENCH_OUTPUT) }
+			: {}),
 	};
 	const useTmpfs = process.env.BENCH_USE_TMPFS !== "false";
 	if (benchTmpfs && useTmpfs) {
