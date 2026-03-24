@@ -127,13 +127,17 @@ if (usePerfStat) {
 		process.exit(1);
 	}
 	// perf needs root for hardware counters — drop privileges for the benchmark
-	// command only, by wrapping it with sudo -u
+	// command only, by wrapping it with sudo -u.
+	// Use `env KEY=VALUE` instead of sudo --preserve-env to bypass env_reset —
+	// the default root rule lacks SETENV and Debian's env_reset would strip vars.
 	const sudoUid = process.env.SUDO_USER ?? "runner";
+	const envVars = ["BENCH_OUTPUT", "BENCH_RUNNER", "BENCH_RUN_INDEX", "TMPDIR", "BENCH_TMPFS"];
+	const envArgs = envVars
+		.filter((k) => process.env[k])
+		.map((k) => `${k}=${process.env[k]}`);
 	spawnArgs = [
 		"perf", "stat", "-d", "-x", "\t", "-o", perfStatOutput,
-		"--", "sudo", "-u", sudoUid,
-		"--preserve-env=BENCH_OUTPUT,BENCH_RUNNER,BENCH_RUN_INDEX,TMPDIR,BENCH_TMPFS",
-		"--", command, ...args,
+		"--", "sudo", "-u", sudoUid, "--", "env", ...envArgs, command, ...args,
 	];
 } else {
 	// No perf — drop privileges normally before spawning
