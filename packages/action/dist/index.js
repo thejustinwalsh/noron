@@ -1,3 +1,6 @@
+import { createRequire } from "node:module";
+var __require = /* @__PURE__ */ createRequire(import.meta.url);
+
 // src/index.ts
 import { spawn } from "node:child_process";
 import { appendFileSync, readFileSync } from "node:fs";
@@ -144,10 +147,12 @@ async function run() {
     return;
   }
   console.log("::endgroup::");
+  const cwd = process.cwd();
   const benchEnv = {
     ...process.env,
     BENCH_SESSION_ID: sessionId,
-    BENCH_JOB_TOKEN: jobToken
+    BENCH_JOB_TOKEN: jobToken,
+    ...process.env.BENCH_OUTPUT ? { BENCH_OUTPUT: __require("path").resolve(cwd, process.env.BENCH_OUTPUT) } : {}
   };
   const useTmpfs = process.env.BENCH_USE_TMPFS !== "false";
   if (benchTmpfs && useTmpfs) {
