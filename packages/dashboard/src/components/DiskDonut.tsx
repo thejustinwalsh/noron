@@ -67,10 +67,7 @@ export function DiskDonut({ usedGb, totalGb, percent, color }: DiskDonutProps) {
 
 	return (
 		<div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-			<canvas
-				ref={canvasRef}
-				style={{ width: "100px", height: "100px" }}
-			/>
+			<canvas ref={canvasRef} style={{ width: "100px", height: "100px" }} />
 		</div>
 	);
 }

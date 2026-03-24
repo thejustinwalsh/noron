@@ -63,10 +63,7 @@ export function LockStatus({ lock, queueDepth }: LockStatusProps) {
 						</div>
 						<div className="lock-card-timer">
 							<div className="lock-progress-track">
-								<div
-									className="lock-progress-fill"
-									style={{ width: `${progress}%` }}
-								/>
+								<div className="lock-progress-fill" style={{ width: `${progress}%` }} />
 							</div>
 							<div className="lock-progress-labels">
 								<span>{formatDuration(elapsed)}</span>

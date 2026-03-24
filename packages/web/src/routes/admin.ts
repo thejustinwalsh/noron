@@ -1,5 +1,5 @@
 import type { Database } from "bun:sqlite";
-import { type BenchdConfig, BenchdClient, SOCKET_PATH, TOKEN_EXPIRY_HOURS } from "@noron/shared";
+import { BenchdClient, type BenchdConfig, SOCKET_PATH, TOKEN_EXPIRY_HOURS } from "@noron/shared";
 import * as z from "@zod/mini";
 import { Hono } from "hono";
 import { extractToken, getUserByToken } from "../auth-middleware";

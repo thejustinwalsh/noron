@@ -194,7 +194,11 @@ export class LockManager {
 		// writing the token. The lock stays held and is released by job-completed.
 		// The job timeout handles the case where job-completed never fires.
 		if (this.holder?.client === client) {
-			log("info", "lock", `Lock holder disconnected (job ${this.holder.jobId}) — lock stays held until release or timeout`);
+			log(
+				"info",
+				"lock",
+				`Lock holder disconnected (job ${this.holder.jobId}) — lock stays held until release or timeout`,
+			);
 		}
 	}
 

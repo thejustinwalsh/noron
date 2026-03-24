@@ -2,12 +2,12 @@ import { WaCard, WaIcon, WaSpinner } from "@awesome.me/webawesome/dist/react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { AdminPanel } from "./components/AdminPanel";
+import { DiskDonut } from "./components/DiskDonut";
 import { Layout } from "./components/Layout";
 import { LockStatus } from "./components/LockStatus";
 import { LoginPrompt } from "./components/LoginPrompt";
 import { Onboarding } from "./components/Onboarding";
 import { RunnerList } from "./components/RunnerList";
-import { DiskDonut } from "./components/DiskDonut";
 import { SparklineChart } from "./components/SparklineChart";
 import { SystemInfo } from "./components/SystemInfo";
 import { WorkflowsPage } from "./components/WorkflowsPage";
@@ -179,12 +179,7 @@ export function App() {
 										{currentCpu.toFixed(1)}%
 									</span>
 								</div>
-								<SparklineChart
-									data={cpuHistory}
-									color={cpuColor(currentCpu)}
-									min={0}
-									max={100}
-								/>
+								<SparklineChart data={cpuHistory} color={cpuColor(currentCpu)} min={0} max={100} />
 								<div className="sparkline-footer">
 									<span>{cpuStats.min}% min</span>
 									<span>{cpuStats.max}% max</span>

@@ -252,7 +252,12 @@ function RunnerPolicies() {
 												onClick={() => handleSaveTimeout(runner.id)}
 												title="Save"
 											>
-												<WaIcon name="check" family="classic" variant="solid" style={{ color: "var(--green)" }} />
+												<WaIcon
+													name="check"
+													family="classic"
+													variant="solid"
+													style={{ color: "var(--green)" }}
+												/>
 											</WaButton>
 											<WaButton
 												variant="neutral"

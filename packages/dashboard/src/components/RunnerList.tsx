@@ -8,8 +8,8 @@ import {
 	WaSpinner,
 } from "@awesome.me/webawesome/dist/react";
 import { useEffect, useState } from "react";
-import type { LockHolder } from "../types";
 import { useConfig, useRunners } from "../hooks/useApi";
+import type { LockHolder } from "../types";
 import { PermissionWizard } from "./PermissionWizard";
 import { RepoCombobox } from "./RepoCombobox";
 import { RunnerSetup } from "./RunnerSetup";
@@ -179,88 +179,95 @@ export function RunnerList({
 			{runners.length > 0 && (
 				<div className="runner-list">
 					{runners.map((runner) => {
-					const isBenchmarking = activeLock?.owner === runner.repo;
-					return (
-						<div key={runner.id} className={`runner-item${isBenchmarking ? " runner-item--active" : ""}`}>
-							<div className="runner-item-row">
-								<div className="runner-item-left">
-									<span className="runner-name">{runner.name}</span>
-									{runner.violationCount > 0 && (
-										<WaBadge
-											pill
-											variant={runner.violationCount >= 3 ? "danger" : "warning"}
-											title={`${runner.violationCount} violation(s) in the last 30 days`}
-										>
-											{runner.violationCount}/3 strikes
-										</WaBadge>
-									)}
-									{runner.job_timeout_ms != null && (
-										<WaBadge pill variant="neutral" title="Custom job timeout">
-											{Math.round(runner.job_timeout_ms / 60_000)}m timeout
-										</WaBadge>
-									)}
-									{runner.disabled_reason && (
-										<span className="muted" style={{ fontSize: "12px" }}>
-											{runner.disabled_reason}
-										</span>
-									)}
-								</div>
-								<div className="runner-item-right">
-									<span className="runner-repo">{runner.repo}</span>
-									<span className="runner-status">
-										{isBenchmarking ? (
-											<WaBadge pill variant="warning" attention="pulse">
-												benchmarking
-											</WaBadge>
-										) : (
-											<WaBadge pill variant={STATUS_VARIANT[runner.status] ?? "neutral"}>
-												{runner.status}
+						const isBenchmarking = activeLock?.owner === runner.repo;
+						return (
+							<div
+								key={runner.id}
+								className={`runner-item${isBenchmarking ? " runner-item--active" : ""}`}
+							>
+								<div className="runner-item-row">
+									<div className="runner-item-left">
+										<span className="runner-name">{runner.name}</span>
+										{runner.violationCount > 0 && (
+											<WaBadge
+												pill
+												variant={runner.violationCount >= 3 ? "danger" : "warning"}
+												title={`${runner.violationCount} violation(s) in the last 30 days`}
+											>
+												{runner.violationCount}/3 strikes
 											</WaBadge>
 										)}
-									</span>
-									<span className="runner-actions">
-										{runner.status === "online" ? (
+										{runner.job_timeout_ms != null && (
+											<WaBadge pill variant="neutral" title="Custom job timeout">
+												{Math.round(runner.job_timeout_ms / 60_000)}m timeout
+											</WaBadge>
+										)}
+										{runner.disabled_reason && (
+											<span className="muted" style={{ fontSize: "12px" }}>
+												{runner.disabled_reason}
+											</span>
+										)}
+									</div>
+									<div className="runner-item-right">
+										<span className="runner-repo">{runner.repo}</span>
+										<span className="runner-status">
+											{isBenchmarking ? (
+												<WaBadge pill variant="warning" attention="pulse">
+													benchmarking
+												</WaBadge>
+											) : (
+												<WaBadge pill variant={STATUS_VARIANT[runner.status] ?? "neutral"}>
+													{runner.status}
+												</WaBadge>
+											)}
+										</span>
+										<span className="runner-actions">
+											{runner.status === "online" ? (
+												<WaButton
+													variant="neutral"
+													appearance="plain"
+													size="small"
+													onClick={() =>
+														setSetupRunner({
+															id: runner.id,
+															repo: runner.repo,
+															status: runner.status,
+														})
+													}
+													title="Show setup instructions"
+												>
+													<WaIcon name="gear" family="classic" variant="solid" />
+												</WaButton>
+											) : (
+												<span style={{ width: "32px" }} />
+											)}
 											<WaButton
 												variant="neutral"
 												appearance="plain"
 												size="small"
-												onClick={() =>
-													setSetupRunner({ id: runner.id, repo: runner.repo, status: runner.status })
-												}
-												title="Show setup instructions"
+												onClick={() => handleRemove(runner.id)}
+												title="Remove runner"
 											>
-												<WaIcon name="gear" family="classic" variant="solid" />
+												<WaIcon name="xmark" family="classic" variant="solid" />
 											</WaButton>
-										) : (
-											<span style={{ width: "32px" }} />
-										)}
-										<WaButton
-											variant="neutral"
-											appearance="plain"
-											size="small"
-											onClick={() => handleRemove(runner.id)}
-											title="Remove runner"
-										>
-											<WaIcon name="xmark" family="classic" variant="solid" />
-										</WaButton>
-									</span>
+										</span>
+									</div>
 								</div>
+								{isBenchmarking && activeLock && (
+									<div className="runner-bench-info">
+										<WaIcon
+											name="bolt"
+											family="classic"
+											variant="solid"
+											style={{ color: "var(--yellow)", fontSize: "11px" }}
+										/>
+										<span>{activeLock.jobId}</span>
+										<RunnerElapsed acquiredAt={activeLock.acquiredAt} />
+									</div>
+								)}
 							</div>
-							{isBenchmarking && activeLock && (
-								<div className="runner-bench-info">
-									<WaIcon
-										name="bolt"
-										family="classic"
-										variant="solid"
-										style={{ color: "var(--yellow)", fontSize: "11px" }}
-									/>
-									<span>{activeLock.jobId}</span>
-									<RunnerElapsed acquiredAt={activeLock.acquiredAt} />
-								</div>
-							)}
-						</div>
-					);
-				})}
+						);
+					})}
 				</div>
 			)}
 		</WaCard>
@@ -273,5 +280,9 @@ function RunnerElapsed({ acquiredAt }: { acquiredAt: number }) {
 		const interval = setInterval(() => setElapsed(Date.now() - acquiredAt), 1000);
 		return () => clearInterval(interval);
 	}, [acquiredAt]);
-	return <span style={{ color: "var(--yellow)", fontVariantNumeric: "tabular-nums" }}>{formatDuration(elapsed)}</span>;
+	return (
+		<span style={{ color: "var(--yellow)", fontVariantNumeric: "tabular-nums" }}>
+			{formatDuration(elapsed)}
+		</span>
+	);
 }

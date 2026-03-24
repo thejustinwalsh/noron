@@ -35,7 +35,13 @@ const STATUS_LABELS: Record<
 	healing: { text: "Healing...", variant: "warning" },
 };
 
-export function RunnerSetup({ runnerId, repo, runnerLabel, initialStatus, onDismiss }: RunnerSetupProps) {
+export function RunnerSetup({
+	runnerId,
+	repo,
+	runnerLabel,
+	initialStatus,
+	onDismiss,
+}: RunnerSetupProps) {
 	const workflowYaml = buildWorkflowYaml(runnerLabel);
 	const [status, setStatus] = useState(initialStatus);
 	const [statusMessage, setStatusMessage] = useState<string | null>(null);
@@ -67,7 +73,7 @@ export function RunnerSetup({ runnerId, repo, runnerLabel, initialStatus, onDism
 		await navigator.clipboard.writeText(workflowYaml);
 		setCopied(true);
 		setTimeout(() => setCopied(false), 2000);
-	}, []);
+	}, [workflowYaml]);
 
 	const statusInfo = STATUS_LABELS[status] ?? STATUS_LABELS.pending;
 	const isReady = status === "online";

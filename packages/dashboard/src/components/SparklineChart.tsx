@@ -76,8 +76,7 @@ export function SparklineChart({
 			// When the buffer is full and a new point is appended, the oldest is
 			// dropped, shifting every index by 1.  Offset the prevData lookup so
 			// existing points keep their Y value and only the new tail animates.
-			const isScrolling =
-				prevData.length > 1 && data.length === prevData.length;
+			const isScrolling = prevData.length > 1 && data.length === prevData.length;
 			const offset = isScrolling ? 1 : 0;
 
 			const interp: number[] = [];
@@ -88,10 +87,7 @@ export function SparklineChart({
 					interp.push(data[i]);
 				} else {
 					// New tail point — animate from previous last value
-					const fromVal =
-						prevData.length > 0
-							? prevData[prevData.length - 1]
-							: data[i];
+					const fromVal = prevData.length > 0 ? prevData[prevData.length - 1] : data[i];
 					interp.push(fromVal + (data[i] - fromVal) * ease);
 				}
 			}

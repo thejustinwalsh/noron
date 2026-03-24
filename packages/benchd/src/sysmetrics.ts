@@ -69,8 +69,8 @@ export class SysMetrics {
 			const totalBytes = st.blocks * st.bsize;
 			const availBytes = st.bavail * st.bsize;
 			const usedBytes = totalBytes - availBytes;
-			const totalGb = Math.round((totalBytes / (1024 ** 3)) * 10) / 10;
-			const usedGb = Math.round((usedBytes / (1024 ** 3)) * 10) / 10;
+			const totalGb = Math.round((totalBytes / 1024 ** 3) * 10) / 10;
+			const usedGb = Math.round((usedBytes / 1024 ** 3) * 10) / 10;
 			const percent = totalBytes > 0 ? Math.round((usedBytes / totalBytes) * 1000) / 10 : 0;
 			return { usedGb, totalGb, percent };
 		} catch {
