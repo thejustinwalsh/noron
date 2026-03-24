@@ -69,6 +69,7 @@ Before=slices.target
 [Slice]
 AllowedCPUs=${setup.isolatedCores.join(",")}
 AllowedMemoryNodes=0
+Delegate=yes
 
 [Install]
 WantedBy=slices.target
@@ -229,8 +230,8 @@ kernel.timer_migration = 0
 vm.dirty_ratio = 5
 vm.dirty_background_ratio = 1
 
-# Allow userspace access to CPU performance counters (required by @mitata/counters)
-kernel.perf_event_paranoid = 2
+# Allow userspace access to CPU performance counters (required by perf stat + @mitata/counters)
+kernel.perf_event_paranoid = -1
 `;
 }
 
@@ -246,7 +247,8 @@ echo ${setup.housekeepingCore} > /proc/irq/default_smp_affinity 2>/dev/null || t
 
 export function generateSudoersConfig(): string {
 	return [
-		"runner ALL=(root) NOPASSWD: /usr/local/bin/bench-exec",
+		'Defaults:runner env_keep += "BENCH_SESSION_ID BENCH_JOB_TOKEN BENCH_TMPFS TMPDIR"',
+		"runner ALL=(root) NOPASSWD: SETENV: /usr/local/bin/bench-exec",
 		"bench ALL=(root) NOPASSWD: /usr/local/bin/bench-updater",
 		"",
 	].join("\n");

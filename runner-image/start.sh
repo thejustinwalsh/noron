@@ -30,5 +30,6 @@ if [ ! -f .runner ]; then
     fi
 fi
 
-# Start the runner (pull mode — polls GitHub for jobs)
-exec ./run.sh
+# Start the runner pinned to housekeeping core (core 0) — polls GitHub for jobs.
+# bench-exec handles its own CPU affinity to isolated cores for benchmarks.
+exec taskset -c 0 ./run.sh

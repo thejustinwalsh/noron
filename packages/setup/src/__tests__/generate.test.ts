@@ -175,6 +175,6 @@ describe("generateCpuGovernorService", () => {
 describe("generateSysctlConfig", () => {
 	test("includes perf_event_paranoid for counters", () => {
 		const result = generateSysctlConfig();
-		expect(result).toContain("kernel.perf_event_paranoid = 2");
+		expect(result).toContain("kernel.perf_event_paranoid = -1");
 	});
 });

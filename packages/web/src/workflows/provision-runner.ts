@@ -86,7 +86,7 @@ const provisionRunner = ow.defineWorkflow<ProvisionInput, ProvisionOutput>(
 						const data = (await res.json()) as { token: string };
 
 						// Provision container via runner-ctld IPC
-						const port = process.env.PORT ?? "3000";
+						const port = process.env.PORT ?? "9216";
 						const callbackUrl = `http://host.containers.internal:${port}/api/runners/${input.runnerId}/callback`;
 						const label = (loadConfig() ?? DEFAULT_CONFIG).runnerLabel;
 						const client = new RunnerCtlClient();

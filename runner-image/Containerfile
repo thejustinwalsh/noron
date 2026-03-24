@@ -9,6 +9,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     sudo \
     unzip \
     libicu72 \
+    util-linux \
+    linux-perf \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Node.js 20
@@ -22,7 +24,7 @@ RUN curl -fsSL https://bun.sh/install | bash \
 
 # Create runner user with sudo access to bench-exec only
 RUN useradd -m -s /bin/bash runner \
-    && echo "runner ALL=(root) NOPASSWD: /usr/local/bin/bench-exec" >> /etc/sudoers.d/runner \
+    && printf 'Defaults:runner env_keep += "BENCH_SESSION_ID BENCH_JOB_TOKEN BENCH_TMPFS TMPDIR"\nrunner ALL=(root) NOPASSWD: SETENV: /usr/local/bin/bench-exec\n' > /etc/sudoers.d/runner \
     && chmod 0440 /etc/sudoers.d/runner
 
 # Install GitHub Actions runner

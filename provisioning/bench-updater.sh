@@ -93,13 +93,19 @@ start_services() {
 	info "starting bench-web.service"
 	systemctl start bench-web.service
 
-	# Stop runner containers so they pick up the new benchd socket on next start.
+	# Rebuild runner container image if Containerfile was updated
+	if [[ -d "$RUNNER_DIR" ]] && command -v podman &>/dev/null; then
+		info "rebuilding runner container image"
+		podman build -t bench-runner "$RUNNER_DIR" || info "image rebuild failed (non-fatal)"
+	fi
+
+	# Stop runner containers so they pick up new image + fresh benchd socket.
 	# Containers use --rm so they're auto-removed on stop. The health check will
 	# detect them as offline and trigger heal workflows to reprovision them.
 	local containers
 	containers=$(podman ps -q --filter "name=bench-" 2>/dev/null || true)
 	if [[ -n "$containers" ]]; then
-		info "stopping runner containers (heal will reprovision with fresh socket mounts)"
+		info "stopping runner containers (heal will reprovision with new image)"
 		podman stop -t 10 $containers 2>/dev/null || podman kill $containers 2>/dev/null || true
 	fi
 }

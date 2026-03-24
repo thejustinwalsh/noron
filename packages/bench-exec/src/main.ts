@@ -114,15 +114,7 @@ try {
 	process.exit(1);
 }
 
-// Step 4: Drop privileges back to the invoking user
-try {
-	dropPrivileges();
-} catch (err) {
-	console.error(`bench-exec: Failed to drop privileges: ${err}`);
-	process.exit(1);
-}
-
-// Step 5: Exec the command (inherits stdio), optionally wrapped in perf stat
+// Step 4: Build the command — perf needs root, so spawn it before dropping privileges
 const [command, ...args] = positionals;
 const usePerfStat = values["perf-stat"];
 const perfStatOutput = values["perf-stat-output"] as string;
@@ -134,8 +126,21 @@ if (usePerfStat) {
 		console.error("bench-exec: --perf-stat requested but perf is not available on this system");
 		process.exit(1);
 	}
-	spawnArgs = ["perf", "stat", "-d", "-x", "\t", "-o", perfStatOutput, "--", command, ...args];
+	// perf needs root for hardware counters — drop privileges for the benchmark
+	// command only, by wrapping it with sudo -u
+	const sudoUid = process.env.SUDO_USER ?? "runner";
+	spawnArgs = [
+		"perf", "stat", "-d", "-x", "\t", "-o", perfStatOutput,
+		"--", "sudo", "-u", sudoUid, "--", command, ...args,
+	];
 } else {
+	// No perf — drop privileges normally before spawning
+	try {
+		dropPrivileges();
+	} catch (err) {
+		console.error(`bench-exec: Failed to drop privileges: ${err}`);
+		process.exit(1);
+	}
 	spawnArgs = [command, ...args];
 }
 

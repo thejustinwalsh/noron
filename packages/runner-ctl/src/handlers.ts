@@ -20,6 +20,11 @@ function getHousekeepingCore(): string {
 	return String(config.housekeepingCore);
 }
 
+function getAllCores(): string {
+	const config = loadConfig() ?? DEFAULT_CONFIG;
+	return [config.housekeepingCore, ...config.isolatedCores].sort((a, b) => a - b).join(",");
+}
+
 function containerName(name: string): string {
 	return `bench-${name}`;
 }
@@ -135,7 +140,7 @@ export async function handleProvision(msg: ProvisionRequest): Promise<RunnerResp
 	}
 
 	// Start container
-	const result = await spawn([
+	const podmanArgs = [
 		"podman",
 		"run",
 		"-d",
@@ -153,9 +158,12 @@ export async function handleProvision(msg: ProvisionRequest): Promise<RunnerResp
 		"--volume",
 		`${BENCHMARK_TMPFS}:${BENCHMARK_TMPFS}:rw`,
 		"--cpuset-cpus",
-		getHousekeepingCore(),
+		getAllCores(),
+		"--cap-add=SYS_NICE",
+		"--cap-add=SYS_ADMIN",
 		IMAGE,
-	]);
+	];
+	const result = await spawn(podmanArgs);
 
 	if (result.exitCode !== 0) {
 		throw new Error(`podman run failed (${result.exitCode}): ${result.stderr}`);

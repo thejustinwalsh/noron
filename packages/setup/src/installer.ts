@@ -248,7 +248,13 @@ export async function runInstall(
 		const tmpfsSize = recommendTmpfsSize(config.totalMemoryMB);
 		if (tmpfsSize) {
 			const tmpfsPath = "/mnt/bench-tmpfs";
-			const unitName = tmpfsPath.slice(1).replace(/\//g, "-"); // mnt-bench-tmpfs
+			// systemd mount units: path separators become "-", but hyphens
+			// within path components must be escaped as "\x2d"
+			const unitName = tmpfsPath
+				.slice(1)
+				.split("/")
+				.map((seg) => seg.replace(/-/g, "\\x2d"))
+				.join("-"); // mnt-bench\x2dtmpfs
 			writeFileSync(
 				`/etc/systemd/system/${unitName}.mount`,
 				generateTmpfsMount(tmpfsPath, tmpfsSize),
