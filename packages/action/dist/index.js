@@ -182,7 +182,7 @@ async function run() {
       benchExecArgs.push("--perf-stat", "--perf-stat-output", perfStatOutput);
     }
     benchExecArgs.push("--", ...command.split(" "));
-    const child = spawn("sudo", ["--preserve-env=BENCH_SESSION_ID,BENCH_JOB_TOKEN,TMPDIR,BENCH_TMPFS", ...benchExecArgs], {
+    const child = spawn("sudo", ["--preserve-env=BENCH_SESSION_ID,BENCH_JOB_TOKEN,BENCHD_SOCKET,BENCH_OUTPUT,BENCH_RUNNER,BENCH_RUN_INDEX,TMPDIR,BENCH_TMPFS", ...benchExecArgs], {
       stdio: "inherit",
       env: benchEnv
     });

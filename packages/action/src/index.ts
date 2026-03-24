@@ -225,7 +225,7 @@ async function run(): Promise<void> {
 
 		const child = spawn(
 			"sudo",
-			["--preserve-env=BENCH_SESSION_ID,BENCH_JOB_TOKEN,TMPDIR,BENCH_TMPFS", ...benchExecArgs],
+			["--preserve-env=BENCH_SESSION_ID,BENCH_JOB_TOKEN,BENCHD_SOCKET,BENCH_OUTPUT,BENCH_RUNNER,BENCH_RUN_INDEX,TMPDIR,BENCH_TMPFS", ...benchExecArgs],
 			{
 				stdio: "inherit",
 				env: benchEnv,
