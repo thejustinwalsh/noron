@@ -131,7 +131,9 @@ if (usePerfStat) {
 	const sudoUid = process.env.SUDO_USER ?? "runner";
 	spawnArgs = [
 		"perf", "stat", "-d", "-x", "\t", "-o", perfStatOutput,
-		"--", "sudo", "-u", sudoUid, "--", command, ...args,
+		"--", "sudo", "-u", sudoUid,
+		"--preserve-env=BENCH_OUTPUT,BENCH_RUNNER,BENCH_RUN_INDEX,TMPDIR,BENCH_TMPFS",
+		"--", command, ...args,
 	];
 } else {
 	// No perf — drop privileges normally before spawning
