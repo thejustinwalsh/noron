@@ -201,8 +201,7 @@ async function run(): Promise<void> {
 			"/usr/local/bin/bench-exec",
 			"--cores",
 			cores,
-			"--nice",
-			"-20",
+			"--nice=-20",
 			"--ionice",
 			"1",
 		];
