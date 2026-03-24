@@ -132,12 +132,24 @@ if (usePerfStat) {
 	// the default root rule lacks SETENV and Debian's env_reset would strip vars.
 	const sudoUid = process.env.SUDO_USER ?? "runner";
 	const envVars = ["BENCH_OUTPUT", "BENCH_RUNNER", "BENCH_RUN_INDEX", "TMPDIR", "BENCH_TMPFS"];
-	const envArgs = envVars
-		.filter((k) => process.env[k])
-		.map((k) => `${k}=${process.env[k]}`);
+	const envArgs = envVars.filter((k) => process.env[k]).map((k) => `${k}=${process.env[k]}`);
 	spawnArgs = [
-		"perf", "stat", "-d", "-x", "\t", "-o", perfStatOutput,
-		"--", "sudo", "-u", sudoUid, "--", "env", ...envArgs, command, ...args,
+		"perf",
+		"stat",
+		"-d",
+		"-x",
+		"\t",
+		"-o",
+		perfStatOutput,
+		"--",
+		"sudo",
+		"-u",
+		sudoUid,
+		"--",
+		"env",
+		...envArgs,
+		command,
+		...args,
 	];
 } else {
 	// No perf — drop privileges normally before spawning
