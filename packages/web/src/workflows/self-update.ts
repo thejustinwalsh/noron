@@ -1,4 +1,4 @@
-import { BenchdClient, SOCKET_PATH } from "@noron/shared";
+import { BenchdClient, RunnerCtlClient, SOCKET_PATH } from "@noron/shared";
 import { getWorkflowDb, ow, withGate } from "./index";
 
 export interface SelfUpdateInput {
@@ -201,11 +201,20 @@ const selfUpdate = ow.defineWorkflow<SelfUpdateInput, SelfUpdateOutput>(
 			for (const runner of runners) {
 				// Deprovision then re-provision happens via the existing heal workflow
 				// triggered by health-check when the container is stopped
-				const result = await runCmd(["sudo", "runner-ctl", "deprovision", runner.name]);
-				if (!result.ok) {
-					console.error(
-						`[self-update] Failed to deprovision runner ${runner.name}: ${result.output}`,
-					);
+				try {
+					const client = new RunnerCtlClient();
+					await client.connect();
+					try {
+						await client.request({
+							type: "deprovision",
+							requestId: crypto.randomUUID(),
+							name: runner.name,
+						});
+					} finally {
+						client.close();
+					}
+				} catch (err) {
+					console.error(`[self-update] Failed to deprovision runner ${runner.name}: ${err}`);
 				}
 			}
 			// Health check will detect offline runners and trigger heal workflows

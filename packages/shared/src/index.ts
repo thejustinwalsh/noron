@@ -5,3 +5,4 @@ export * from "./cpu-topology";
 export * from "./ipc-client";
 export * from "./thermal";
 export * from "./errors";
+export * from "./runner-ctl-client";

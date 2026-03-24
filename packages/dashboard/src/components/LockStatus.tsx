@@ -1,4 +1,4 @@
-import { WaBadge, WaCallout, WaCard, WaIcon } from "@awesome.me/webawesome/dist/react";
+import { WaBadge, WaCard, WaIcon } from "@awesome.me/webawesome/dist/react";
 import { useEffect, useState } from "react";
 import type { LockHolder } from "../types";
 
@@ -32,51 +32,81 @@ export function LockStatus({ lock, queueDepth }: LockStatusProps) {
 		return () => clearInterval(interval);
 	}, [lock]);
 
-	return (
-		<WaCard>
-			<div className="lock-status">
-				<div
-					style={{
-						display: "flex",
-						alignItems: "center",
-						justifyContent: "space-between",
-						width: "100%",
-					}}
-				>
-					<h3>
-						<WaIcon
-							name={lock ? "lock" : "lock-open"}
-							family="classic"
-							variant="solid"
-							style={{ marginRight: "6px" }}
-						/>
-						Lock Status
-					</h3>
-					<WaBadge pill variant={lock ? "warning" : "success"}>
-						{lock ? "HELD" : "IDLE"}
-					</WaBadge>
-				</div>
-				{lock && (
-					<div className="lock-details">
+	const progress = lock ? Math.min((elapsed / lock.timeoutMs) * 100, 100) : 0;
+
+	if (lock) {
+		return (
+			<WaCard>
+				<div className="lock-card lock-card--active">
+					<div className="lock-card-head">
+						<h3>
+							<WaIcon
+								name="bolt"
+								family="classic"
+								variant="solid"
+								style={{ marginRight: "6px", color: "var(--yellow)" }}
+							/>
+							Benchmarking
+						</h3>
+						<WaBadge pill variant="warning" attention="pulse">
+							HELD
+						</WaBadge>
+					</div>
+					<div className="lock-card-info">
 						<div className="lock-detail">
-							<span className="label">Owner</span>
+							<span className="label">Repo</span>
 							<span className="value">{lock.owner}</span>
 						</div>
 						<div className="lock-detail">
 							<span className="label">Job</span>
 							<span className="value">{lock.jobId}</span>
 						</div>
-						<div className="lock-detail">
-							<span className="label">Duration</span>
-							<span className="value">{formatDuration(elapsed)}</span>
+						<div className="lock-card-timer">
+							<div className="lock-progress-track">
+								<div className="lock-progress-fill" style={{ width: `${progress}%` }} />
+							</div>
+							<div className="lock-progress-labels">
+								<span>{formatDuration(elapsed)}</span>
+								<span>{formatDuration(lock.timeoutMs)} max</span>
+							</div>
 						</div>
+						{queueDepth > 0 && (
+							<span className="lock-queue">
+								{queueDepth} job{queueDepth !== 1 ? "s" : ""} waiting
+							</span>
+						)}
 					</div>
-				)}
-				{queueDepth > 0 && (
-					<WaCallout variant="warning" size="small">
-						{queueDepth} job{queueDepth !== 1 ? "s" : ""} queued
-					</WaCallout>
-				)}
+				</div>
+			</WaCard>
+		);
+	}
+
+	return (
+		<WaCard>
+			<div className="lock-card">
+				<div className="lock-card-head">
+					<h3>
+						<WaIcon
+							name="lock-open"
+							family="classic"
+							variant="solid"
+							style={{ marginRight: "6px" }}
+						/>
+						Lock
+					</h3>
+					<WaBadge pill variant="success">
+						IDLE
+					</WaBadge>
+				</div>
+				<div className="lock-card-center">
+					<WaIcon
+						name="lock-open"
+						family="classic"
+						variant="solid"
+						style={{ fontSize: "42px", color: "var(--text-muted)" }}
+					/>
+				</div>
+				<span className="lock-card-idle-text">Ready for benchmarks</span>
 			</div>
 		</WaCard>
 	);

@@ -53,7 +53,7 @@ export function StatusBar({
 							variant="solid"
 							style={{ color: "var(--yellow)", fontSize: "13px" }}
 						/>
-						<span style={{ fontWeight: 500, color: "var(--yellow)" }}>Critical Section</span>
+						<span style={{ fontWeight: 500, color: "var(--yellow)" }}>Benchmarking</span>
 						<span className="muted">{lock.owner}</span>
 						<span className="status-bar-elapsed">{formatDuration(elapsed)}</span>
 						{queueDepth > 0 && (

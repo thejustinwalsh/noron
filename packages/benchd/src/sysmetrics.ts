@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { readFileSync, statfsSync } from "node:fs";
 
 /**
  * Lightweight system metrics reader.
@@ -60,6 +60,22 @@ export class SysMetrics {
 			// Not on Linux — return 0
 		}
 		return this.cpuPercent;
+	}
+
+	/** Read disk usage for the root filesystem. */
+	readDisk(): { usedGb: number; totalGb: number; percent: number } {
+		try {
+			const st = statfsSync("/");
+			const totalBytes = st.blocks * st.bsize;
+			const availBytes = st.bavail * st.bsize;
+			const usedBytes = totalBytes - availBytes;
+			const totalGb = Math.round((totalBytes / 1024 ** 3) * 10) / 10;
+			const usedGb = Math.round((usedBytes / 1024 ** 3) * 10) / 10;
+			const percent = totalBytes > 0 ? Math.round((usedBytes / totalBytes) * 1000) / 10 : 0;
+			return { usedGb, totalGb, percent };
+		} catch {
+			return { usedGb: 0, totalGb: 0, percent: 0 };
+		}
 	}
 
 	/** Read current memory usage from /proc/meminfo. */

@@ -19,6 +19,7 @@ interface ActiveLock {
 	jobToken: string;
 	actionInvoked: boolean;
 	timeoutTimer: Timer | null;
+	effectiveTimeoutMs: number;
 }
 
 interface QueuedLock {
@@ -181,25 +182,23 @@ export class LockManager {
 		});
 	}
 
-	/** Handle client disconnect — auto-release after grace period */
+	/** Handle client disconnect — the job-started hook is a short-lived process
+	 *  that acquires the lock, writes the token, and exits. This is expected.
+	 *  The lock is released by the job-completed hook via a separate connection
+	 *  using the job token. The job timeout is the safety net for abandoned locks. */
 	handleDisconnect(client: ClientConnection): void {
 		// Remove from queue
 		this.queue = this.queue.filter((q) => q.client !== client);
 
-		// If this client holds the lock, start grace period
+		// Lock holder disconnecting is normal — the hook process exited after
+		// writing the token. The lock stays held and is released by job-completed.
+		// The job timeout handles the case where job-completed never fires.
 		if (this.holder?.client === client) {
-			const timer = setTimeout(() => {
-				if (this.holder?.client === client) {
-					log("warn", "lock", `Auto-releasing lock for disconnected job ${this.holder.jobId}`);
-					this.clearTimeout();
-					this.holder = null;
-					this.grantNext();
-					this.onChange();
-				}
-				this.disconnectTimers.delete(client);
-			}, LOCK_DISCONNECT_GRACE_MS);
-
-			this.disconnectTimers.set(client, timer);
+			log(
+				"info",
+				"lock",
+				`Lock holder disconnected (job ${this.holder.jobId}) — lock stays held until release or timeout`,
+			);
 		}
 	}
 
@@ -211,6 +210,7 @@ export class LockManager {
 			owner: this.holder.owner,
 			acquiredAt: this.holder.acquiredAt,
 			duration: Date.now() - this.holder.acquiredAt,
+			timeoutMs: this.holder.effectiveTimeoutMs,
 		};
 	}
 
@@ -222,6 +222,7 @@ export class LockManager {
 	setCurrentTimeout(timeoutMs: number): void {
 		if (!this.holder) return;
 		this.clearTimeout();
+		this.holder.effectiveTimeoutMs = timeoutMs;
 		this.holder.timeoutTimer = setTimeout(() => this.forceRelease(), timeoutMs);
 	}
 
@@ -232,6 +233,7 @@ export class LockManager {
 	private grantLock(client: ClientConnection, msg: LockAcquireRequest, position: number): void {
 		const jobToken = randomBytes(32).toString("hex");
 
+		const effectiveTimeout = this.getEffectiveTimeout();
 		this.holder = {
 			client,
 			jobId: msg.jobId,
@@ -241,10 +243,11 @@ export class LockManager {
 			jobToken,
 			actionInvoked: false,
 			timeoutTimer: null,
+			effectiveTimeoutMs: effectiveTimeout,
 		};
 
 		// Start job timeout timer
-		this.holder.timeoutTimer = setTimeout(() => this.forceRelease(), this.jobTimeoutMs);
+		this.holder.timeoutTimer = setTimeout(() => this.forceRelease(), effectiveTimeout);
 
 		const response: LockAcquiredResponse = {
 			type: "lock.acquired",

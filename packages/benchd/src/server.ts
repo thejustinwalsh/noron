@@ -328,6 +328,7 @@ export class BenchdServer {
 			},
 			cpu: this.sysMetrics.readCpu(),
 			memory: this.sysMetrics.readMemory(),
+			disk: this.sysMetrics.readDisk(),
 			uptime: Date.now() - this.startedAt,
 			version: process.env.NORON_VERSION ?? "dev",
 		};

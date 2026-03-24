@@ -1,5 +1,6 @@
 import { Database } from "bun:sqlite";
 import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
+import { RunnerCtlClient } from "@noron/shared";
 import { OpenWorkflow } from "openworkflow";
 import { BackendSqlite } from "openworkflow/sqlite";
 import { BenchGate } from "../../bench-gate";
@@ -71,32 +72,6 @@ function seedRunner(id: string, name: string, repo: string, ownerId: string): vo
 	);
 }
 
-/** Minimal Bun.spawn return value — only the fields our workflows actually read */
-function fakeProc(exitCode = 0, stderr = "") {
-	const encoder = new TextEncoder();
-	return {
-		exited: Promise.resolve(exitCode),
-		stdout: new ReadableStream<Uint8Array>(),
-		stderr: new ReadableStream<Uint8Array>({
-			start(controller) {
-				if (stderr) controller.enqueue(encoder.encode(stderr));
-				controller.close();
-			},
-		}),
-		pid: 999,
-		killed: false,
-		exitCode,
-		signalCode: null,
-		kill() {},
-		ref() {},
-		unref() {},
-		stdin: undefined,
-		resourceUsage() {
-			return undefined;
-		},
-	};
-}
-
 beforeEach(() => {
 	db = initTestDb();
 	setWorkflowDb(db);
@@ -158,9 +133,13 @@ describe("Provision Runner Workflow", () => {
 			Response.json({ token: "AABCDEF123" }),
 		);
 
-		const spawnSpy = spyOn(Bun, "spawn").mockReturnValueOnce(
-			fakeProc() as ReturnType<typeof Bun.spawn>,
-		);
+		const connectSpy = spyOn(RunnerCtlClient.prototype, "connect").mockResolvedValue();
+		const requestSpy = spyOn(RunnerCtlClient.prototype, "request").mockResolvedValue({
+			requestId: "mock",
+			type: "provisioned",
+			container: "bench-test-runner",
+		});
+		const closeSpy = spyOn(RunnerCtlClient.prototype, "close").mockImplementation(() => {});
 
 		const workflow = ow.defineWorkflow<
 			{ runnerId: string; name: string; repo: string; userId: string },
@@ -179,26 +158,26 @@ describe("Provision Runner Workflow", () => {
 					);
 					if (!res.ok) throw new Error(`GitHub API ${res.status}`);
 					const data = (await res.json()) as { token: string };
-					const proc = Bun.spawn(
-						[
-							"sudo",
-							"runner-ctl",
-							"provision",
-							input.name,
-							input.repo,
-							data.token,
-							`http://localhost:3000/api/runners/${input.runnerId}/callback`,
-						],
-						{ stdout: "pipe", stderr: "pipe" },
-					);
-					if ((await proc.exited) !== 0) throw new Error("provision failed");
+					const client = new RunnerCtlClient();
+					await client.connect();
+					try {
+						await client.request({
+							type: "provision",
+							requestId: crypto.randomUUID(),
+							name: input.name,
+							repo: input.repo,
+							registrationToken: data.token,
+							callbackUrl: `http://host.containers.internal:3000/api/runners/${input.runnerId}/callback`,
+							callbackToken: "test-callback-token",
+							label: "noron",
+						});
+					} finally {
+						client.close();
+					}
 				});
-				// Simulate the callback from start.sh (in production, curl → POST /api/runners/:id/callback)
 				await step.run({ name: "simulate-callback" }, async () => {
 					updateRunnerStatus(input.runnerId, "online");
 				});
-				// In production this is step.sleep("registration-window", "3m") — here we
-				// skip it and go straight to verify since the callback already fired above.
 				const finalStatus = await step.run({ name: "verify-registration" }, async () => {
 					const row = db.query("SELECT status FROM runners WHERE id = ?").get(input.runnerId) as {
 						status: string;
@@ -235,11 +214,13 @@ describe("Provision Runner Workflow", () => {
 
 		expect(result.status).toBe("online");
 		expect(getRunnerStatus("runner-1")).toBe("online");
-		expect(fetchSpy).toHaveBeenCalledTimes(1); // Only registration token — no GitHub polling
-		expect(spawnSpy).toHaveBeenCalledTimes(1);
+		expect(fetchSpy).toHaveBeenCalledTimes(1);
+		expect(requestSpy).toHaveBeenCalledTimes(1);
 
 		fetchSpy.mockRestore();
-		spawnSpy.mockRestore();
+		connectSpy.mockRestore();
+		requestSpy.mockRestore();
+		closeSpy.mockRestore();
 	});
 
 	test("marks runner failed on GitHub API 401", async () => {
@@ -350,7 +331,7 @@ describe("Provision Runner Workflow", () => {
 		expect(getRunnerStatus("runner-1")).toBe("failed");
 	});
 
-	test("marks runner failed when spawn exits non-zero", async () => {
+	test("marks runner failed when runner-ctld returns error", async () => {
 		await seedUser("user-1", "ghp_test_token");
 		seedRunner("runner-1", "test-runner", "owner/repo", "user-1");
 
@@ -358,14 +339,16 @@ describe("Provision Runner Workflow", () => {
 			Response.json({ token: "AABCDEF123" }),
 		);
 
-		const spawnSpy = spyOn(Bun, "spawn").mockReturnValueOnce(
-			fakeProc(1, "podman: image not found") as ReturnType<typeof Bun.spawn>,
+		const connectSpy = spyOn(RunnerCtlClient.prototype, "connect").mockResolvedValue();
+		const requestSpy = spyOn(RunnerCtlClient.prototype, "request").mockRejectedValue(
+			new Error("podman: image not found"),
 		);
+		const closeSpy = spyOn(RunnerCtlClient.prototype, "close").mockImplementation(() => {});
 
 		const workflow = ow.defineWorkflow<
 			{ runnerId: string; name: string; repo: string; userId: string },
 			{ status: "online" | "failed"; error?: string }
-		>({ name: "test-provision-spawn-fail" }, async ({ input, step }) => {
+		>({ name: "test-provision-ipc-fail" }, async ({ input, step }) => {
 			try {
 				await step.run({ name: "mark-provisioning" }, async () => {
 					updateRunnerStatus(input.runnerId, "provisioning");
@@ -379,14 +362,21 @@ describe("Provision Runner Workflow", () => {
 					);
 					if (!res.ok) throw new Error(`GitHub API ${res.status}`);
 					const data = (await res.json()) as { token: string };
-					const proc = Bun.spawn(
-						["sudo", "runner-ctl", "provision", input.name, input.repo, data.token],
-						{ stdout: "pipe", stderr: "pipe" },
-					);
-					const exitCode = await proc.exited;
-					if (exitCode !== 0) {
-						const stderr = await new Response(proc.stderr).text();
-						throw new Error(`runner-ctl provision failed (${exitCode}): ${stderr}`);
+					const client = new RunnerCtlClient();
+					await client.connect();
+					try {
+						await client.request({
+							type: "provision",
+							requestId: crypto.randomUUID(),
+							name: input.name,
+							repo: input.repo,
+							registrationToken: data.token,
+							callbackUrl: `http://host.containers.internal:3000/api/runners/${input.runnerId}/callback`,
+							callbackToken: "test-callback-token",
+							label: "noron",
+						});
+					} finally {
+						client.close();
 					}
 				});
 				return { status: "online" as const };
@@ -420,7 +410,9 @@ describe("Provision Runner Workflow", () => {
 		expect(getRunnerStatus("runner-1")).toBe("failed");
 
 		fetchSpy.mockRestore();
-		spawnSpy.mockRestore();
+		connectSpy.mockRestore();
+		requestSpy.mockRestore();
+		closeSpy.mockRestore();
 	});
 });
 
@@ -432,9 +424,13 @@ describe("Deprovision Runner Workflow", () => {
 
 		const fetchSpy = spyOn(global, "fetch").mockResolvedValueOnce(Response.json({ runners: [] }));
 
-		const spawnSpy = spyOn(Bun, "spawn").mockReturnValueOnce(
-			fakeProc() as ReturnType<typeof Bun.spawn>,
-		);
+		const connectSpy = spyOn(RunnerCtlClient.prototype, "connect").mockResolvedValue();
+		const requestSpy = spyOn(RunnerCtlClient.prototype, "request").mockResolvedValue({
+			requestId: "mock",
+			type: "deprovisioned",
+			container: "bench-test-runner",
+		});
+		const closeSpy = spyOn(RunnerCtlClient.prototype, "close").mockImplementation(() => {});
 
 		const workflow = ow.defineWorkflow<
 			{ runnerId: string; name: string; repo: string; userId: string },
@@ -445,11 +441,17 @@ describe("Deprovision Runner Workflow", () => {
 					updateRunnerStatus(input.runnerId, "removing");
 				});
 				await step.run({ name: "stop-container" }, async () => {
-					const proc = Bun.spawn(["sudo", "runner-ctl", "deprovision", input.name], {
-						stdout: "pipe",
-						stderr: "pipe",
-					});
-					if ((await proc.exited) !== 0) throw new Error("deprovision failed");
+					const client = new RunnerCtlClient();
+					await client.connect();
+					try {
+						await client.request({
+							type: "deprovision",
+							requestId: crypto.randomUUID(),
+							name: input.name,
+						});
+					} finally {
+						client.close();
+					}
 				});
 				await step.run({ name: "remove-from-github" }, async () => {
 					const ghToken = await getGithubToken(input.userId);
@@ -495,7 +497,9 @@ describe("Deprovision Runner Workflow", () => {
 		expect(getRunnerStatus("runner-1")).toBeNull();
 
 		fetchSpy.mockRestore();
-		spawnSpy.mockRestore();
+		connectSpy.mockRestore();
+		requestSpy.mockRestore();
+		closeSpy.mockRestore();
 	});
 });
 

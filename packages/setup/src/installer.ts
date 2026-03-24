@@ -11,6 +11,7 @@ import {
 	generateGrubAppend,
 	generateIrqPinScript,
 	generateIrqPinService,
+	generateRunnerCtldService,
 	generateRunnerUpdateService,
 	generateRunnerUpdateTimer,
 	generateSudoersConfig,
@@ -210,6 +211,17 @@ export async function runInstall(
 		writeFileSync("/etc/benchd/config.toml", generateBenchdConfig(config));
 		run("chown root:bench /etc/benchd/config.toml");
 		chmodSync("/etc/benchd/config.toml", 0o640);
+
+		// Generate encryption key for token storage (AES-256-GCM)
+		// Skip if already present (reconfigure path)
+		const encKeyPath = "/etc/benchd/encryption.key";
+		if (!existsSync(encKeyPath)) {
+			const keyHex = Array.from(crypto.getRandomValues(new Uint8Array(32)))
+				.map((b) => b.toString(16).padStart(2, "0"))
+				.join("");
+			writeFileSync(encKeyPath, `${keyHex}\n`, { mode: 0o640 });
+			run(`chown root:bench ${encKeyPath}`);
+		}
 		writeFileSync("/etc/sysctl.d/99-benchmark.conf", generateSysctlConfig());
 		run("sysctl --system -q");
 		onProgress(STEPS.WRITE_CONFIG, "done");
@@ -224,6 +236,7 @@ export async function runInstall(
 		writeFileSync("/etc/systemd/system/benchd.service", generateBenchdService());
 		writeFileSync("/etc/systemd/system/benchmark.slice", generateBenchmarkSlice(config));
 		writeFileSync("/etc/systemd/system/bench-web.service", generateBenchWebService(config));
+		writeFileSync("/etc/systemd/system/runner-ctld.service", generateRunnerCtldService());
 		writeFileSync("/etc/systemd/system/bench-irq-pin.service", generateIrqPinService(config));
 		writeFileSync("/etc/systemd/system/bench-tuning.service", generateDisableTurboService());
 		writeFileSync("/etc/systemd/system/bench-cpu-governor.service", generateCpuGovernorService());
@@ -235,7 +248,13 @@ export async function runInstall(
 		const tmpfsSize = recommendTmpfsSize(config.totalMemoryMB);
 		if (tmpfsSize) {
 			const tmpfsPath = "/mnt/bench-tmpfs";
-			const unitName = tmpfsPath.slice(1).replace(/\//g, "-"); // mnt-bench-tmpfs
+			// systemd mount units: path separators become "-", but hyphens
+			// within path components must be escaped as "\x2d"
+			const unitName = tmpfsPath
+				.slice(1)
+				.split("/")
+				.map((seg) => seg.replace(/-/g, "\\x2d"))
+				.join("-"); // mnt-bench\x2dtmpfs
 			writeFileSync(
 				`/etc/systemd/system/${unitName}.mount`,
 				generateTmpfsMount(tmpfsPath, tmpfsSize),
@@ -354,19 +373,6 @@ export async function runInstall(
 			}
 		}
 
-		// Install runner-ctl
-		const ctlSources = [
-			"/usr/local/share/bench/runner-ctl.sh",
-			`${import.meta.dir}/../../../runner-image/runner-ctl.sh`,
-		];
-		for (const src of ctlSources) {
-			if (existsSync(src)) {
-				run(`cp ${src} /usr/local/bin/runner-ctl`);
-				chmodSync("/usr/local/bin/runner-ctl", 0o755);
-				break;
-			}
-		}
-
 		// Build runner container image (may take a few minutes on first setup).
 		// bench-runner-update --force skips the lock check since benchd isn't running yet.
 		// This is also the script the weekly timer uses for subsequent rebuilds.
@@ -439,7 +445,12 @@ export async function runInstall(
 			);
 			run(`chown bench:bench "${dbPath}"`);
 			chmodSync(dbPath, 0o640);
-			const baseUrl = `http://${config.hostname}:${config.webPort}`;
+			const hasProtocol = /^https?:\/\//.test(config.hostname);
+			const baseUrl = hasProtocol
+				? config.hostname.startsWith("http://")
+					? `${config.hostname.replace(/\/+$/, "")}:${config.webPort}`
+					: config.hostname.replace(/\/+$/, "")
+				: `https://${config.hostname}`;
 			inviteUrl = `${baseUrl}/invite/${token}`;
 			onProgress(STEPS.BOOTSTRAP_INVITE, "done");
 		} catch (err) {
@@ -453,6 +464,7 @@ export async function runInstall(
 	try {
 		// Core services — must succeed
 		run("systemctl enable --now benchd");
+		run("systemctl enable --now runner-ctld");
 		run("systemctl enable --now bench-web");
 
 		// Tuning services — enable them but don't fail the whole setup if

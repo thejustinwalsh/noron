@@ -1,5 +1,5 @@
 import type { Database } from "bun:sqlite";
-import { BenchdClient, SOCKET_PATH, TOKEN_EXPIRY_HOURS } from "@noron/shared";
+import { BenchdClient, type BenchdConfig, SOCKET_PATH, TOKEN_EXPIRY_HOURS } from "@noron/shared";
 import * as z from "@zod/mini";
 import { Hono } from "hono";
 import { extractToken, getUserByToken } from "../auth-middleware";
@@ -14,7 +14,7 @@ const GitHubRepo = z.object({
 	description: z.nullable(z.string()),
 });
 
-export function adminRoutes(db: Database): Hono {
+export function adminRoutes(db: Database, appConfig: BenchdConfig): Hono {
 	const app = new Hono();
 
 	// Get system config from benchd (requires auth — used by dashboard)
@@ -40,6 +40,8 @@ export function adminRoutes(db: Database): Hono {
 					totalCores: config.totalCores,
 					thermalZones: config.thermalZones,
 					configPath: config.configPath,
+					runnerLabel: appConfig.runnerLabel,
+					jobTimeoutMs: appConfig.jobTimeoutMs,
 				});
 			}
 			return c.json({ error: "Unexpected response from benchd" }, 500);

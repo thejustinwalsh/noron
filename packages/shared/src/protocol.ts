@@ -57,6 +57,7 @@ export interface LockHolder {
 	owner: string;
 	acquiredAt: number; // unix timestamp ms
 	duration: number; // ms since acquired
+	timeoutMs: number; // max duration before forced release
 }
 
 export interface LockStatusResponse extends BaseResponse {
@@ -200,6 +201,11 @@ export interface StatusUpdate extends BaseResponse {
 	memory: {
 		usedMb: number;
 		totalMb: number;
+		percent: number; // 0–100
+	};
+	disk: {
+		usedGb: number;
+		totalGb: number;
 		percent: number; // 0–100
 	};
 	uptime: number; // daemon uptime ms

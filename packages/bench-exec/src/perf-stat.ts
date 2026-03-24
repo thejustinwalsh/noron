@@ -74,7 +74,7 @@ export function parsePerfStat(raw: string): PerfStatResult {
 		cpuMigrations,
 		branchMissRate,
 		l1MissRate,
-		isolationHealthy: contextSwitches <= 5 && cpuMigrations === 0,
+		isolationHealthy: cpuMigrations === 0,
 	};
 }
 

@@ -26,6 +26,12 @@
 	--radius: 6px;
 }
 
+html,
+body {
+	margin: 0;
+	padding: 0;
+}
+
 body {
 	font-family: var(--wa-font-family-body);
 	background: var(--bg);
@@ -47,6 +53,7 @@ body {
 	padding: 12px 24px;
 	border-bottom: 1px solid var(--border);
 	background: var(--bg-card);
+	width: 100%;
 }
 
 .header-left {
@@ -64,41 +71,161 @@ body {
 .main {
 	flex: 1;
 	padding: 24px;
-	max-width: 1200px;
 	width: 100%;
-	margin: 0 auto;
 }
 
-/* Grid */
-.grid {
-	display: grid;
-	grid-template-columns: 1fr 1fr;
+/* Bento layout */
+.bento {
+	display: flex;
+	flex-direction: column;
 	gap: 16px;
 }
 
-.grid-wide {
-	grid-column: 1 / -1;
+.bento-sparklines {
+	display: grid;
+	grid-template-columns: repeat(3, 1fr);
+	gap: 16px;
+}
+
+.bento-bottom {
+	display: grid;
+	grid-template-columns: 1fr 1fr 2fr;
+	gap: 16px;
+}
+
+.bento-bottom wa-card {
+	height: 100%;
+}
+
+.bento-bottom wa-card::part(body) {
+	height: 100%;
+}
+
+.bento-disk {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	height: 100%;
+}
+
+.bento-disk-center {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	flex: 1;
+}
+
+.bento-disk-footer {
+	font-size: 11px;
+	color: var(--text-muted);
+	font-variant-numeric: tabular-nums;
+	text-align: center;
+}
+
+@media (max-width: 1024px) {
+	.bento-sparklines {
+		grid-template-columns: 1fr 1fr;
+	}
+	.bento-bottom {
+		grid-template-columns: 1fr 1fr;
+	}
 }
 
 @media (max-width: 768px) {
-	.grid {
+	.bento-bottom {
 		grid-template-columns: 1fr;
 	}
 }
 
-/* Lock status */
-.lock-status {
-	display: flex;
-	flex-direction: column;
-	gap: 12px;
-	align-items: flex-start;
+@media (max-width: 768px) {
+	.bento-sparklines {
+		grid-template-columns: 1fr;
+	}
 }
 
-.lock-details {
+/* Lock status card */
+.lock-card {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 10px;
+	height: 100%;
+}
+
+.lock-card h3 {
+	align-self: flex-start;
+}
+
+.lock-card-center {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	flex: 1;
+}
+
+.lock-card--active {
+	background: rgba(215, 128, 0, 0.04);
+}
+
+.lock-card--active h3 {
+	color: var(--yellow);
+}
+
+.lock-card-head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	width: 100%;
+}
+
+.lock-card-info {
 	display: flex;
 	flex-direction: column;
 	gap: 6px;
 	width: 100%;
+}
+
+.lock-card-timer {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+
+.lock-progress-track {
+	height: 4px;
+	background: var(--bg);
+	border-radius: 2px;
+	overflow: hidden;
+}
+
+.lock-progress-fill {
+	height: 100%;
+	background: var(--yellow);
+	border-radius: 2px;
+	transition: width 1s linear;
+}
+
+.lock-progress-labels {
+	display: flex;
+	justify-content: space-between;
+	font-size: 11px;
+	color: var(--text-muted);
+	font-variant-numeric: tabular-nums;
+}
+
+.lock-queue {
+	font-size: 12px;
+	color: var(--yellow);
+	font-weight: 500;
+}
+
+.lock-card-idle-text {
+	font-size: 12px;
+	color: var(--text-muted);
+	align-self: center;
+	margin-top: auto;
 }
 
 .lock-detail,
@@ -133,11 +260,37 @@ body {
 
 .runner-item {
 	display: flex;
-	align-items: center;
-	gap: 12px;
+	flex-direction: column;
+	gap: 0;
 	padding: 10px 14px;
 	border-radius: var(--radius);
 	background: var(--bg);
+}
+
+.runner-item--active {
+	background: rgba(215, 128, 0, 0.06);
+	border: 1px solid rgba(215, 128, 0, 0.2);
+}
+
+.runner-item-row {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+}
+
+.runner-item-left {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	flex: 1;
+	min-width: 0;
+}
+
+.runner-item-right {
+	display: flex;
+	align-items: center;
+	justify-content: flex-end;
+	gap: 8px;
 }
 
 .runner-item wa-badge {
@@ -146,12 +299,42 @@ body {
 
 .runner-name {
 	font-weight: 500;
-	flex: 1;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
 }
 
 .runner-repo {
 	color: var(--text-muted);
 	font-size: 13px;
+	text-align: right;
+	flex-shrink: 0;
+	white-space: nowrap;
+}
+
+.runner-status {
+	display: flex;
+	justify-content: center;
+	width: 88px;
+}
+
+.runner-actions {
+	display: flex;
+	align-items: center;
+	gap: 2px;
+	width: 64px;
+	justify-content: flex-end;
+}
+
+.runner-bench-info {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	font-size: 12px;
+	color: var(--text-muted);
+	margin-top: 8px;
+	padding-top: 8px;
+	border-top: 1px solid var(--border);
 }
 
 /* Runner form */
@@ -298,6 +481,15 @@ body {
 	border-bottom: 1px solid var(--border);
 }
 
+/* Center badge cells and status headers */
+.invite-table td:has(wa-badge) {
+	text-align: center;
+}
+
+.invite-table .th-center {
+	text-align: center;
+}
+
 .invite-table code {
 	font-size: 12px;
 	background: var(--bg);
@@ -330,18 +522,7 @@ wa-card h3 {
 	margin: 0;
 }
 
-/* Sparkline strip */
-.sparkline-strip {
-	display: grid;
-	grid-template-columns: 1fr 1fr 1fr;
-	gap: 16px;
-}
-
-@media (max-width: 768px) {
-	.sparkline-strip {
-		grid-template-columns: 1fr;
-	}
-}
+/* Sparkline cards */
 
 .sparkline-card {
 	display: flex;
@@ -398,6 +579,7 @@ wa-badge {
 .header-right {
 	display: flex;
 	align-items: center;
+	gap: 12px;
 }
 
 .user-menu {

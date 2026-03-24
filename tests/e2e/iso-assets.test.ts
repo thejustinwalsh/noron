@@ -18,6 +18,7 @@ describe("ISO dist/ assets", () => {
 		expect(existsSync(join(DIST, "web/bench-web"))).toBe(true);
 		expect(existsSync(join(DIST, "setup/bench-setup"))).toBe(true);
 		expect(existsSync(join(DIST, "cli/bench"))).toBe(true);
+		expect(existsSync(join(DIST, "runner-ctl/runner-ctld"))).toBe(true);
 	});
 
 	test("hook binaries exist", () => {
@@ -32,6 +33,5 @@ describe("ISO dist/ assets", () => {
 	test("runner image assets exist", () => {
 		expect(existsSync(join(DIST, "runner-image/Containerfile"))).toBe(true);
 		expect(existsSync(join(DIST, "runner-image/start.sh"))).toBe(true);
-		expect(existsSync(join(DIST, "runner-image/runner-ctl.sh"))).toBe(true);
 	});
 });

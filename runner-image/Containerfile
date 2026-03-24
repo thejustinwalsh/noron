@@ -9,6 +9,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     sudo \
     unzip \
     libicu72 \
+    util-linux \
+    linux-perf \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Node.js 20
@@ -22,7 +24,7 @@ RUN curl -fsSL https://bun.sh/install | bash \
 
 # Create runner user with sudo access to bench-exec only
 RUN useradd -m -s /bin/bash runner \
-    && echo "runner ALL=(root) NOPASSWD: /usr/local/bin/bench-exec" >> /etc/sudoers.d/runner \
+    && printf 'Defaults:runner env_keep += "BENCH_SESSION_ID BENCH_JOB_TOKEN BENCH_TMPFS TMPDIR"\nrunner ALL=(root) NOPASSWD: SETENV: /usr/local/bin/bench-exec\n' > /etc/sudoers.d/runner \
     && chmod 0440 /etc/sudoers.d/runner
 
 # Install GitHub Actions runner
@@ -41,9 +43,14 @@ RUN ARCH="${RUNNER_ARCH:-$(case "${TARGETARCH:-$(dpkg --print-architecture)}" in
     && chown -R runner:runner /opt/actions-runner
 
 # Job hooks: acquire/release machine-wide lock
-# These binaries are bind-mounted from the host at runtime
-ENV ACTIONS_RUNNER_HOOK_JOB_STARTED=/usr/local/lib/benchd/hooks/job-started
-ENV ACTIONS_RUNNER_HOOK_JOB_COMPLETED=/usr/local/lib/benchd/hooks/job-completed
+# The compiled binaries are bind-mounted from the host at runtime.
+# GitHub Actions requires hook scripts to have a .sh/.ps1/.js extension,
+# so we create thin wrappers that exec the binaries.
+RUN printf '#!/bin/bash\nexec /usr/local/lib/benchd/hooks/job-started "$@"\n' > /opt/actions-runner/hook-job-started.sh \
+    && printf '#!/bin/bash\nexec /usr/local/lib/benchd/hooks/job-completed "$@"\n' > /opt/actions-runner/hook-job-completed.sh \
+    && chmod +x /opt/actions-runner/hook-job-started.sh /opt/actions-runner/hook-job-completed.sh
+ENV ACTIONS_RUNNER_HOOK_JOB_STARTED=/opt/actions-runner/hook-job-started.sh
+ENV ACTIONS_RUNNER_HOOK_JOB_COMPLETED=/opt/actions-runner/hook-job-completed.sh
 
 COPY start.sh /opt/actions-runner/start.sh
 

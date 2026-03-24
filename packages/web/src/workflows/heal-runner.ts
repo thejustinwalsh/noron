@@ -1,4 +1,4 @@
-import { DEFAULT_CONFIG, loadConfig } from "@noron/shared";
+import { DEFAULT_CONFIG, RunnerCtlClient, loadConfig } from "@noron/shared";
 import {
 	getGithubToken,
 	getWorkflowDb,
@@ -80,27 +80,24 @@ const healRunner = ow.defineWorkflow<HealInput, HealOutput>(
 						}
 						const data = (await res.json()) as { token: string };
 
-						const port = process.env.PORT ?? "3000";
-						const callbackUrl = `http://localhost:${port}/api/runners/${input.runnerId}/callback`;
+						const port = process.env.PORT ?? "9216";
+						const callbackUrl = `http://host.containers.internal:${port}/api/runners/${input.runnerId}/callback`;
 						const label = (loadConfig() ?? DEFAULT_CONFIG).runnerLabel;
-						const proc = Bun.spawn(
-							[
-								"sudo",
-								"runner-ctl",
-								"provision",
-								input.name.trim(),
-								input.repo.trim(),
-								data.token,
+						const client = new RunnerCtlClient();
+						await client.connect();
+						try {
+							await client.request({
+								type: "provision",
+								requestId: crypto.randomUUID(),
+								name: input.name.trim(),
+								repo: input.repo.trim(),
+								registrationToken: data.token,
 								callbackUrl,
 								callbackToken,
 								label,
-							],
-							{ stdout: "pipe", stderr: "pipe" },
-						);
-						const exitCode = await proc.exited;
-						if (exitCode !== 0) {
-							const stderr = await new Response(proc.stderr).text();
-							throw new Error(`runner-ctl provision failed (${exitCode}): ${stderr}`);
+							});
+						} finally {
+							client.close();
 						}
 					}),
 			);
@@ -130,6 +127,9 @@ const healRunner = ow.defineWorkflow<HealInput, HealOutput>(
 			);
 			throw new Error("Runner did not re-register within 3 minutes after heal");
 		} catch (err) {
+			// Re-throw workflow control signals without marking as failed
+			if (err instanceof Error && err.name === "SleepSignal") throw err;
+
 			const message = err instanceof Error ? err.message : String(err);
 			try {
 				updateRunnerStatusWithMessage(input.runnerId, "failed", message);
@@ -146,7 +146,7 @@ const healRunner = ow.defineWorkflow<HealInput, HealOutput>(
  *  Idempotent: calling twice with the same runnerId reuses the existing run. */
 export async function startHealWorkflow(input: HealInput): Promise<string> {
 	const handle = await healRunner.run(input, {
-		idempotencyKey: `heal:${input.repo}`,
+		idempotencyKey: `heal:${input.runnerId}`,
 	});
 	return handle.workflowRun.id;
 }

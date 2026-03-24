@@ -5,6 +5,7 @@ export interface LockHolder {
 	owner: string;
 	acquiredAt: number;
 	duration: number;
+	timeoutMs: number;
 }
 
 export interface StatusUpdate {
@@ -21,6 +22,11 @@ export interface StatusUpdate {
 	memory: {
 		usedMb: number;
 		totalMb: number;
+		percent: number;
+	};
+	disk: {
+		usedGb: number;
+		totalGb: number;
 		percent: number;
 	};
 	uptime: number;
@@ -96,6 +102,8 @@ export interface ConfigInfo {
 	totalCores: number;
 	thermalZones: string[];
 	configPath: string;
+	runnerLabel: string;
+	jobTimeoutMs: number;
 }
 
 export type WorkflowRunStatus =

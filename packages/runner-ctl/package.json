@@ -1,0 +1,14 @@
+{
+	"name": "@noron/runner-ctl",
+	"version": "0.2.2",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"build": "bun build ./src/main.ts --compile --outfile dist/runner-ctld --target ${BUN_TARGET:-bun-linux-x64}",
+		"typecheck": "tsc --noEmit",
+		"test": "bun test"
+	},
+	"dependencies": {
+		"@noron/shared": "workspace:*"
+	}
+}

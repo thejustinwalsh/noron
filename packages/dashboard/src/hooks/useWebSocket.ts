@@ -8,6 +8,7 @@ export interface WebSocketState {
 	thermalHistory: number[];
 	cpuHistory: number[];
 	memoryHistory: number[];
+	diskHistory: number[];
 	connected: boolean;
 }
 
@@ -16,6 +17,7 @@ export function useWebSocket(enabled = true): WebSocketState {
 	const [thermalHistory, setThermalHistory] = useState<number[]>([]);
 	const [cpuHistory, setCpuHistory] = useState<number[]>([]);
 	const [memoryHistory, setMemoryHistory] = useState<number[]>([]);
+	const [diskHistory, setDiskHistory] = useState<number[]>([]);
 	const [connected, setConnected] = useState(false);
 	const wsRef = useRef<WebSocket | null>(null);
 	const reconnectTimerRef = useRef<ReturnType<typeof setTimeout>>();
@@ -55,6 +57,10 @@ export function useWebSocket(enabled = true): WebSocketState {
 						const next = [...prev, update.memory?.percent ?? 0];
 						return next.length > MAX_HISTORY ? next.slice(next.length - MAX_HISTORY) : next;
 					});
+					setDiskHistory((prev) => {
+						const next = [...prev, update.disk?.percent ?? 0];
+						return next.length > MAX_HISTORY ? next.slice(next.length - MAX_HISTORY) : next;
+					});
 				}
 			} catch {
 				// Ignore malformed messages
@@ -90,5 +96,5 @@ export function useWebSocket(enabled = true): WebSocketState {
 		};
 	}, [connect, enabled]);
 
-	return { status, thermalHistory, cpuHistory, memoryHistory, connected };
+	return { status, thermalHistory, cpuHistory, memoryHistory, diskHistory, connected };
 }

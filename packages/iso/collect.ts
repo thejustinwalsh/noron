@@ -24,7 +24,7 @@ for (const pkg of readdirSync(PACKAGES)) {
 }
 
 // Runner image assets (not a workspace package)
-const runnerAssets = ["Containerfile", "start.sh", "runner-ctl.sh", "bench-runner-update.sh"];
+const runnerAssets = ["Containerfile", "start.sh", "bench-runner-update.sh"];
 const runnerDest = join(DIST, "runner-image");
 mkdirSync(runnerDest, { recursive: true });
 for (const asset of runnerAssets) {

@@ -79,17 +79,17 @@ describe("installer command flow", () => {
 		expect(result).toContain("bench ALL=(root) NOPASSWD: /usr/local/bin/bench-updater");
 	});
 
-	test("sudoers includes runner-ctl rule for bench", () => {
+	test("sudoers does not include runner-ctl (replaced by runner-ctld IPC)", () => {
 		const { generateSudoersConfig } = require("../generate");
 		const result = generateSudoersConfig();
-		expect(result).toContain("bench ALL=(root) NOPASSWD: /usr/local/bin/runner-ctl");
+		expect(result).not.toContain("runner-ctl");
 	});
 
 	test("sudoers scopes bench-exec to runner user only", () => {
 		const { generateSudoersConfig } = require("../generate");
 		const result = generateSudoersConfig();
 		// bench-exec should only be available to runner, not bench
-		expect(result).toContain("runner ALL=(root) NOPASSWD: /usr/local/bin/bench-exec");
+		expect(result).toContain("runner ALL=(root) NOPASSWD: SETENV: /usr/local/bin/bench-exec");
 		expect(result).not.toContain("bench ALL=(root) NOPASSWD: /usr/local/bin/bench-exec");
 	});
 

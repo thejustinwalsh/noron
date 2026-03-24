@@ -62,11 +62,13 @@ describe("Protocol types", () => {
 				owner: "org/repo",
 				acquiredAt: Date.now() - 5000,
 				duration: 5000,
+				timeoutMs: 600_000,
 			},
 			queueDepth: 2,
 			thermal: { currentTemp: 42.3, trend: "falling" },
 			cpu: 12.5,
 			memory: { usedMb: 1024, totalMb: 4096, percent: 25.0 },
+			disk: { usedGb: 12.5, totalGb: 50.0, percent: 25.0 },
 			uptime: 3600000,
 			version: "0.1.0",
 		};

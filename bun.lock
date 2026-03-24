@@ -20,21 +20,21 @@
     },
     "packages/action": {
       "name": "@noron/action",
-      "version": "0.1.0",
+      "version": "0.2.2",
       "dependencies": {
         "@noron/shared": "workspace:*",
       },
     },
     "packages/bench-exec": {
       "name": "@noron/bench-exec",
-      "version": "0.1.0",
+      "version": "0.2.2",
       "dependencies": {
         "@noron/shared": "workspace:*",
       },
     },
     "packages/benchd": {
       "name": "@noron/benchd",
-      "version": "0.1.0",
+      "version": "0.2.2",
       "dependencies": {
         "@noron/shared": "workspace:*",
       },
@@ -49,7 +49,7 @@
     },
     "packages/cli": {
       "name": "@noron/cli",
-      "version": "0.1.0",
+      "version": "0.2.2",
       "bin": {
         "bench": "src/main.ts",
       },
@@ -84,15 +84,23 @@
     },
     "packages/iso": {
       "name": "@noron/iso",
-      "version": "0.1.0",
+      "version": "0.2.2",
       "dependencies": {
         "@noron/bench-exec": "workspace:*",
         "@noron/benchd": "workspace:*",
         "@noron/cli": "workspace:*",
         "@noron/dashboard": "workspace:*",
+        "@noron/runner-ctl": "workspace:*",
         "@noron/setup": "workspace:*",
         "@noron/shared": "workspace:*",
         "@noron/web": "workspace:*",
+      },
+    },
+    "packages/runner-ctl": {
+      "name": "@noron/runner-ctl",
+      "version": "0.2.2",
+      "dependencies": {
+        "@noron/shared": "workspace:*",
       },
     },
     "packages/setup": {
@@ -112,11 +120,11 @@
     },
     "packages/shared": {
       "name": "@noron/shared",
-      "version": "0.1.0",
+      "version": "0.2.2",
     },
     "packages/web": {
       "name": "@noron/web",
-      "version": "0.1.0",
+      "version": "0.2.2",
       "dependencies": {
         "@noron/shared": "workspace:*",
         "@zod/mini": "^4.0.0-beta.0",
@@ -331,6 +339,8 @@
     "@noron/dev": ["@noron/dev@workspace:dev"],
 
     "@noron/iso": ["@noron/iso@workspace:packages/iso"],
+
+    "@noron/runner-ctl": ["@noron/runner-ctl@workspace:packages/runner-ctl"],
 
     "@noron/setup": ["@noron/setup@workspace:packages/setup"],
 

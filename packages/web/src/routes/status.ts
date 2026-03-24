@@ -183,8 +183,8 @@ export function statusRoutes(db: Database): Hono {
 
 		const runnerId = c.req.param("id");
 		const runner = db
-			.query("SELECT name, repo, owner_id FROM runners WHERE id = ?")
-			.get(runnerId) as { name: string; repo: string; owner_id: string } | null;
+			.query("SELECT name, repo, owner_id, status FROM runners WHERE id = ?")
+			.get(runnerId) as { name: string; repo: string; owner_id: string; status: string } | null;
 
 		if (!runner) return c.json({ error: "Runner not found" }, 404);
 
@@ -195,6 +195,13 @@ export function statusRoutes(db: Database): Hono {
 
 		if (!user.githubPat && !user.githubToken) {
 			// No GitHub token — just delete the DB record without cleanup
+			db.run("DELETE FROM runners WHERE id = ?", [runnerId]);
+			return c.json({ ok: true });
+		}
+
+		// Runners that aren't actively running have nothing to clean up —
+		// skip the deprovision workflow and just delete the DB record.
+		if (runner.status === "pending" || runner.status === "failed" || runner.status === "offline") {
 			db.run("DELETE FROM runners WHERE id = ?", [runnerId]);
 			return c.json({ ok: true });
 		}
@@ -228,8 +235,8 @@ export function statusRoutes(db: Database): Hono {
 			.get(runnerId) as { status: string; callback_token: string | null } | null;
 
 		if (!runner) return c.json({ error: "Runner not found" }, 404);
-		if (runner.status !== "provisioning") {
-			return c.json({ error: "Runner not in provisioning state" }, 409);
+		if (runner.status !== "provisioning" && runner.status !== "healing") {
+			return c.json({ error: "Runner not in provisioning/healing state" }, 409);
 		}
 		if (!runner.callback_token || runner.callback_token !== cbToken) {
 			return c.json({ error: "Invalid callback token" }, 403);
