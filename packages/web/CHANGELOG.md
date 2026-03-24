@@ -1,5 +1,35 @@
 # @noron/web
 
+## 0.3.0
+
+### Minor Changes
+
+- [#9](https://github.com/thejustinwalsh/noron/pull/9) [`d3056b4`](https://github.com/thejustinwalsh/noron/commit/d3056b40f93ef6052d7ea85f9291164d3eddb46d) Thanks [@thejustinwalsh](https://github.com/thejustinwalsh)! - > Branch: fix-runner-auth-flow
+
+  > PR: https://github.com/thejustinwalsh/noron/pull/9
+
+  **Runner provisioning workflows**
+
+  - Provision and heal workflows now use `RunnerCtlClient` to communicate with the `runner-ctld` Unix socket daemon instead of invoking podman directly
+  - Default callback URL port corrected from `3000` to `9216` (matches the bench-web service port)
+  - `deprovision-runner` and `self-update` workflows updated accordingly
+  - Health check updated to work with new runner-ctld architecture
+
+  **Admin API**
+
+  - Lock status in admin route now includes `timeoutMs`
+
+  **Config API**
+
+  - `/api/config` response now includes `runnerLabel` so the dashboard can display the correct runner label in workflow YAML snippets
+
+  Runner provisioning is now fully mediated through runner-ctld, separating privileged container operations from the web process.
+
+### Patch Changes
+
+- Updated dependencies [[`d3056b4`](https://github.com/thejustinwalsh/noron/commit/d3056b40f93ef6052d7ea85f9291164d3eddb46d)]:
+  - @noron/shared@0.3.0
+
 ## 0.2.2
 
 ### Patch Changes

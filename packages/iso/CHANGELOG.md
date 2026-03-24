@@ -1,5 +1,29 @@
 # @noron/iso
 
+## 0.3.0
+
+### Minor Changes
+
+- [#9](https://github.com/thejustinwalsh/noron/pull/9) [`d3056b4`](https://github.com/thejustinwalsh/noron/commit/d3056b40f93ef6052d7ea85f9291164d3eddb46d) Thanks [@thejustinwalsh](https://github.com/thejustinwalsh)! - > Branch: fix-runner-auth-flow
+
+  > PR: https://github.com/thejustinwalsh/noron/pull/9
+
+  - Added `@noron/runner-ctl` as an ISO dependency so the `runner-ctld` binary is included in built images
+  - Removed `runner-ctl.sh` script from collected runner image assets (replaced by the compiled `runner-ctld` daemon from `@noron/runner-ctl`)
+
+  ISO images now include the runner-ctld daemon for managing runner container lifecycle.
+
+### Patch Changes
+
+- Updated dependencies [[`d3056b4`](https://github.com/thejustinwalsh/noron/commit/d3056b40f93ef6052d7ea85f9291164d3eddb46d), [`d3056b4`](https://github.com/thejustinwalsh/noron/commit/d3056b40f93ef6052d7ea85f9291164d3eddb46d), [`d3056b4`](https://github.com/thejustinwalsh/noron/commit/d3056b40f93ef6052d7ea85f9291164d3eddb46d), [`d3056b4`](https://github.com/thejustinwalsh/noron/commit/d3056b40f93ef6052d7ea85f9291164d3eddb46d), [`d3056b4`](https://github.com/thejustinwalsh/noron/commit/d3056b40f93ef6052d7ea85f9291164d3eddb46d)]:
+  - @noron/bench-exec@0.3.0
+  - @noron/benchd@0.3.0
+  - @noron/runner-ctl@0.3.0
+  - @noron/shared@0.3.0
+  - @noron/web@0.3.0
+  - @noron/cli@0.3.0
+  - @noron/setup@0.1.0
+
 ## 0.2.2
 
 ### Patch Changes

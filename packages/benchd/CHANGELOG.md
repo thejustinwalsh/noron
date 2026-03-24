@@ -1,5 +1,29 @@
 # @noron/benchd
 
+## 0.3.0
+
+### Minor Changes
+
+- [#9](https://github.com/thejustinwalsh/noron/pull/9) [`d3056b4`](https://github.com/thejustinwalsh/noron/commit/d3056b40f93ef6052d7ea85f9291164d3eddb46d) Thanks [@thejustinwalsh](https://github.com/thejustinwalsh)! - > Branch: fix-runner-auth-flow
+
+  > PR: https://github.com/thejustinwalsh/noron/pull/9
+
+  **Lock manager**
+
+  - Lock holder disconnecting no longer triggers an auto-release grace period; lock stays held until the job-completed hook fires or the job timeout expires — this matches the expected lifecycle where the job-started hook process exits immediately after writing the token
+  - Lock status response now includes `timeoutMs` (the effective timeout for the current holder)
+
+  **System metrics**
+
+  - Disk usage for the root filesystem now included in status broadcasts (`usedGb`, `totalGb`, `percent`) via `statfsSync`
+
+  These changes stabilize lock handling for short-lived hook processes and extend status data to include disk metrics.
+
+### Patch Changes
+
+- Updated dependencies [[`d3056b4`](https://github.com/thejustinwalsh/noron/commit/d3056b40f93ef6052d7ea85f9291164d3eddb46d)]:
+  - @noron/shared@0.3.0
+
 ## 0.2.2
 
 ### Patch Changes

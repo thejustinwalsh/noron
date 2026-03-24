@@ -1,5 +1,12 @@
 # @noron/cli
 
+## 0.3.0
+
+### Patch Changes
+
+- Updated dependencies [[`d3056b4`](https://github.com/thejustinwalsh/noron/commit/d3056b40f93ef6052d7ea85f9291164d3eddb46d)]:
+  - @noron/shared@0.3.0
+
 ## 0.2.2
 
 ### Patch Changes
