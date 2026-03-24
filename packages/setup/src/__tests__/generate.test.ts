@@ -109,7 +109,7 @@ describe("generateIrqPinScript", () => {
 describe("generateSudoersConfig", () => {
 	test("allows runner and bench users", () => {
 		const result = generateSudoersConfig();
-		expect(result).toContain("runner ALL=(root) NOPASSWD: /usr/local/bin/bench-exec");
+		expect(result).toContain("runner ALL=(root) NOPASSWD: SETENV: /usr/local/bin/bench-exec");
 		expect(result).toContain("bench ALL=(root) NOPASSWD: /usr/local/bin/bench-updater");
 		expect(result).not.toContain("runner-ctl");
 	});

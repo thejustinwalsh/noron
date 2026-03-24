@@ -89,7 +89,7 @@ describe("installer command flow", () => {
 		const { generateSudoersConfig } = require("../generate");
 		const result = generateSudoersConfig();
 		// bench-exec should only be available to runner, not bench
-		expect(result).toContain("runner ALL=(root) NOPASSWD: /usr/local/bin/bench-exec");
+		expect(result).toContain("runner ALL=(root) NOPASSWD: SETENV: /usr/local/bin/bench-exec");
 		expect(result).not.toContain("bench ALL=(root) NOPASSWD: /usr/local/bin/bench-exec");
 	});
 
