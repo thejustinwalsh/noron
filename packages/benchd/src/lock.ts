@@ -19,6 +19,7 @@ interface ActiveLock {
 	jobToken: string;
 	actionInvoked: boolean;
 	timeoutTimer: Timer | null;
+	effectiveTimeoutMs: number;
 }
 
 interface QueuedLock {
@@ -205,6 +206,7 @@ export class LockManager {
 			owner: this.holder.owner,
 			acquiredAt: this.holder.acquiredAt,
 			duration: Date.now() - this.holder.acquiredAt,
+			timeoutMs: this.holder.effectiveTimeoutMs,
 		};
 	}
 
@@ -216,6 +218,7 @@ export class LockManager {
 	setCurrentTimeout(timeoutMs: number): void {
 		if (!this.holder) return;
 		this.clearTimeout();
+		this.holder.effectiveTimeoutMs = timeoutMs;
 		this.holder.timeoutTimer = setTimeout(() => this.forceRelease(), timeoutMs);
 	}
 
@@ -226,6 +229,7 @@ export class LockManager {
 	private grantLock(client: ClientConnection, msg: LockAcquireRequest, position: number): void {
 		const jobToken = randomBytes(32).toString("hex");
 
+		const effectiveTimeout = this.getEffectiveTimeout();
 		this.holder = {
 			client,
 			jobId: msg.jobId,
@@ -235,10 +239,11 @@ export class LockManager {
 			jobToken,
 			actionInvoked: false,
 			timeoutTimer: null,
+			effectiveTimeoutMs: effectiveTimeout,
 		};
 
 		// Start job timeout timer
-		this.holder.timeoutTimer = setTimeout(() => this.forceRelease(), this.jobTimeoutMs);
+		this.holder.timeoutTimer = setTimeout(() => this.forceRelease(), effectiveTimeout);
 
 		const response: LockAcquiredResponse = {
 			type: "lock.acquired",

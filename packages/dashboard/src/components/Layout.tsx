@@ -44,7 +44,7 @@ export function Layout({
 		<div className="layout">
 			<header className="header">
 				<div className="header-left">
-					<h1 className="header-title">Benchmark</h1>
+					<h1 className="header-title">Noron Benchmarks</h1>
 					<WaBadge
 						pill
 						variant={connected ? "success" : "danger"}
@@ -61,7 +61,13 @@ export function Layout({
 						}}
 					>
 						{navItems.map((item) => (
-							<WaTab key={item.id} slot="nav" panel={item.id} active={currentPage === item.id}>
+							<WaTab
+								key={item.id}
+								slot="nav"
+								panel={item.id}
+								active={currentPage === item.id}
+								onClick={() => onNavigate(item.id)}
+							>
 								{item.label}
 							</WaTab>
 						))}

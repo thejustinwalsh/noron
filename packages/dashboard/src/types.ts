@@ -5,6 +5,7 @@ export interface LockHolder {
 	owner: string;
 	acquiredAt: number;
 	duration: number;
+	timeoutMs: number;
 }
 
 export interface StatusUpdate {
@@ -102,6 +103,7 @@ export interface ConfigInfo {
 	thermalZones: string[];
 	configPath: string;
 	runnerLabel: string;
+	jobTimeoutMs: number;
 }
 
 export type WorkflowRunStatus =

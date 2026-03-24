@@ -62,6 +62,7 @@ describe("Protocol types", () => {
 				owner: "org/repo",
 				acquiredAt: Date.now() - 5000,
 				duration: 5000,
+				timeoutMs: 600_000,
 			},
 			queueDepth: 2,
 			thermal: { currentTemp: 42.3, trend: "falling" },

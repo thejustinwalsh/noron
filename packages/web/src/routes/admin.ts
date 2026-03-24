@@ -41,6 +41,7 @@ export function adminRoutes(db: Database, appConfig: BenchdConfig): Hono {
 					thermalZones: config.thermalZones,
 					configPath: config.configPath,
 					runnerLabel: appConfig.runnerLabel,
+					jobTimeoutMs: appConfig.jobTimeoutMs,
 				});
 			}
 			return c.json({ error: "Unexpected response from benchd" }, 500);

@@ -7,10 +7,11 @@ import { LockStatus } from "./components/LockStatus";
 import { LoginPrompt } from "./components/LoginPrompt";
 import { Onboarding } from "./components/Onboarding";
 import { RunnerList } from "./components/RunnerList";
+import { DiskDonut } from "./components/DiskDonut";
 import { SparklineChart } from "./components/SparklineChart";
 import { SystemInfo } from "./components/SystemInfo";
 import { WorkflowsPage } from "./components/WorkflowsPage";
-import { useUserInfo, useWorkflowCounts } from "./hooks/useApi";
+import { useConfig, useUserInfo, useWorkflowCounts } from "./hooks/useApi";
 import { useAuth } from "./hooks/useAuth";
 import { useWebSocket } from "./hooks/useWebSocket";
 
@@ -43,6 +44,7 @@ export function App() {
 		useWebSocket(authenticated);
 	const { userInfo, loading: userInfoLoading } = useUserInfo(authenticated);
 	const { counts: workflowCounts } = useWorkflowCounts(authenticated);
+	const { config } = useConfig();
 	const queryClient = useQueryClient();
 	const isAdmin = userInfo?.role === "admin";
 
@@ -94,7 +96,7 @@ export function App() {
 			<div className="layout">
 				<header className="header">
 					<div className="header-left">
-						<h1 className="header-title">Benchmark</h1>
+						<h1 className="header-title">Noron Benchmarks</h1>
 					</div>
 				</header>
 				<main className="main" />
@@ -107,7 +109,7 @@ export function App() {
 			<div className="layout">
 				<header className="header">
 					<div className="header-left">
-						<h1 className="header-title">Benchmark</h1>
+						<h1 className="header-title">Noron Benchmarks</h1>
 					</div>
 				</header>
 				<main className="main">
@@ -131,125 +133,121 @@ export function App() {
 			onLogout={logout}
 		>
 			{page === "dashboard" && (
-				<div className="grid">
-					<div className="grid-wide">
-						<div className="sparkline-strip">
-							<WaCard>
-								<div className="sparkline-card">
-									<div className="sparkline-header">
-										<span className="sparkline-label">
-											<WaIcon
-												name="temperature-half"
-												family="classic"
-												variant="solid"
-												style={{ marginRight: "6px", color: tempColor(currentTemp) }}
-											/>
-											Temperature
-										</span>
-										<span className="sparkline-value" style={{ color: tempColor(currentTemp) }}>
-											{currentTemp.toFixed(1)}°C
-										</span>
-									</div>
-									<SparklineChart
-										data={thermalHistory}
-										color={tempColor(currentTemp)}
-										min={tempStats.rangeMin}
-										max={tempStats.rangeMax}
-									/>
-									<div className="sparkline-footer">
-										<span>{tempStats.min}° min</span>
-										<span>{tempStats.max}° max</span>
-									</div>
+				<div className="bento">
+					<div className="bento-sparklines">
+						<WaCard>
+							<div className="sparkline-card">
+								<div className="sparkline-header">
+									<span className="sparkline-label">
+										<WaIcon
+											name="temperature-half"
+											family="classic"
+											variant="solid"
+											style={{ marginRight: "6px", color: tempColor(currentTemp) }}
+										/>
+										Temperature
+									</span>
+									<span className="sparkline-value" style={{ color: tempColor(currentTemp) }}>
+										{currentTemp.toFixed(1)}°C
+									</span>
 								</div>
-							</WaCard>
-							<WaCard>
-								<div className="sparkline-card">
-									<div className="sparkline-header">
-										<span className="sparkline-label">
-											<WaIcon
-												name="microchip"
-												family="classic"
-												variant="solid"
-												style={{ marginRight: "6px", color: cpuColor(currentCpu) }}
-											/>
-											CPU
-										</span>
-										<span className="sparkline-value" style={{ color: cpuColor(currentCpu) }}>
-											{currentCpu.toFixed(1)}%
-										</span>
-									</div>
-									<SparklineChart
-										data={cpuHistory}
-										color={cpuColor(currentCpu)}
-										min={0}
-										max={100}
-									/>
-									<div className="sparkline-footer">
-										<span>{cpuStats.min}% min</span>
-										<span>{cpuStats.max}% max</span>
-									</div>
+								<SparklineChart
+									data={thermalHistory}
+									color={tempColor(currentTemp)}
+									min={tempStats.rangeMin}
+									max={tempStats.rangeMax}
+								/>
+								<div className="sparkline-footer">
+									<span>{tempStats.min}° min</span>
+									<span>{tempStats.max}° max</span>
 								</div>
-							</WaCard>
-							<WaCard>
-								<div className="sparkline-card">
-									<div className="sparkline-header">
-										<span className="sparkline-label">
-											<WaIcon
-												name="memory"
-												family="classic"
-												variant="solid"
-												style={{ marginRight: "6px", color: memColor(currentMem) }}
-											/>
-											Memory
-										</span>
-										<span className="sparkline-value" style={{ color: memColor(currentMem) }}>
-											{currentMem.toFixed(1)}%
-										</span>
-									</div>
-									<SparklineChart
-										data={memoryHistory}
-										color={memColor(currentMem)}
-										min={0}
-										max={100}
-									/>
-									<div className="sparkline-footer">
-										<span>{(memUsed / 1024).toFixed(1)} GB used</span>
-										<span>{(memTotal / 1024).toFixed(1)} GB total</span>
-									</div>
+							</div>
+						</WaCard>
+						<WaCard>
+							<div className="sparkline-card">
+								<div className="sparkline-header">
+									<span className="sparkline-label">
+										<WaIcon
+											name="microchip"
+											family="classic"
+											variant="solid"
+											style={{ marginRight: "6px", color: cpuColor(currentCpu) }}
+										/>
+										CPU
+									</span>
+									<span className="sparkline-value" style={{ color: cpuColor(currentCpu) }}>
+										{currentCpu.toFixed(1)}%
+									</span>
 								</div>
-							</WaCard>
-							<WaCard>
-								<div className="sparkline-card">
-									<div className="sparkline-header">
-										<span className="sparkline-label">
-											<WaIcon
-												name="hard-drive"
-												family="classic"
-												variant="solid"
-												style={{ marginRight: "6px", color: diskColor(currentDisk) }}
-											/>
-											Disk
-										</span>
-										<span className="sparkline-value" style={{ color: diskColor(currentDisk) }}>
-											{(diskTotal - diskUsed).toFixed(1)} GB free
-										</span>
-									</div>
-									<SparklineChart
-										data={diskHistory}
-										color={diskColor(currentDisk)}
-										min={0}
-										max={100}
-									/>
-									<div className="sparkline-footer">
-										<span>{diskUsed.toFixed(1)} GB used</span>
-										<span>{diskTotal.toFixed(1)} GB total</span>
-									</div>
+								<SparklineChart
+									data={cpuHistory}
+									color={cpuColor(currentCpu)}
+									min={0}
+									max={100}
+								/>
+								<div className="sparkline-footer">
+									<span>{cpuStats.min}% min</span>
+									<span>{cpuStats.max}% max</span>
 								</div>
-							</WaCard>
-						</div>
+							</div>
+						</WaCard>
+						<WaCard>
+							<div className="sparkline-card">
+								<div className="sparkline-header">
+									<span className="sparkline-label">
+										<WaIcon
+											name="memory"
+											family="classic"
+											variant="solid"
+											style={{ marginRight: "6px", color: memColor(currentMem) }}
+										/>
+										Memory
+									</span>
+									<span className="sparkline-value" style={{ color: memColor(currentMem) }}>
+										{currentMem.toFixed(1)}%
+									</span>
+								</div>
+								<SparklineChart
+									data={memoryHistory}
+									color={memColor(currentMem)}
+									min={0}
+									max={100}
+								/>
+								<div className="sparkline-footer">
+									<span>{(memUsed / 1024).toFixed(1)} GB used</span>
+									<span>{(memTotal / 1024).toFixed(1)} GB total</span>
+								</div>
+							</div>
+						</WaCard>
 					</div>
-					<LockStatus lock={status?.lock ?? null} queueDepth={status?.queueDepth ?? 0} />
-					<SystemInfo uptime={status?.uptime ?? 0} />
+					<div className="bento-bottom">
+						<LockStatus lock={status?.lock ?? null} queueDepth={status?.queueDepth ?? 0} />
+						<WaCard>
+							<div className="bento-disk">
+								<h3>
+									<WaIcon
+										name="hard-drive"
+										family="classic"
+										variant="solid"
+										style={{ marginRight: "6px" }}
+									/>
+									Disk
+								</h3>
+								<div className="bento-disk-center">
+									<DiskDonut
+										usedGb={diskUsed}
+										totalGb={diskTotal}
+										percent={currentDisk}
+										color={diskColor(currentDisk)}
+									/>
+								</div>
+								<span className="bento-disk-footer">
+									{diskUsed.toFixed(1)} / {diskTotal.toFixed(1)} GB
+								</span>
+							</div>
+						</WaCard>
+						<SystemInfo uptime={status?.uptime ?? 0} />
+					</div>
 				</div>
 			)}
 			{page === "runners" &&
@@ -265,6 +263,7 @@ export function App() {
 					<RunnerList
 						hasRepoScope={userInfo?.hasRepoScope}
 						onPermissionFixed={() => queryClient.invalidateQueries({ queryKey: ["auth", "me"] })}
+						activeLock={status?.lock ?? null}
 					/>
 				))}
 			{page === "workflows" && <WorkflowsPage />}

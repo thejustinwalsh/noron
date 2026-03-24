@@ -104,7 +104,7 @@ export function AdminPanel() {
 								<th>Token</th>
 								<th>Created</th>
 								<th>Expires</th>
-								<th>Status</th>
+								<th className="th-center">Status</th>
 							</tr>
 						</thead>
 						<tbody>
@@ -180,9 +180,9 @@ function RunnerPolicies() {
 					<tr>
 						<th>Repo</th>
 						<th>Strikes</th>
-						<th>Status</th>
-						<th>Timeout</th>
-						<th />
+						<th style={{ width: "120px" }}>Timeout</th>
+						<th className="th-center">Status</th>
+						<th style={{ width: "56px" }} />
 					</tr>
 				</thead>
 				<tbody>
@@ -199,20 +199,6 @@ function RunnerPolicies() {
 								) : (
 									<span className="muted">0</span>
 								)}
-							</td>
-							<td>
-								<WaBadge
-									pill
-									variant={
-										runner.status === "disabled"
-											? "danger"
-											: runner.status === "online"
-												? "success"
-												: "neutral"
-									}
-								>
-									{runner.status}
-								</WaBadge>
 							</td>
 							<td>
 								{editingId === runner.id ? (
@@ -241,39 +227,58 @@ function RunnerPolicies() {
 								)}
 							</td>
 							<td>
-								{editingId === runner.id ? (
-									<div style={{ display: "flex", gap: "4px" }}>
-										<WaButton
-											variant="brand"
-											size="small"
-											loading={setTimeout.isPending}
-											onClick={() => handleSaveTimeout(runner.id)}
-										>
-											Save
-										</WaButton>
+								<WaBadge
+									pill
+									variant={
+										runner.status === "disabled"
+											? "danger"
+											: runner.status === "online"
+												? "success"
+												: "neutral"
+									}
+								>
+									{runner.status}
+								</WaBadge>
+							</td>
+							<td>
+								<div style={{ display: "flex", gap: "2px", width: "56px" }}>
+									{editingId === runner.id ? (
+										<>
+											<WaButton
+												variant="neutral"
+												appearance="plain"
+												size="small"
+												loading={setTimeout.isPending}
+												onClick={() => handleSaveTimeout(runner.id)}
+												title="Save"
+											>
+												<WaIcon name="check" family="classic" variant="solid" style={{ color: "var(--green)" }} />
+											</WaButton>
+											<WaButton
+												variant="neutral"
+												appearance="plain"
+												size="small"
+												onClick={() => {
+													setEditingId(null);
+													setTimeoutValue("");
+												}}
+												title="Cancel"
+											>
+												<WaIcon name="xmark" family="classic" variant="solid" />
+											</WaButton>
+										</>
+									) : (
 										<WaButton
 											variant="neutral"
 											appearance="plain"
 											size="small"
-											onClick={() => {
-												setEditingId(null);
-												setTimeoutValue("");
-											}}
+											onClick={() => startEditing(runner.id, runner.job_timeout_ms)}
+											title="Edit timeout"
 										>
-											Cancel
+											<WaIcon name="pen" family="classic" variant="solid" />
 										</WaButton>
-									</div>
-								) : (
-									<WaButton
-										variant="neutral"
-										appearance="plain"
-										size="small"
-										onClick={() => startEditing(runner.id, runner.job_timeout_ms)}
-										title="Edit timeout"
-									>
-										<WaIcon name="pen" family="classic" variant="solid" />
-									</WaButton>
-								)}
+									)}
+								</div>
 							</td>
 						</tr>
 					))}

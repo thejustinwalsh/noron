@@ -57,6 +57,7 @@ export interface LockHolder {
 	owner: string;
 	acquiredAt: number; // unix timestamp ms
 	duration: number; // ms since acquired
+	timeoutMs: number; // max duration before forced release
 }
 
 export interface LockStatusResponse extends BaseResponse {
