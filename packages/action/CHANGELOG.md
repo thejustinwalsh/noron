@@ -1,5 +1,21 @@
 # @noron/action
 
+## 0.3.0
+
+### Patch Changes
+
+- [#9](https://github.com/thejustinwalsh/noron/pull/9) [`d3056b4`](https://github.com/thejustinwalsh/noron/commit/d3056b40f93ef6052d7ea85f9291164d3eddb46d) Thanks [@thejustinwalsh](https://github.com/thejustinwalsh)! - > Branch: fix-runner-auth-flow
+
+  > PR: https://github.com/thejustinwalsh/noron/pull/9
+
+  - Use `node:path` protocol prefix for built-in module import
+  - Reformatted `spawn` args array to multi-line style
+
+  Minor lint cleanup; no functional changes to action behavior.
+
+- Updated dependencies [[`d3056b4`](https://github.com/thejustinwalsh/noron/commit/d3056b40f93ef6052d7ea85f9291164d3eddb46d)]:
+  - @noron/shared@0.3.0
+
 ## 0.2.2
 
 ### Patch Changes
