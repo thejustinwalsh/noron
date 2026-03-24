@@ -1,16 +1,16 @@
 # Noron
 
-A dedicated benchmark appliance for GitHub Actions that achieves **<0.1% variance** through hardware-level CPU isolation, thermal gating, and serial job execution. Turn any spare machine — an Orange Pi on your desk, a rack server, or a cloud VM — into a rock-solid benchmark runner that produces results you can actually trust.
+A dedicated benchmark appliance for GitHub Actions that achieves **~1.6% median variance** (as low as 0.08%) through hardware-level CPU isolation, thermal gating, and serial job execution. Turn any spare machine — an Orange Pi on your desk, a rack server, or a cloud VM — into a rock-solid benchmark runner that produces results you can actually trust.
 
 ## Why Noron?
 
-- **<0.1% variance** — `isolcpus`, tickless cores, IRQ pinning, and thermal gating eliminate the noise that makes benchmarks useless on shared infrastructure
+- **~1.6% median variance** (as low as 0.08%) — `isolcpus`, tickless cores, IRQ pinning, and thermal gating eliminate the noise that makes benchmarks useless on shared infrastructure
 - **Zero config for users** — admins set up the appliance once; everyone else just adds `runs-on: [self-hosted, noron]` to their workflow
 - **One job at a time** — machine-wide FIFO lock ensures zero contention between benchmark runs
 - **Self-updating** — the appliance checks GitHub Releases and updates itself automatically, with rollback on failure
 - **Board-specific SBC images** — pre-built `.img` files for Orange Pi 5 Plus and Raspberry Pi 4/5, plus generic ISOs for x86_64 and ARM64 servers
 
-## Quick start
+## Quick start — self-hosted runner setup
 
 ### Option 1: SBC image (Orange Pi, Raspberry Pi)
 
@@ -62,6 +62,79 @@ ansible-playbook -i inventory.local.yml playbook.yml --ask-vault-pass
 ```
 
 > **Full Ansible guide** including inventory setup, per-machine core allocation, and secrets management: **[provisioning/ansible/README.md](provisioning/ansible/README.md)**
+
+### Option 4: LLM-assisted setup
+
+If you have a bare metal PC or SBC and want guided help, paste the following prompt into your LLM of choice along with the hardware you're working with:
+
+<details>
+<summary>LLM setup prompt</summary>
+
+```
+I want to set up a Noron benchmark appliance (https://github.com/thejustinwalsh/noron) on a dedicated machine. Help me through the process step by step.
+
+## What Noron is
+A self-hosted GitHub Actions runner appliance optimized for low-variance benchmarking.
+It uses CPU isolation (isolcpus, nohz_full, rcu_nocbs, nosmt), thermal gating, IRQ
+pinning, and serial job execution to produce stable benchmark results.
+
+## My hardware
+[DESCRIBE: board/CPU model, core count, RAM, storage, architecture (x64 or arm64)]
+
+## What I need help with
+
+### 1. Image selection and flashing
+- SBC: board-specific .img.xz from GitHub Releases (Orange Pi 5 Plus, Raspberry Pi 4/5)
+- x64/arm64 server: generic .img.xz from GitHub Releases
+- Flash with: xzcat <image>.img.xz | sudo dd of=/dev/sdX bs=4M status=progress
+
+### 2. First boot and setup wizard
+The setup wizard (bench-setup) runs on first login and configures:
+- System passwords (bench user for SSH, root)
+- Timezone
+- CPU core allocation: core 0 = housekeeping (OS, daemons, dashboard), cores 1..N = isolated for benchmarks
+  - ARM big.LITTLE: efficiency cores for housekeeping, performance cores for benchmarks
+- GitHub OAuth App credentials (Client ID + Secret from github.com/settings/developers)
+  - Homepage URL: http://<hostname>:9216
+  - Callback URL: http://<hostname>:9216/auth/callback
+- Hostname / public URL for dashboard access
+- Optional Tailscale auth key for VPN access
+- GitHub Actions runner label (default: "noron")
+
+### 3. What the installer configures
+- Kernel boot params: isolcpus=<cores> nohz_full=<cores> rcu_nocbs=<cores> nosmt
+- Sysctl: ASLR off, NMI watchdog off, timer migration off, dirty ratio tuning
+- CPU governor: performance (no frequency scaling)
+- Turbo boost: disabled
+- Transparent huge pages: disabled
+- IRQ affinity: all interrupts pinned to housekeeping core
+- Tmpfs mount at /mnt/bench-tmpfs for benchmark I/O (if RAM > 2GB)
+- Systemd services: benchd, bench-web (port 9216), runner-ctld
+- Podman container with GitHub Actions runner
+- Sudoers: runner user can sudo bench-exec with SETENV
+
+### 4. Post-setup verification
+After reboot, verify:
+- cat /proc/cmdline | grep isolcpus
+- systemctl status benchd bench-web runner-ctld
+- curl http://localhost:9216/health
+- ls -la /var/run/benchd.sock
+
+### 5. Dashboard and runner registration
+- Open dashboard at http://<hostname>:9216 with the bootstrap invite URL shown after setup
+- Sign in with GitHub OAuth to become admin
+- Add a runner: provide a GitHub repo and runner registration token
+- Use in workflows with: runs-on: [self-hosted, noron]
+
+### 6. Network requirements
+- Inbound: port 9216 (dashboard + OAuth callback)
+- Outbound: GitHub API, Docker Hub, apt repos, optional Tailscale
+
+Help me choose the right image for my hardware, walk me through the setup wizard
+decisions, and verify everything is working after reboot.
+```
+
+</details>
 
 ## Using in GitHub Actions
 
@@ -205,6 +278,7 @@ graph TD
         subgraph CPU0["CPU 0 — Housekeeping"]
             benchd["benchd\n(daemon)"]
             web["bench-web\n(API + dashboard)"]
+            rctld["runner-ctld\n(container lifecycle)"]
         end
 
         subgraph Container["Podman Container"]
@@ -222,6 +296,8 @@ graph TD
     action -- "thermal.wait / exec.prepare\n(token-gated)" --> benchd
     exec -- "exec.validate\n(token-gated)" --> benchd
     web -- "status.subscribe\n+ violation events" --> benchd
+    web -- "provision / deprovision / status\n(gated during benchmarks)" --> rctld
+    rctld -- "podman create/start/stop/rm" --> Container
     action -- "sudo bench-exec\n(BENCH_JOB_TOKEN)" --> exec
 
     style CPU0 fill:#f0f0f0,stroke:#999
@@ -238,7 +314,7 @@ graph TD
 
 ### Performance isolation model
 
-The system follows the [LLVM Benchmarking Guidelines](https://llvm.org/docs/Benchmarking.html) for <0.1% variance:
+The system follows the [LLVM Benchmarking Guidelines](https://llvm.org/docs/Benchmarking.html) for low-variance benchmarking:
 
 | Technique | Implementation |
 |-----------|---------------|
