@@ -56,19 +56,27 @@ describe("ThermalRingBuffer", () => {
 		buf.push(40);
 		expect(buf.trend()).toBe("stable");
 
-		// Rising
+		// Rising: >1.5°C increase
 		const rising = new ThermalRingBuffer(10);
 		rising.push(40);
 		rising.push(41);
 		rising.push(42);
 		expect(rising.trend()).toBe("rising");
 
-		// Falling
+		// Falling: >1.5°C decrease
 		const falling = new ThermalRingBuffer(10);
 		falling.push(50);
 		falling.push(49);
 		falling.push(48);
 		expect(falling.trend()).toBe("falling");
+	});
+
+	test("small oscillations are stable (SBC thermal noise)", () => {
+		// Orange Pi 5 Plus idles at ~50°C with ±0.9°C sensor noise
+		const buf = new ThermalRingBuffer(10);
+		const readings = [50.8, 50.8, 49.9, 50.8, 50.8, 49.9, 50.8, 50.8, 49.9, 50.8];
+		for (const r of readings) buf.push(r);
+		expect(buf.trend()).toBe("stable");
 	});
 });
 

@@ -79,9 +79,10 @@ export function updateRunnerStatusWithMessage(
 	]);
 }
 
-/** Delete a runner record from the app DB. */
+/** Delete a runner record and its associated violations from the app DB. */
 export function deleteRunner(runnerId: string): void {
 	const db = getWorkflowDb();
+	db.run("DELETE FROM violations WHERE runner_id = ?", [runnerId]);
 	db.run("DELETE FROM runners WHERE id = ?", [runnerId]);
 }
 

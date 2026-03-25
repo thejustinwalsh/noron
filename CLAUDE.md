@@ -41,7 +41,7 @@ bun test tests/integration/    # integration tests
 - GitHub tokens and PATs encrypted at rest with AES-256-GCM (`packages/web/src/crypto.ts`)
 - Self-update archives require SHA-256 verification against published checksums
 - Session cookies: `HttpOnly; SameSite=Strict; Secure` (when HTTPS)
-- Container capabilities: only `SYS_NICE` + `CAP_PERFMON` — never `SYS_ADMIN`
+- Container capabilities: `SYS_NICE` + `CAP_PERFMON` + `SYS_ADMIN` (ARM64 PMU drivers require `SYS_ADMIN` for `perf stat`)
 - Socket creation uses umask(0o007) before listen() to prevent TOCTOU permission races
 - Admin actions are audit-logged via `logAudit()` from `packages/web/src/db.ts`
 

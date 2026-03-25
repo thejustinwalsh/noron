@@ -14,8 +14,10 @@ import {
 	useInvites,
 	useRunnerTimeout,
 	useRunners,
+	useUpdateStatus,
 	useViolations,
 } from "../hooks/useApi";
+import type { LockHolder } from "../types";
 
 const STATUS_VARIANT: Record<string, "success" | "neutral" | "brand"> = {
 	Active: "success",
@@ -23,7 +25,7 @@ const STATUS_VARIANT: Record<string, "success" | "neutral" | "brand"> = {
 	Used: "brand",
 };
 
-export function AdminPanel() {
+export function AdminPanel({ lock }: { lock: LockHolder | null }) {
 	const { invites, loading, createInvite, revokeInvite } = useInvites();
 	const [newInviteUrl, setNewInviteUrl] = useState<string | null>(null);
 
@@ -38,6 +40,7 @@ export function AdminPanel() {
 
 	return (
 		<div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+			<UpdatePanel lock={lock} />
 			<WaCard>
 				<div
 					style={{
@@ -461,6 +464,201 @@ function AuditLogPanel() {
 						))}
 					</tbody>
 				</table>
+			)}
+		</WaCard>
+	);
+}
+
+const IN_PROGRESS_STATES = new Set(["pending", "downloading", "applying", "verifying"]);
+
+const STATE_VARIANT: Record<string, "success" | "warning" | "danger" | "neutral" | "brand"> = {
+	completed: "success",
+	pending: "brand",
+	downloading: "brand",
+	applying: "warning",
+	verifying: "warning",
+	failed: "danger",
+	rolled_back: "danger",
+};
+
+function releaseUrl(repo: string, version: string): string {
+	return `https://github.com/${repo}/releases/tag/v${version}`;
+}
+
+function UpdatePanel({ lock }: { lock: LockHolder | null }) {
+	const { updateStatus, loading, checkForUpdate, applyUpdate, rollback } = useUpdateStatus();
+	const [confirmRollback, setConfirmRollback] = useState(false);
+
+	const currentVersion = updateStatus?.currentVersion ?? null;
+	const updateRepo = updateStatus?.updateRepo ?? null;
+	const latest = updateStatus?.latest ?? null;
+	const inProgress = !!latest && IN_PROGRESS_STATES.has(latest.state);
+	const hasAvailableUpdate =
+		!!latest && latest.version !== currentVersion && !inProgress && latest.state !== "completed";
+	const isLocked = !!lock;
+
+	const handleRollback = async () => {
+		await rollback.mutateAsync();
+		setConfirmRollback(false);
+	};
+
+	return (
+		<WaCard>
+			<div
+				style={{
+					display: "flex",
+					alignItems: "center",
+					justifyContent: "space-between",
+					marginBottom: "12px",
+				}}
+			>
+				<h3>
+					<WaIcon
+						name="arrow-rotate-right"
+						family="classic"
+						variant="solid"
+						style={{ marginRight: "6px" }}
+					/>
+					System Update
+				</h3>
+				<div style={{ display: "flex", gap: "8px" }}>
+					{hasAvailableUpdate && (
+						<WaButton
+							variant="brand"
+							size="small"
+							loading={applyUpdate.isPending}
+							disabled={isLocked || confirmRollback}
+							onClick={() => applyUpdate.mutateAsync()}
+							title={isLocked ? "Cannot update while a benchmark is running" : undefined}
+						>
+							Update to {latest.version}
+						</WaButton>
+					)}
+					{!confirmRollback && (
+						<WaButton
+							variant="brand"
+							size="small"
+							loading={checkForUpdate.isPending}
+							disabled={loading || inProgress || !updateRepo}
+							onClick={() => checkForUpdate.mutateAsync()}
+							style={{ minWidth: "150px" }}
+						>
+							Check for Updates
+						</WaButton>
+					)}
+					{confirmRollback && (
+						<WaButton
+							variant="danger"
+							size="small"
+							loading={rollback.isPending}
+							onClick={handleRollback}
+							style={{ minWidth: "150px" }}
+						>
+							Confirm Rollback
+						</WaButton>
+					)}
+					{!confirmRollback && (
+						<WaButton
+							variant="danger"
+							appearance="outlined"
+							size="small"
+							disabled={loading || inProgress || isLocked}
+							onClick={() => setConfirmRollback(true)}
+							title={isLocked ? "Cannot rollback while a benchmark is running" : undefined}
+							style={{ minWidth: "90px" }}
+						>
+							Rollback
+						</WaButton>
+					)}
+					{confirmRollback && (
+						<WaButton
+							variant="neutral"
+							size="small"
+							onClick={() => setConfirmRollback(false)}
+							style={{ minWidth: "90px" }}
+						>
+							Cancel
+						</WaButton>
+					)}
+				</div>
+			</div>
+
+			{loading ? (
+				<div style={{ display: "flex", justifyContent: "center", padding: "24px" }}>
+					<WaSpinner />
+				</div>
+			) : (
+				<>
+					<table className="invite-table">
+						<thead>
+							<tr>
+								<th>Current Version</th>
+								<th>Available Version</th>
+								<th className="th-center">Status</th>
+							</tr>
+						</thead>
+						<tbody>
+							<tr>
+								<td>
+									<code>{currentVersion ?? "—"}</code>
+								</td>
+								<td>
+									{latest && latest.version !== currentVersion ? (
+										updateRepo ? (
+											<a
+												href={releaseUrl(updateRepo, latest.version)}
+												target="_blank"
+												rel="noopener noreferrer"
+												style={{
+													color: "var(--primary)",
+													textDecoration: "none",
+													display: "inline-flex",
+													alignItems: "center",
+													gap: "6px",
+												}}
+											>
+												<code>{latest.version}</code>
+												<WaIcon
+													name="arrow-up-right-from-square"
+													family="classic"
+													variant="solid"
+													style={{ fontSize: "12px" }}
+												/>
+											</a>
+										) : (
+											<code>{latest.version}</code>
+										)
+									) : (
+										<span className="muted">—</span>
+									)}
+								</td>
+								<td>
+									{latest && latest.version !== currentVersion ? (
+										<WaBadge pill variant={STATE_VARIANT[latest.state] ?? "neutral"}>
+											{latest.state}
+										</WaBadge>
+									) : (
+										<WaBadge pill variant="success">
+											up to date
+										</WaBadge>
+									)}
+								</td>
+							</tr>
+						</tbody>
+					</table>
+
+					{isLocked && hasAvailableUpdate && (
+						<WaCallout variant="warning" size="small" style={{ marginTop: "12px" }}>
+							Cannot update while a benchmark is running.
+						</WaCallout>
+					)}
+
+					{latest?.error && (
+						<WaCallout variant="danger" size="small" style={{ marginTop: "12px" }}>
+							{latest.error}
+						</WaCallout>
+					)}
+				</>
 			)}
 		</WaCard>
 	);

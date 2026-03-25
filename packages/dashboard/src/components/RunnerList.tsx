@@ -213,7 +213,7 @@ export function RunnerList({
 										<span className="runner-status">
 											{isBenchmarking ? (
 												<WaBadge pill variant="warning" attention="pulse">
-													benchmarking
+													running
 												</WaBadge>
 											) : (
 												<WaBadge pill variant={STATUS_VARIANT[runner.status] ?? "neutral"}>

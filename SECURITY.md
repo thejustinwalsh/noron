@@ -15,7 +15,7 @@ There is no isolation between tenants at the benchmark execution layer. All benc
 
 - **GitHub OAuth** (PKCE-protected). No local passwords.
 - **Invite system** — single-use tokens with 24-hour expiry. Generic error for all invalid states (no token enumeration).
-- **Session tokens** — HttpOnly cookies (SameSite=Lax, Secure when HTTPS), Bearer tokens for CLI/API. Sessions expire after 30 days.
+- **Session tokens** — HttpOnly cookies (SameSite=Strict, Secure when HTTPS), Bearer tokens for CLI/API. Sessions expire after 30 days.
 - **Token storage** — GitHub OAuth tokens encrypted at rest (AES-256-GCM). Encryption key at `/etc/benchd/encryption.key` (mode 0600, root-only), inaccessible from runner containers.
 - **Rate limiting** — auth (20 req/min), invites (10 req/min), runner creation (5 req/min), callbacks (10 req/min). All per-IP.
 
@@ -42,6 +42,16 @@ WebSocket connections are limited to 50 total / 5 per IP.
 | bench-exec binary | `/usr/local/bin/bench-exec` (ro) | Requires job token + drops root before exec |
 | Hook binaries | `/usr/local/lib/benchd/hooks/` (ro) | Read-only |
 | Benchmark tmpfs | `/mnt/bench-tmpfs` (rw) | Cleaned on lock release |
+
+### Container capabilities
+
+| Capability | Reason |
+|------------|--------|
+| `SYS_NICE` | Set CPU affinity and real-time scheduling priority for benchmark isolation |
+| `CAP_PERFMON` | Access hardware performance counters via `perf stat` |
+| `SYS_ADMIN` | Required for `perf stat` hardware counter access — ARM64 PMU drivers do not honor `CAP_PERFMON` alone |
+
+`SYS_ADMIN` is the broadest capability granted. It is mitigated by: the container runs as non-root user `runner`, sudoers is scoped to only `bench-exec` with `SETENV`, and `bench-exec` drops root before executing user code.
 
 ### Inaccessible from containers
 
@@ -82,7 +92,7 @@ The benchd socket is owned by `root:bench` with mode `0770`. In container enviro
 ## Known limitations
 
 - **ASLR disabled** (`kernel.randomize_va_space=0`) for benchmark determinism. Reduces exploit difficulty for memory corruption attacks.
-- **No audit logging** beyond systemd journal and violation tracking.
+- **Audit logging** covers admin actions (invite creation/revocation, PAT changes, manual rollbacks) via the `/api/audit-logs` endpoint and dashboard admin panel. Does not yet cover all mutation operations.
 - **Unrestricted network** from runner containers (needed for repo cloning). Containers can exfiltrate data.
 - **WebSocket auth in query string** — browser WebSocket API limitation. Mitigated by HTTPS and configuring the reverse proxy to not log query parameters.
 

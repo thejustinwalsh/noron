@@ -151,3 +151,17 @@ export interface WorkflowCounts {
 	failed: number;
 	canceled: number;
 }
+
+export interface UpdateStatus {
+	currentVersion: string;
+	updateRepo: string | null;
+	autoUpdate: boolean;
+	latest: {
+		id: string;
+		version: string;
+		state: string;
+		startedAt: number | null;
+		completedAt: number | null;
+		error: string | null;
+	} | null;
+}

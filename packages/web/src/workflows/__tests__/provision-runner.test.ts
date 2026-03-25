@@ -47,6 +47,17 @@ function initTestDb(): Database {
 			callback_token TEXT
 		)
 	`);
+	testDb.exec(`
+		CREATE TABLE violations (
+			id TEXT PRIMARY KEY,
+			repo TEXT NOT NULL,
+			runner_id TEXT REFERENCES runners(id),
+			job_id TEXT,
+			run_id TEXT,
+			reason TEXT NOT NULL,
+			created_at INTEGER NOT NULL
+		)
+	`);
 	return testDb;
 }
 
@@ -117,6 +128,25 @@ describe("DB helpers", () => {
 		seedRunner("runner-1", "test-runner", "owner/repo", "user-1");
 		deleteRunner("runner-1");
 		expect(getRunnerStatus("runner-1")).toBeNull();
+	});
+
+	test("deleteRunner removes associated violations", async () => {
+		await seedUser("user-1", "ghp_test");
+		seedRunner("runner-1", "test-runner", "owner/repo", "user-1");
+		db.run(
+			"INSERT INTO violations (id, repo, runner_id, reason, created_at) VALUES (?, ?, ?, ?, ?)",
+			["v-1", "owner/repo", "runner-1", "action_not_used", Date.now()],
+		);
+		db.run(
+			"INSERT INTO violations (id, repo, runner_id, reason, created_at) VALUES (?, ?, ?, ?, ?)",
+			["v-2", "owner/repo", "runner-1", "job_timeout", Date.now()],
+		);
+		deleteRunner("runner-1");
+		expect(getRunnerStatus("runner-1")).toBeNull();
+		const remaining = db
+			.query("SELECT COUNT(*) as count FROM violations WHERE runner_id = ?")
+			.get("runner-1") as { count: number };
+		expect(remaining.count).toBe(0);
 	});
 
 	test("deleteRunner on missing record is a no-op", () => {

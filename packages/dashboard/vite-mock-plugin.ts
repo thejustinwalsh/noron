@@ -1,6 +1,34 @@
 import type { Plugin } from "vite";
 import { type WebSocket, WebSocketServer } from "ws";
 
+const MOCK_CURRENT_VERSION = "0.2.2";
+const UPDATE_REPO = "thejustinwalsh/noron";
+
+interface CachedRelease {
+	version: string;
+	hasUpdateArchive: boolean;
+}
+
+let cachedRelease: CachedRelease | null = null;
+
+async function fetchLatestRelease(): Promise<CachedRelease | null> {
+	try {
+		const res = await fetch(`https://api.github.com/repos/${UPDATE_REPO}/releases/latest`, {
+			headers: { Accept: "application/vnd.github+json" },
+		});
+		if (!res.ok) return null;
+		const release = (await res.json()) as {
+			tag_name: string;
+			assets: { name: string }[];
+		};
+		const version = release.tag_name.replace(/^v/, "");
+		const hasUpdateArchive = release.assets.some((a) => a.name.startsWith("noron-update-linux-"));
+		return { version, hasUpdateArchive };
+	} catch {
+		return null;
+	}
+}
+
 /** Vite plugin that stubs the benchd API + WebSocket so `bun run dev` works without a backend. */
 export function mockBenchd(): Plugin {
 	let wss: WebSocketServer | null = null;
@@ -57,7 +85,7 @@ export function mockBenchd(): Plugin {
 		name: "mock-benchd",
 		configureServer(server) {
 			// REST stubs
-			server.middlewares.use((req, res, next) => {
+			server.middlewares.use(async (req, res, next) => {
 				if (req.url === "/api/auth/me") {
 					res.setHeader("Content-Type", "application/json");
 					res.end(
@@ -124,6 +152,74 @@ export function mockBenchd(): Plugin {
 								lastHeartbeat: new Date(Date.now() - 3600000).toISOString(),
 							},
 						]),
+					);
+					return;
+				}
+				if (req.url === "/api/update/rollback") {
+					res.setHeader("Content-Type", "application/json");
+					res.end(
+						JSON.stringify({
+							message: "Rollback complete",
+							previousVersion: MOCK_CURRENT_VERSION,
+						}),
+					);
+					return;
+				}
+				if (
+					req.url === "/api/update/status" ||
+					req.url === "/api/update/check" ||
+					req.url === "/api/update/apply"
+				) {
+					if (!cachedRelease) cachedRelease = await fetchLatestRelease();
+					const latest = cachedRelease;
+					const isNewer = latest && latest.version !== MOCK_CURRENT_VERSION;
+
+					res.setHeader("Content-Type", "application/json");
+
+					if (req.url === "/api/update/check") {
+						cachedRelease = await fetchLatestRelease();
+						const checked = cachedRelease;
+						res.end(
+							JSON.stringify({
+								checked: true,
+								currentVersion: MOCK_CURRENT_VERSION,
+								latest:
+									checked && checked.version !== MOCK_CURRENT_VERSION
+										? { version: checked.version, state: "pending" }
+										: null,
+							}),
+						);
+						return;
+					}
+
+					if (req.url === "/api/update/apply") {
+						res.end(
+							JSON.stringify(
+								isNewer
+									? { message: "Update started", version: latest.version, state: "downloading" }
+									: { message: "Already up to date", currentVersion: MOCK_CURRENT_VERSION },
+							),
+						);
+						return;
+					}
+
+					// /api/update/status
+					res.end(
+						JSON.stringify({
+							currentVersion: MOCK_CURRENT_VERSION,
+							updateRepo: UPDATE_REPO,
+							autoUpdate: true,
+							latest: isNewer
+								? {
+										id: `upd-${latest.version}`,
+										version: latest.version,
+										state: latest.hasUpdateArchive ? "completed" : "pending",
+										startedAt: latest.hasUpdateArchive ? Date.now() - 86400000 : null,
+										completedAt: latest.hasUpdateArchive ? Date.now() - 86300000 : null,
+										error: null,
+									}
+								: null,
+						}),
 					);
 					return;
 				}

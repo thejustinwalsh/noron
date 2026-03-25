@@ -51,14 +51,14 @@ export class ThermalRingBuffer {
 	}
 
 	/** Determine trend from last N readings */
-	trend(n = 10): "rising" | "falling" | "stable" {
+	trend(n = 10, thresholdC = 1.5): "rising" | "falling" | "stable" {
 		if (this.count < 2) return "stable";
 		const take = Math.min(n, this.count);
 		const first = this.buffer[(this.head - take + this.capacity) % this.capacity];
 		const last = this.buffer[(this.head - 1 + this.capacity) % this.capacity];
 		const diff = last - first;
-		if (diff > 0.5) return "rising";
-		if (diff < -0.5) return "falling";
+		if (diff > thresholdC) return "rising";
+		if (diff < -thresholdC) return "falling";
 		return "stable";
 	}
 
