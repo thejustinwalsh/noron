@@ -5,6 +5,8 @@ var __require = /* @__PURE__ */ createRequire(import.meta.url);
 import { spawn } from "node:child_process";
 import { appendFileSync, readFileSync } from "node:fs";
 import { connect } from "node:net";
+
+// src/split-command.ts
 function splitCommand(input) {
   const tokens = [];
   let current = "";
@@ -29,6 +31,8 @@ function splitCommand(input) {
     tokens.push(current);
   return tokens;
 }
+
+// src/index.ts
 var SOCKET_PATH = process.env.BENCHD_SOCKET ?? "/run/benchd/benchd.sock";
 var JOB_TOKEN_PATH = process.env.JOB_TOKEN_PATH ?? "/opt/actions-runner/.benchd-token";
 function sendRequest(socketPath, msg) {
@@ -259,6 +263,3 @@ run().catch((err) => {
   console.error(`::error::${err}`);
   process.exitCode = 1;
 });
-export {
-  splitCommand
-};

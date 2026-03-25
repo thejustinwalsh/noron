@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { splitCommand } from "../index";
+import { splitCommand } from "../split-command";
 
 describe("splitCommand", () => {
 	test("splits simple command", () => {

@@ -8,32 +8,7 @@ import { spawn } from "node:child_process";
  */
 import { appendFileSync, readFileSync } from "node:fs";
 import { type Socket, connect } from "node:net";
-
-/** Split a command string respecting single and double quotes. */
-export function splitCommand(input: string): string[] {
-	const tokens: string[] = [];
-	let current = "";
-	let inSingle = false;
-	let inDouble = false;
-
-	for (let i = 0; i < input.length; i++) {
-		const ch = input[i];
-		if (ch === "'" && !inDouble) {
-			inSingle = !inSingle;
-		} else if (ch === '"' && !inSingle) {
-			inDouble = !inDouble;
-		} else if ((ch === " " || ch === "\t") && !inSingle && !inDouble) {
-			if (current) {
-				tokens.push(current);
-				current = "";
-			}
-		} else {
-			current += ch;
-		}
-	}
-	if (current) tokens.push(current);
-	return tokens;
-}
+import { splitCommand } from "./split-command";
 
 const SOCKET_PATH = process.env.BENCHD_SOCKET ?? "/run/benchd/benchd.sock";
 const JOB_TOKEN_PATH = process.env.JOB_TOKEN_PATH ?? "/opt/actions-runner/.benchd-token";
