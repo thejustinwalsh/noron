@@ -5,11 +5,8 @@
 > Branch: fix-security-audit-2
 > PR: https://github.com/thejustinwalsh/noron/pull/11
 
-- Container volume mount changed from the socket file to its parent directory (`dirname(SOCKET_PATH)`) so the mount survives daemon restarts that recreate the socket
-- Runner container capability changed from `SYS_ADMIN` to `CAP_PERFMON`, following least-privilege principles
+- Container volume mount changed to bind the socket directory (`dirname(SOCKET_PATH)`) instead of the socket file; required by the new `/run/benchd/` path layout
+- Container capability changed from `SYS_ADMIN` to `CAP_PERFMON` (least-privilege)
+- Updated default socket path reference to `/run/benchd/benchd.sock`
 
-## BREAKING CHANGES
-
-- Socket path default is now `/run/benchd/benchd.sock`; the directory `/run/benchd/` is now mounted instead of the socket file directly
-
-Reduces container privileges to `SYS_NICE` + `CAP_PERFMON` only, and fixes a race condition where the volume mount became stale after a daemon restart.
+Reduced container privileges and aligned volume mounts with the new socket directory layout.
