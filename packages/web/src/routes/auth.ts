@@ -25,13 +25,13 @@ function setSessionCookie(c: Context, token: string): void {
 	const secure = isSecureContext() ? "; Secure" : "";
 	c.header(
 		"Set-Cookie",
-		`bench_session=${token}; HttpOnly; SameSite=Lax; Path=/; Max-Age=${30 * 86400}${secure}`,
+		`bench_session=${token}; HttpOnly; SameSite=Strict; Path=/; Max-Age=${30 * 86400}${secure}`,
 	);
 }
 
 function clearSessionCookie(c: Context): void {
 	const secure = isSecureContext() ? "; Secure" : "";
-	c.header("Set-Cookie", `bench_session=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0${secure}`);
+	c.header("Set-Cookie", `bench_session=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0${secure}`);
 }
 
 const DevicePollBody = z.object({
@@ -190,7 +190,10 @@ export function authRoutes(db: Database): Hono {
 			if (state.startsWith("upgrade:")) {
 				return await handleUpgradeCallback(db, c, code, state);
 			}
-			return await handleInviteCallback(db, c, code, state);
+			if (state.startsWith("invite:")) {
+				return await handleInviteCallback(db, c, code, state);
+			}
+			return c.text("Invalid authentication state", 400);
 		} catch (err) {
 			console.error("OAuth callback error:", err);
 			const message = err instanceof Error ? err.message : String(err);
@@ -245,9 +248,8 @@ async function handleDeviceCallback(db: Database, c: Context, code: string, stat
 		return c.html(html`
 			<!DOCTYPE html>
 			<html><body style="font-family:system-ui;max-width:400px;margin:100px auto;text-align:center">
-				<h2>Not registered</h2>
-				<p>${ghUser.login}, you need an invite link to register first.</p>
-				<p>Ask an admin for an invite link.</p>
+				<h2>Authentication failed</h2>
+				<p>Unable to complete sign-in. Please contact an admin if you need access.</p>
 			</body></html>
 		`);
 	}
@@ -300,7 +302,7 @@ async function handleDashboardCallback(db: Database, c: Context, code: string, s
 	if (!user) {
 		// Clean up
 		db.run("DELETE FROM device_codes WHERE code = ?", [nonce]);
-		return c.redirect("/dashboard/?error=not_registered");
+		return c.redirect("/dashboard/?error=auth_failed");
 	}
 
 	const token = crypto.randomUUID();
@@ -345,7 +347,7 @@ async function handleUpgradeCallback(db: Database, c: Context, code: string, sta
 
 	if (!user) {
 		db.run("DELETE FROM device_codes WHERE code = ?", [nonce]);
-		return c.redirect("/dashboard/?error=not_registered");
+		return c.redirect("/dashboard/?error=auth_failed");
 	}
 
 	// Update token and scope to the expanded 'read:user repo'
@@ -371,12 +373,32 @@ async function handleUpgradeCallback(db: Database, c: Context, code: string, sta
 }
 
 async function handleInviteCallback(db: Database, c: Context, code: string, state: string) {
-	const invite = validateInvite(db, state);
-	if (!invite.valid) {
-		return c.text(`Invite is ${invite.reason}`, 400);
+	const nonce = state.slice("invite:".length);
+
+	// Look up nonce in device_codes — user_code holds the invite token
+	const row = db
+		.query(
+			"SELECT code, user_code, expires_at, code_verifier FROM device_codes WHERE code = ? AND token IS NULL",
+		)
+		.get(nonce) as {
+		code: string;
+		user_code: string;
+		expires_at: number;
+		code_verifier: string | null;
+	} | null;
+
+	if (!row || Date.now() > row.expires_at) {
+		return c.text("Authentication failed", 400);
 	}
 
-	const accessToken = await exchangeCode(code);
+	const inviteToken = row.user_code;
+	const invite = validateInvite(db, inviteToken);
+	if (!invite.valid) {
+		db.run("DELETE FROM device_codes WHERE code = ?", [nonce]);
+		return c.text("Invite is invalid or expired", 400);
+	}
+
+	const accessToken = await exchangeCode(code, row.code_verifier ?? undefined);
 	const ghUser = await getGithubUser(accessToken);
 
 	const userCount = db.query("SELECT COUNT(*) as count FROM users").get() as { count: number };

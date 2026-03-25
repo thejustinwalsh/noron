@@ -1,4 +1,5 @@
 import { existsSync, mkdirSync, unlinkSync, writeFileSync } from "node:fs";
+import { dirname } from "node:path";
 import { BENCHMARK_TMPFS, DEFAULT_CONFIG, SOCKET_PATH, loadConfig } from "@noron/shared";
 
 const IMAGE = "bench-runner";
@@ -56,11 +57,6 @@ function validateCallbackUrl(val: string): void {
 	if (!val.startsWith("http://") && !val.startsWith("https://")) {
 		throw new Error("callbackUrl must start with http:// or https://");
 	}
-}
-
-/** Escape a value for safe inclusion in a shell-style env file. */
-function escapeEnvValue(val: string): string {
-	return val.replace(/[\$`"\\]/g, "\\$&");
 }
 
 async function spawn(
@@ -150,7 +146,7 @@ export async function handleProvision(msg: ProvisionRequest): Promise<RunnerResp
 		"--env-file",
 		envfile,
 		"--volume",
-		`${SOCKET_PATH}:${SOCKET_PATH}:rw`,
+		`${dirname(SOCKET_PATH)}:${dirname(SOCKET_PATH)}:rw`,
 		"--volume",
 		`${BENCH_EXEC}:${BENCH_EXEC}:ro`,
 		"--volume",
@@ -160,7 +156,7 @@ export async function handleProvision(msg: ProvisionRequest): Promise<RunnerResp
 		"--cpuset-cpus",
 		getAllCores(),
 		"--cap-add=SYS_NICE",
-		"--cap-add=SYS_ADMIN",
+		"--cap-add=CAP_PERFMON",
 		IMAGE,
 	];
 	const result = await spawn(podmanArgs);

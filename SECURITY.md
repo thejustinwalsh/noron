@@ -38,7 +38,7 @@ WebSocket connections are limited to 50 total / 5 per IP.
 
 | Resource | Mount | Risk |
 |----------|-------|------|
-| benchd socket | `/var/run/benchd.sock` (rw) | See "IPC security" |
+| benchd socket dir | `/run/benchd/` (rw) | Directory mount — survives daemon restarts. See "IPC security" |
 | bench-exec binary | `/usr/local/bin/bench-exec` (ro) | Requires job token + drops root before exec |
 | Hook binaries | `/usr/local/lib/benchd/hooks/` (ro) | Read-only |
 | Benchmark tmpfs | `/mnt/bench-tmpfs` (rw) | Cleaned on lock release |

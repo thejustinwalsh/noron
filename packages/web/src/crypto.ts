@@ -110,6 +110,12 @@ function hexToBytes(hex: string): Uint8Array {
 	return bytes;
 }
 
+/** Compute SHA-256 hex digest of an ArrayBuffer. */
+export async function computeSha256(data: ArrayBuffer): Promise<string> {
+	const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", data));
+	return Array.from(digest, (b) => b.toString(16).padStart(2, "0")).join("");
+}
+
 /** Reset the cached key — for testing only. */
 export function _resetKeyForTesting(): void {
 	_key = null;

@@ -6,6 +6,7 @@ export interface SelfUpdateInput {
 	version: string;
 	downloadUrl: string;
 	expectedSize: number;
+	expectedHash: string;
 }
 
 interface SelfUpdateOutput {
@@ -68,6 +69,13 @@ const selfUpdate = ow.defineWorkflow<SelfUpdateInput, SelfUpdateOutput>(
 						throw new Error(
 							`Size mismatch: expected ${input.expectedSize}, got ${data.byteLength}`,
 						);
+					}
+
+					// Verify SHA-256 integrity
+					const { computeSha256 } = await import("../crypto");
+					const actualHash = await computeSha256(data);
+					if (actualHash !== input.expectedHash) {
+						throw new Error(`SHA-256 mismatch: expected ${input.expectedHash}, got ${actualHash}`);
 					}
 
 					// Extract archive

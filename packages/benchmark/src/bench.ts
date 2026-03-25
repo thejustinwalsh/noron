@@ -69,7 +69,7 @@ group("timing", () => {
 });
 
 // Run and write JSON results
-const result = await run({ format: "json", silent: true });
+const result = await run({ format: "json", print: () => {} });
 
 interface BenchStats {
 	samples: number[];
@@ -98,6 +98,26 @@ interface BenchOutput {
 
 const output = result as unknown as BenchOutput;
 
+// Flatten mitata's nested counter objects to avg values.
+// Mitata returns { cycles: { min, max, avg }, cache: { min, max, avg, misses: { ... } } }
+// We extract the avg from each top-level key for a flat Record<string, number>.
+function flattenCounters(counters: Record<string, unknown>): Record<string, number> {
+	const flat: Record<string, number> = {};
+	for (const [key, val] of Object.entries(counters)) {
+		if (val == null) continue;
+		if (typeof val === "number") {
+			flat[key] = val;
+		} else if (
+			typeof val === "object" &&
+			"avg" in val &&
+			typeof (val as { avg: number }).avg === "number"
+		) {
+			flat[key] = (val as { avg: number }).avg;
+		}
+	}
+	return flat;
+}
+
 // Extract compact results with samples for variance analysis
 const results = output.benchmarks.map((b) => {
 	const s = b.runs[0].stats;
@@ -113,7 +133,7 @@ const results = output.benchmarks.map((b) => {
 		p75: s.p75,
 		p99: s.p99,
 		ticks: s.ticks,
-		...(s.counters ? { counters: s.counters } : {}),
+		...(s.counters ? { counters: flattenCounters(s.counters) } : {}),
 	};
 });
 

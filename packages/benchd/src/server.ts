@@ -72,20 +72,28 @@ export class BenchdServer {
 		this.thermal.start();
 
 		return new Promise((resolve) => {
+			// Set restrictive umask before creating socket — prevents TOCTOU race
+			// where connections arrive before permissions are applied
+			const prevUmask = process.umask(0o007);
+
 			this.server = createServer((socket: Socket) => {
 				this.handleConnection(socket);
 			});
 
 			this.server.listen(this.options.socketPath, () => {
-				// Allow bench-web (runs as bench user) and runner containers to connect.
-				// Privileged ops are gated by job tokens, not socket permissions.
+				process.umask(prevUmask);
+
+				// Secure the socket: root:bench, mode 0770
 				try {
 					execSync(`chown root:bench ${this.options.socketPath}`);
 					chmodSync(this.options.socketPath, 0o770);
 				} catch {
-					// chown may fail in containers (LXC/Docker) — fall back to
-					// world-accessible socket. Still safe: privileged IPC ops
-					// require valid job tokens regardless of socket permissions.
+					if (process.getuid?.() === 0) {
+						// Running as root but chown failed — likely missing CAP_CHOWN
+						// in the systemd unit. Fall back to 0o777; job tokens still
+						// gate all privileged ops.
+						log("warn", "server", "chown failed (missing CAP_CHOWN?) — using 0o777");
+					}
 					chmodSync(this.options.socketPath, 0o777);
 				}
 				log("info", "server", `Listening on ${this.options.socketPath}`);

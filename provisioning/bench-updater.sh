@@ -22,7 +22,7 @@ RUNNER_FILES=(Containerfile start.sh bench-runner-update.sh)
 VERSION_FILE="/var/lib/bench/version"
 UPDATES_DIR="/var/lib/bench/updates"
 SELF_NAME="bench-updater"
-SOCKET="/var/run/benchd.sock"
+SOCKET="/run/benchd/benchd.sock"
 RUNNER_CTLD_SERVICE="/etc/systemd/system/runner-ctld.service"
 
 # ---------------------------------------------------------------------------

@@ -323,7 +323,7 @@ curl -s https://noron.tjw.dev/health
 | Path | Purpose |
 |------|---------|
 | `/etc/benchd/config.toml` | Daemon configuration |
-| `/var/run/benchd.sock` | IPC Unix socket |
+| `/run/benchd/benchd.sock` | IPC Unix socket (dir-mounted into containers) |
 | `/var/lib/bench/bench.db` | Dashboard database |
 | `/var/lib/bench/dashboard/` | Dashboard static assets |
 | `/usr/local/bin/benchd` | Daemon binary |

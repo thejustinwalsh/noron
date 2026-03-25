@@ -14,21 +14,18 @@ RestartSec=5
 # Pin to housekeeping core — never steal benchmark CPU time
 CPUAffinity=0
 
-# Security hardening
 ProtectSystem=strict
-ReadWritePaths=/var/run /sys/fs/cgroup/benchmark.slice /sys/devices/system/cpu /etc/benchd
+ReadWritePaths=/run /var/run /sys/fs/cgroup/benchmark.slice /sys/devices/system/cpu /etc/benchd
 PrivateTmp=true
 NoNewPrivileges=false
 
-# Required capabilities
-AmbientCapabilities=CAP_SYS_NICE CAP_SYS_ADMIN
-CapabilityBoundingSet=CAP_SYS_NICE CAP_SYS_ADMIN CAP_DAC_OVERRIDE
+AmbientCapabilities=CAP_SYS_NICE CAP_SYS_ADMIN CAP_CHOWN CAP_FOWNER
+CapabilityBoundingSet=CAP_SYS_NICE CAP_SYS_ADMIN CAP_DAC_OVERRIDE CAP_CHOWN CAP_FOWNER
 
-# Socket setup
 RuntimeDirectory=benchd
-ExecStartPre=/bin/rm -f /var/run/benchd.sock
+ExecStartPre=/bin/rm -f /run/benchd/benchd.sock
 
-Environment=BENCHD_SOCKET=/var/run/benchd.sock
+Environment=BENCHD_SOCKET=/run/benchd/benchd.sock
 Environment=BENCHD_LOG_LEVEL=info
 
 [Install]

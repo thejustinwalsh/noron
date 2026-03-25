@@ -8,8 +8,9 @@ import { spawn } from "node:child_process";
  */
 import { appendFileSync, readFileSync } from "node:fs";
 import { type Socket, connect } from "node:net";
+import { splitCommand } from "./split-command";
 
-const SOCKET_PATH = process.env.BENCHD_SOCKET ?? "/var/run/benchd.sock";
+const SOCKET_PATH = process.env.BENCHD_SOCKET ?? "/run/benchd/benchd.sock";
 const JOB_TOKEN_PATH = process.env.JOB_TOKEN_PATH ?? "/opt/actions-runner/.benchd-token";
 
 // --- Minimal IPC client for Node (no Bun APIs) ---
@@ -221,7 +222,7 @@ async function run(): Promise<void> {
 			benchExecArgs.push("--perf-stat", "--perf-stat-output", perfStatOutput);
 		}
 
-		benchExecArgs.push("--", ...command.split(" "));
+		benchExecArgs.push("--", ...splitCommand(command));
 
 		const child = spawn(
 			"sudo",

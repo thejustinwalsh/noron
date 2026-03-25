@@ -5,7 +5,35 @@ var __require = /* @__PURE__ */ createRequire(import.meta.url);
 import { spawn } from "node:child_process";
 import { appendFileSync, readFileSync } from "node:fs";
 import { connect } from "node:net";
-var SOCKET_PATH = process.env.BENCHD_SOCKET ?? "/var/run/benchd.sock";
+
+// src/split-command.ts
+function splitCommand(input) {
+  const tokens = [];
+  let current = "";
+  let inSingle = false;
+  let inDouble = false;
+  for (let i = 0;i < input.length; i++) {
+    const ch = input[i];
+    if (ch === "'" && !inDouble) {
+      inSingle = !inSingle;
+    } else if (ch === '"' && !inSingle) {
+      inDouble = !inDouble;
+    } else if ((ch === " " || ch === "\t") && !inSingle && !inDouble) {
+      if (current) {
+        tokens.push(current);
+        current = "";
+      }
+    } else {
+      current += ch;
+    }
+  }
+  if (current)
+    tokens.push(current);
+  return tokens;
+}
+
+// src/index.ts
+var SOCKET_PATH = process.env.BENCHD_SOCKET ?? "/run/benchd/benchd.sock";
 var JOB_TOKEN_PATH = process.env.JOB_TOKEN_PATH ?? "/opt/actions-runner/.benchd-token";
 function sendRequest(socketPath, msg) {
   return new Promise((resolve, reject) => {
@@ -152,7 +180,7 @@ async function run() {
     ...process.env,
     BENCH_SESSION_ID: sessionId,
     BENCH_JOB_TOKEN: jobToken,
-    ...process.env.BENCH_OUTPUT ? { BENCH_OUTPUT: __require("path").resolve(cwd, process.env.BENCH_OUTPUT) } : {}
+    ...process.env.BENCH_OUTPUT ? { BENCH_OUTPUT: __require("node:path").resolve(cwd, process.env.BENCH_OUTPUT) } : {}
   };
   const useTmpfs = process.env.BENCH_USE_TMPFS !== "false";
   if (benchTmpfs && useTmpfs) {
@@ -181,8 +209,11 @@ async function run() {
     if (usePerfStat) {
       benchExecArgs.push("--perf-stat", "--perf-stat-output", perfStatOutput);
     }
-    benchExecArgs.push("--", ...command.split(" "));
-    const child = spawn("sudo", ["--preserve-env=BENCH_SESSION_ID,BENCH_JOB_TOKEN,BENCHD_SOCKET,BENCH_OUTPUT,BENCH_RUNNER,BENCH_RUN_INDEX,TMPDIR,BENCH_TMPFS", ...benchExecArgs], {
+    benchExecArgs.push("--", ...splitCommand(command));
+    const child = spawn("sudo", [
+      "--preserve-env=BENCH_SESSION_ID,BENCH_JOB_TOKEN,BENCHD_SOCKET,BENCH_OUTPUT,BENCH_RUNNER,BENCH_RUN_INDEX,TMPDIR,BENCH_TMPFS",
+      ...benchExecArgs
+    ], {
       stdio: "inherit",
       env: benchEnv
     });

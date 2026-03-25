@@ -2,7 +2,7 @@
 
 ## Problem
 
-The benchd IPC socket has zero authentication. Any process that can reach `/var/run/benchd.sock` can:
+The benchd IPC socket has zero authentication. Any process that can reach `/run/benchd/benchd.sock` can:
 1. Acquire the machine-wide lock with fake credentials
 2. Prepare cgroup sessions and validate arbitrary PIDs
 3. Execute arbitrary commands on isolated benchmark cores via `sudo bench-exec`
@@ -98,6 +98,28 @@ ALTER TABLE runners ADD COLUMN disabled_reason TEXT;
 ```sql
 ALTER TABLE runners ADD COLUMN job_timeout_ms INTEGER;
 ```
+
+## Phase 4: Web & Auth Hardening
+
+**Goal:** Harden the web dashboard, OAuth flows, and update mechanism against common web vulnerabilities.
+
+### Changes
+
+| Area | Fix | File |
+|------|-----|------|
+| Update integrity | SHA-256 verification of downloaded archives against published checksums | `web/src/workflows/self-update.ts`, `web/src/update-check.ts`, `web/src/crypto.ts` |
+| OAuth CSRF | Invite flow uses random nonce + PKCE instead of raw invite token as OAuth state | `web/src/routes/invite.ts`, `web/src/routes/auth.ts` |
+| Command injection | Quote-aware command splitting replaces naive `.split(" ")` | `action/src/index.ts` |
+| Security headers | X-Frame-Options, CSP, X-Content-Type-Options, Referrer-Policy on all responses | `web/src/main.ts` |
+| User enumeration | Generic auth error messages that don't reveal registration status | `web/src/routes/auth.ts` |
+| Cookie hardening | `SameSite=Strict` on session cookies | `web/src/routes/auth.ts` |
+| Container caps | `CAP_PERFMON` replaces overly broad `SYS_ADMIN` | `runner-ctl/src/handlers.ts` |
+| CORS | API rejects cross-origin requests; dashboard is same-origin | `web/src/main.ts` |
+| Socket TOCTOU | umask(0o007) before socket creation prevents permission race | `benchd/src/server.ts` |
+| Invite revocation | Admin can revoke unused invites from dashboard | `web/src/routes/admin.ts`, `dashboard/src/components/AdminPanel.tsx` |
+| Audit logging | Admin actions logged with user attribution and timestamps | `web/src/db.ts`, `web/src/routes/admin.ts`, `web/src/routes/status.ts` |
+| PAT validation | Input length capped at 256 characters | `web/src/routes/status.ts` |
+| Dead code | Removed unused `escapeEnvValue()` | `runner-ctl/src/handlers.ts` |
 
 ## Implementation Order
 

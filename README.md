@@ -118,7 +118,7 @@ After reboot, verify:
 - cat /proc/cmdline | grep isolcpus
 - systemctl status benchd bench-web runner-ctld
 - curl http://localhost:9216/health
-- ls -la /var/run/benchd.sock
+- ls -la /run/benchd/benchd.sock
 
 ### 5. Dashboard and runner registration
 - Open dashboard at http://<hostname>:9216 with the bootstrap invite URL shown after setup
@@ -332,7 +332,7 @@ The system follows the [LLVM Benchmarking Guidelines](https://llvm.org/docs/Benc
 
 ### IPC protocol
 
-All communication between components uses line-delimited JSON over a Unix domain socket (`/var/run/benchd.sock`), correlated via `requestId` UUIDs:
+All communication between components uses line-delimited JSON over a Unix domain socket (`/run/benchd/benchd.sock`), correlated via `requestId` UUIDs:
 
 | Message | Description |
 |---------|-------------|
@@ -380,7 +380,7 @@ thermal_history_size = 300
 benchmark_slice = "benchmark.slice"
 benchmark_cgroup = "/sys/fs/cgroup/benchmark.slice"
 bench_tmpfs = "/mnt/bench-tmpfs"
-socket_path = "/var/run/benchd.sock"
+socket_path = "/run/benchd/benchd.sock"
 
 # Job management
 lock_disconnect_grace_ms = 5000
@@ -409,7 +409,7 @@ update_check_interval_hours = 1
 | `benchmark_slice` | `string` | `benchmark.slice` | Systemd slice name for cgroup isolation |
 | `benchmark_cgroup` | `string` | `/sys/fs/cgroup/benchmark.slice` | Cgroup v2 filesystem path |
 | `bench_tmpfs` | `string` | `/mnt/bench-tmpfs` | Tmpfs mount point for benchmark I/O |
-| `socket_path` | `string` | `/var/run/benchd.sock` | Unix domain socket path for IPC |
+| `socket_path` | `string` | `/run/benchd/benchd.sock` | Unix domain socket path for IPC |
 | `lock_disconnect_grace_ms` | `number` | `5000` | Grace period before auto-releasing lock on disconnect |
 | `token_expiry_hours` | `number` | `24` | Job token validity duration |
 | `job_timeout_ms` | `number` | `600000` | Max job execution time (10 min) |
@@ -446,6 +446,35 @@ bench update check        # check for updates now
 bench update apply        # apply available update
 bench update history      # show past updates
 ```
+
+## Security
+
+### Access control
+
+- **Invite-only registration** — users must have a valid, unexpired invite token to create an account via GitHub OAuth. Invites are single-use, admin-generated, and revocable from the dashboard.
+- **OAuth CSRF protection** — all OAuth flows (device, dashboard, invite) use random nonces as state parameters with PKCE code challenges. No user-supplied data is used as OAuth state.
+- **Session cookies** — `HttpOnly`, `SameSite=Strict`, `Secure` (when HTTPS). 30-day expiry.
+- **Role-based access** — first user becomes admin, subsequent users are standard. Admin-only endpoints enforce role checks.
+
+### IPC and privilege model
+
+- **Job tokens** — 32-byte cryptographic tokens gate all privileged IPC operations (thermal wait, exec prepare, cgroup management). Tokens are generated per lock acquisition and invalidated on release.
+- **Privilege separation** — `benchd` runs as root for cgroup/CPU management, `bench-web` runs as `bench` user, runner containers run as `runner`. `bench-exec` is the only sudo-allowed binary, scoped via sudoers with `SETENV`.
+- **Container isolation** — runner containers get only `SYS_NICE` and `CAP_PERFMON` capabilities. Benchmark tmpfs and hooks are bind-mounted read-only.
+
+### Update integrity
+
+- **SHA-256 verification** — self-update downloads are verified against checksums published alongside release archives. Updates are blocked if the checksum file is missing or the hash doesn't match.
+- **Automatic rollback** — failed health checks after an update trigger automatic rollback to the previous version.
+
+### Web hardening
+
+- **Security headers** — all responses include `X-Frame-Options: DENY`, `Content-Security-Policy`, `X-Content-Type-Options: nosniff`, and `Referrer-Policy`.
+- **CORS** — API endpoints reject cross-origin requests. The dashboard is same-origin.
+- **Rate limiting** — invite, auth, runner creation, and callback endpoints are rate-limited per IP.
+- **No user enumeration** — auth error messages are generic and do not reveal whether a GitHub account is registered.
+- **Audit logging** — admin actions (invite creation/revocation, PAT changes) are logged with timestamps and user attribution, viewable in the admin panel.
+- **Encryption at rest** — GitHub tokens and PATs are encrypted with AES-256-GCM before storage in SQLite.
 
 ## Development
 

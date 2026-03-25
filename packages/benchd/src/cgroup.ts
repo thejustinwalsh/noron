@@ -17,11 +17,28 @@ interface ActiveSession {
  */
 export class CgroupManager {
 	private sessions = new Map<string, ActiveSession>();
+	private subtreeControlReady = false;
 
 	constructor(
 		private defaultCores: number[],
 		private benchmarkCgroup: string,
 	) {}
+
+	/** Enable cpuset/cpu/memory/pids controllers on the benchmark slice (once). */
+	private async ensureSubtreeControl(): Promise<void> {
+		if (this.subtreeControlReady) return;
+		try {
+			await mkdir(this.benchmarkCgroup, { recursive: true });
+			await writeFile(
+				`${this.benchmarkCgroup}/cgroup.subtree_control`,
+				"+cpuset +cpu +memory +pids",
+			);
+			this.subtreeControlReady = true;
+			log("info", "cgroup", "Enabled subtree control on benchmark slice");
+		} catch (err) {
+			log("warn", "cgroup", `Failed to enable subtree control: ${err}`);
+		}
+	}
 
 	async prepare(client: ClientConnection, msg: ExecPrepareRequest): Promise<void> {
 		const sessionId = crypto.randomUUID();
@@ -31,6 +48,7 @@ export class CgroupManager {
 		// On non-Linux (dev), skip actual cgroup creation
 		if (existsSync("/sys/fs/cgroup")) {
 			try {
+				await this.ensureSubtreeControl();
 				await mkdir(cgroupPath, { recursive: true });
 				await writeFile(`${cgroupPath}/cpuset.cpus`, cores.join(","));
 				await writeFile(`${cgroupPath}/cpuset.mems`, "0");

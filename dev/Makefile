@@ -80,8 +80,8 @@ test-vm: collect-dist
 	orbctl run -m $(TEST_VM) sudo cp /mnt/mac$(ISO_DIST)/runner-image/Containerfile /opt/runner/Containerfile
 	orbctl run -m $(TEST_VM) sudo cp /mnt/mac$(ISO_DIST)/runner-image/start.sh /opt/runner/start.sh
 	orbctl run -m $(TEST_VM) sudo chmod +x /opt/runner/start.sh
-	orbctl run -m $(TEST_VM) sudo cp /mnt/mac$(ISO_DIST)/runner-image/runner-ctl.sh /usr/local/bin/runner-ctl
-	orbctl run -m $(TEST_VM) sudo chmod +x /usr/local/bin/runner-ctl
+	orbctl run -m $(TEST_VM) sudo cp /mnt/mac$(ISO_DIST)/runner-ctl/runner-ctld /usr/local/bin/runner-ctld
+	orbctl run -m $(TEST_VM) sudo chmod +x /usr/local/bin/runner-ctld
 	@echo "--- Building runner Podman image ---"
 	orbctl run -m $(TEST_VM) sudo podman build --build-arg RUNNER_ARCH=$(RUNNER_ARCH) -t bench-runner /opt/runner/
 	@echo "--- Creating bench user ---"

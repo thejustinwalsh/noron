@@ -107,7 +107,6 @@ chmod +x "${OVERLAY_DIR}/usr/local/share/bench/hooks/"*
 # Copy runner image assets
 cp "${DIST_DIR}/runner-image/Containerfile"   "${OVERLAY_DIR}/usr/local/share/bench/runner/"
 cp "${DIST_DIR}/runner-image/start.sh"        "${OVERLAY_DIR}/usr/local/share/bench/runner/"
-cp "${DIST_DIR}/runner-image/runner-ctl.sh"   "${OVERLAY_DIR}/usr/local/share/bench/"
 cp "${DIST_DIR}/runner-image/bench-runner-update.sh" "${OVERLAY_DIR}/usr/local/share/bench/"
 
 # Copy first-boot service and SSH login profile

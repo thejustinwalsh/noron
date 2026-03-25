@@ -171,6 +171,24 @@ export function initDb(path: string): Database {
 		// Column already exists
 	}
 
+	// Migration: track who created invites
+	try {
+		db.exec("ALTER TABLE invites ADD COLUMN created_by TEXT REFERENCES users(id)");
+	} catch {
+		// Column already exists
+	}
+
+	db.exec(`
+		CREATE TABLE IF NOT EXISTS audit_logs (
+			id TEXT PRIMARY KEY,
+			user_id TEXT REFERENCES users(id),
+			action TEXT NOT NULL,
+			details TEXT,
+			created_at INTEGER NOT NULL
+		)
+	`);
+	db.exec("CREATE INDEX IF NOT EXISTS idx_audit_logs_created ON audit_logs(created_at)");
+
 	// Generate a bootstrap invite on first run so the first user can register
 	const inviteCount = db.query("SELECT COUNT(*) as count FROM invites").get() as { count: number };
 	if (inviteCount.count === 0) {
@@ -191,4 +209,11 @@ export function initDb(path: string): Database {
 	}
 
 	return db;
+}
+
+export function logAudit(db: Database, userId: string, action: string, details?: string): void {
+	db.run(
+		"INSERT INTO audit_logs (id, user_id, action, details, created_at) VALUES (?, ?, ?, ?, ?)",
+		[crypto.randomUUID(), userId, action, details ?? null, Date.now()],
+	);
 }

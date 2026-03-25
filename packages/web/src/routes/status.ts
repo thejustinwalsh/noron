@@ -4,6 +4,7 @@ import * as z from "@zod/mini";
 import { Hono } from "hono";
 import { extractToken, getUserByToken } from "../auth-middleware";
 import { encryptToken } from "../crypto";
+import { logAudit } from "../db";
 import { startDeprovisionWorkflow } from "../workflows/deprovision-runner";
 import { startProvisionWorkflow } from "../workflows/provision-runner";
 
@@ -317,6 +318,9 @@ export function statusRoutes(db: Database): Hono {
 		if (!body.pat || typeof body.pat !== "string") {
 			return c.json({ error: "Missing pat field" }, 400);
 		}
+		if (body.pat.length > 256) {
+			return c.json({ error: "Token too long" }, 400);
+		}
 
 		// Validate PAT against GitHub API
 		const ghRes = await fetch("https://api.github.com/user", {
@@ -343,6 +347,7 @@ export function statusRoutes(db: Database): Hono {
 
 		const encryptedPat = await encryptToken(body.pat);
 		db.run("UPDATE users SET github_pat = ? WHERE id = ?", [encryptedPat, user.id]);
+		logAudit(db, user.id, "pat.added");
 
 		return c.json({ ok: true, login: ghUser.login });
 	});
@@ -356,6 +361,7 @@ export function statusRoutes(db: Database): Hono {
 		if (!user) return c.json({ error: "Unauthorized" }, 401);
 
 		db.run("UPDATE users SET github_pat = NULL WHERE id = ?", [user.id]);
+		logAudit(db, user.id, "pat.removed");
 
 		return c.json({ ok: true });
 	});

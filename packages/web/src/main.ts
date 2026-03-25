@@ -157,6 +157,34 @@ console.log(
 	"[bench-scheduler] Health check (5min), workflow purge (daily), session cleanup (daily)",
 );
 
+// CORS: reject cross-origin API requests
+app.use("/api/*", async (c, next) => {
+	const origin = c.req.header("Origin");
+	if (origin) {
+		const publicUrl = process.env.PUBLIC_URL;
+		const expected = publicUrl
+			? new URL(publicUrl).origin
+			: `http://localhost:${process.env.PORT ?? 9216}`;
+		if (new URL(origin).origin !== expected) {
+			return c.json({ error: "Forbidden" }, 403);
+		}
+	}
+	await next();
+});
+
+// Security headers
+app.use("*", async (c, next) => {
+	await next();
+	c.header("X-Frame-Options", "DENY");
+	c.header("X-Content-Type-Options", "nosniff");
+	c.header("X-XSS-Protection", "0");
+	c.header("Referrer-Policy", "strict-origin-when-cross-origin");
+	c.header(
+		"Content-Security-Policy",
+		"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' ws: wss:",
+	);
+});
+
 // Dashboard SPA (served from built React app)
 const dashboardDir = process.env.DASHBOARD_DIR ?? "../dashboard/dist";
 app.use(

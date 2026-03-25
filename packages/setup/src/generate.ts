@@ -98,13 +98,13 @@ ReadWritePaths=/run /var/run /sys/fs/cgroup/benchmark.slice /sys/devices/system/
 PrivateTmp=true
 NoNewPrivileges=false
 
-AmbientCapabilities=CAP_SYS_NICE CAP_SYS_ADMIN
-CapabilityBoundingSet=CAP_SYS_NICE CAP_SYS_ADMIN CAP_DAC_OVERRIDE
+AmbientCapabilities=CAP_SYS_NICE CAP_SYS_ADMIN CAP_CHOWN CAP_FOWNER
+CapabilityBoundingSet=CAP_SYS_NICE CAP_SYS_ADMIN CAP_DAC_OVERRIDE CAP_CHOWN CAP_FOWNER
 
 RuntimeDirectory=benchd
-ExecStartPre=/bin/rm -f /var/run/benchd.sock
+ExecStartPre=/bin/rm -f /run/benchd/benchd.sock
 
-Environment=BENCHD_SOCKET=/var/run/benchd.sock
+Environment=BENCHD_SOCKET=/run/benchd/benchd.sock
 Environment=BENCHD_LOG_LEVEL=info
 
 [Install]
@@ -173,7 +173,7 @@ WorkingDirectory=/var/lib/bench
 Environment=PORT=${setup.webPort}
 Environment=DATABASE_PATH=/var/lib/bench/bench.db
 Environment=WORKFLOW_DB_PATH=/var/lib/bench/workflows.db
-Environment=BENCHD_SOCKET=/var/run/benchd.sock
+Environment=BENCHD_SOCKET=/run/benchd/benchd.sock
 Environment=DASHBOARD_DIR=/var/lib/bench/dashboard
 Environment=GITHUB_CLIENT_ID=${setup.githubClientId}
 Environment=GITHUB_CLIENT_SECRET=${setup.githubClientSecret}

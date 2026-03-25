@@ -4,6 +4,7 @@ import * as z from "@zod/mini";
 import { Hono } from "hono";
 import { extractToken, getUserByToken } from "../auth-middleware";
 import { decryptToken } from "../crypto";
+import { logAudit } from "../db";
 
 /** Positive integer page number (query param arrives as string) */
 const PageParam = z.coerce.number().check(z.int(), z.minimum(1));
@@ -92,12 +93,11 @@ export function adminRoutes(db: Database, appConfig: BenchdConfig): Hono {
 		const now = Date.now();
 		const expiresAt = now + TOKEN_EXPIRY_HOURS * 3600_000;
 
-		db.query("INSERT INTO invites (id, token, created_at, expires_at) VALUES (?, ?, ?, ?)").run(
-			id,
-			inviteToken,
-			now,
-			expiresAt,
-		);
+		db.query(
+			"INSERT INTO invites (id, token, created_at, expires_at, created_by) VALUES (?, ?, ?, ?, ?)",
+		).run(id, inviteToken, now, expiresAt, user.id);
+
+		logAudit(db, user.id, "invite.created", id);
 
 		return c.json({
 			id,
@@ -107,6 +107,49 @@ export function adminRoutes(db: Database, appConfig: BenchdConfig): Hono {
 			usedAt: null,
 			usedBy: null,
 		});
+	});
+
+	// Revoke an invite (admin only)
+	app.delete("/invites/:id", async (c) => {
+		const token = extractToken(c.req.header("Cookie"), c.req.header("Authorization"));
+		if (!token) return c.json({ error: "Unauthorized" }, 401);
+		const user = getUserByToken(db, token);
+		if (!user) return c.json({ error: "Unauthorized" }, 401);
+		if (user.role !== "admin") return c.json({ error: "Forbidden" }, 403);
+
+		const id = c.req.param("id");
+		const invite = db.query("SELECT id, used_at FROM invites WHERE id = ?").get(id) as {
+			id: string;
+			used_at: number | null;
+		} | null;
+		if (!invite) return c.json({ error: "Not found" }, 404);
+		if (invite.used_at) return c.json({ error: "Already used" }, 409);
+
+		db.run("DELETE FROM invites WHERE id = ?", [id]);
+		logAudit(db, user.id, "invite.revoked", id);
+		return c.json({ ok: true });
+	});
+
+	// Audit log (admin only)
+	app.get("/audit-logs", async (c) => {
+		const token = extractToken(c.req.header("Cookie"), c.req.header("Authorization"));
+		if (!token) return c.json({ error: "Unauthorized" }, 401);
+		const user = getUserByToken(db, token);
+		if (!user) return c.json({ error: "Unauthorized" }, 401);
+		if (user.role !== "admin") return c.json({ error: "Forbidden" }, 403);
+
+		const logs = db
+			.query(
+				`SELECT al.id, al.action, al.details, al.created_at as createdAt,
+				        u.github_login as userLogin
+				 FROM audit_logs al
+				 LEFT JOIN users u ON al.user_id = u.id
+				 ORDER BY al.created_at DESC
+				 LIMIT 200`,
+			)
+			.all();
+
+		return c.json(logs);
 	});
 
 	// List GitHub repos for the authenticated user (proxies one page of GitHub API)
