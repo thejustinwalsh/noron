@@ -262,7 +262,7 @@ export function App() {
 					/>
 				))}
 			{page === "workflows" && <WorkflowsPage />}
-			{page === "admin" && (isAdmin ? <AdminPanel /> : <LoginPrompt />)}
+			{page === "admin" && (isAdmin ? <AdminPanel lock={status?.lock ?? null} /> : <LoginPrompt />)}
 		</Layout>
 	);
 }

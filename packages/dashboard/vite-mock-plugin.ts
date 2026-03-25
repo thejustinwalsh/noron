@@ -127,6 +127,47 @@ export function mockBenchd(): Plugin {
 					);
 					return;
 				}
+				if (req.url === "/api/update/status") {
+					res.setHeader("Content-Type", "application/json");
+					res.end(
+						JSON.stringify({
+							currentVersion: "0.4.2",
+							updateRepo: "thejustinwalsh/noron",
+							autoUpdate: true,
+							latest: {
+								id: "upd-1",
+								version: "0.5.0",
+								state: "completed",
+								startedAt: Date.now() - 86400000,
+								completedAt: Date.now() - 86300000,
+								error: null,
+							},
+						}),
+					);
+					return;
+				}
+				if (req.url === "/api/update/check") {
+					res.setHeader("Content-Type", "application/json");
+					res.end(
+						JSON.stringify({
+							checked: true,
+							currentVersion: "0.4.2",
+							latest: { version: "0.6.0", state: "pending" },
+						}),
+					);
+					return;
+				}
+				if (req.url === "/api/update/apply") {
+					res.setHeader("Content-Type", "application/json");
+					res.end(
+						JSON.stringify({
+							message: "Update started",
+							version: "0.6.0",
+							state: "downloading",
+						}),
+					);
+					return;
+				}
 				if (req.url === "/api/invites") {
 					res.setHeader("Content-Type", "application/json");
 					if (req.method === "POST") {

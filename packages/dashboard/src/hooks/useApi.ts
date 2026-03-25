@@ -5,6 +5,7 @@ import type {
 	Invite,
 	Runner,
 	StepAttempt,
+	UpdateStatus,
 	UserInfo,
 	Violation,
 	WorkflowCounts,
@@ -295,4 +296,41 @@ export function useAuditLogs() {
 	});
 
 	return { logs, loading };
+}
+
+export function useUpdateStatus() {
+	const queryClient = useQueryClient();
+
+	const {
+		data: updateStatus = null,
+		isLoading: loading,
+		refetch,
+	} = useQuery({
+		queryKey: ["update-status"],
+		queryFn: () => fetchJson<UpdateStatus>("/api/update/status"),
+		refetchInterval: 30_000,
+	});
+
+	const checkForUpdate = useMutation({
+		mutationFn: () =>
+			fetchJson<{ checked: boolean; currentVersion: string; latest: { version: string; state: string } | null }>(
+				"/api/update/check",
+				{ method: "POST" },
+			),
+		onSettled: () => {
+			queryClient.invalidateQueries({ queryKey: ["update-status"] });
+		},
+	});
+
+	const applyUpdate = useMutation({
+		mutationFn: () =>
+			fetchJson<{ message: string; version?: string; state?: string }>("/api/update/apply", {
+				method: "POST",
+			}),
+		onSettled: () => {
+			queryClient.invalidateQueries({ queryKey: ["update-status"] });
+		},
+	});
+
+	return { updateStatus, loading, refetch, checkForUpdate, applyUpdate };
 }
