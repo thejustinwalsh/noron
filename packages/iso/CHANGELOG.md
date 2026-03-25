@@ -1,5 +1,18 @@
 # @noron/iso
 
+## 0.3.1
+
+### Patch Changes
+
+- Updated dependencies [[`5101300`](https://github.com/thejustinwalsh/noron/commit/5101300fe81fff57b5a14bca3c73e2bb1317d705), [`5101300`](https://github.com/thejustinwalsh/noron/commit/5101300fe81fff57b5a14bca3c73e2bb1317d705), [`3be0e74`](https://github.com/thejustinwalsh/noron/commit/3be0e74ba45268693c27eddb5a0734e039622e62), [`5101300`](https://github.com/thejustinwalsh/noron/commit/5101300fe81fff57b5a14bca3c73e2bb1317d705)]:
+  - @noron/benchd@0.3.1
+  - @noron/runner-ctl@0.3.1
+  - @noron/shared@0.3.1
+  - @noron/web@0.3.1
+  - @noron/bench-exec@0.3.1
+  - @noron/cli@0.3.1
+  - @noron/setup@0.1.0
+
 ## 0.3.0
 
 ### Minor Changes
