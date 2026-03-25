@@ -482,7 +482,7 @@ const STATE_VARIANT: Record<string, "success" | "warning" | "danger" | "neutral"
 };
 
 function releaseUrl(repo: string, version: string): string {
-	return `https://github.com/${repo}/releases/tag/@noron/iso@${version}`;
+	return `https://github.com/${repo}/releases/tag/v${version}`;
 }
 
 function UpdatePanel({ lock }: { lock: LockHolder | null }) {

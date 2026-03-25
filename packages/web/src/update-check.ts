@@ -15,9 +15,9 @@ export function compareSemver(a: string, b: string): number {
 	return 0;
 }
 
-/** Extract version from a release tag like "@noron/iso@1.2.3" */
+/** Extract version from a release tag like "v1.2.3" */
 export function parseReleaseTag(tag: string): string | null {
-	const match = tag.match(/@noron\/iso@(.+)/);
+	const match = tag.match(/^v(.+)/);
 	return match?.[1] ?? null;
 }
 

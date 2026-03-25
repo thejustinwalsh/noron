@@ -35,17 +35,17 @@ describe("compareSemver", () => {
 
 describe("parseReleaseTag", () => {
 	test("parses standard tag", () => {
-		expect(parseReleaseTag("@noron/iso@1.2.3")).toBe("1.2.3");
-		expect(parseReleaseTag("@noron/iso@0.1.0")).toBe("0.1.0");
+		expect(parseReleaseTag("v1.2.3")).toBe("1.2.3");
+		expect(parseReleaseTag("v0.1.0")).toBe("0.1.0");
 	});
 
 	test("returns null for non-matching tags", () => {
-		expect(parseReleaseTag("v1.2.3")).toBeNull();
-		expect(parseReleaseTag("@noron/shared@1.0.0")).toBeNull();
+		expect(parseReleaseTag("1.2.3")).toBeNull();
+		expect(parseReleaseTag("@noron/iso@1.0.0")).toBeNull();
 		expect(parseReleaseTag("")).toBeNull();
 	});
 
 	test("handles pre-release tags", () => {
-		expect(parseReleaseTag("@noron/iso@1.0.0-beta.1")).toBe("1.0.0-beta.1");
+		expect(parseReleaseTag("v1.0.0-beta.1")).toBe("1.0.0-beta.1");
 	});
 });
