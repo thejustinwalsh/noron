@@ -71,6 +71,31 @@ export async function checkForUpdate(db: Database, config: BenchdConfig): Promis
 			return;
 		}
 
+		// Require SHA-256 checksum file alongside the archive
+		const checksumAssetName = `${assetName}.sha256`;
+		const checksumAsset = release.assets.find((a) => a.name === checksumAssetName);
+		if (!checksumAsset) {
+			console.error(
+				`[update-check] Release ${remoteVersion} missing checksum: ${checksumAssetName}`,
+			);
+			return;
+		}
+
+		let expectedHash: string;
+		try {
+			const hashRes = await fetch(checksumAsset.browser_download_url);
+			if (!hashRes.ok) throw new Error(`HTTP ${hashRes.status}`);
+			// Format: "<hash>  <filename>\n" or just "<hash>\n"
+			const text = await hashRes.text();
+			expectedHash = text.trim().split(/\s+/)[0];
+			if (!/^[a-f0-9]{64}$/.test(expectedHash)) {
+				throw new Error(`Invalid hash format: ${expectedHash}`);
+			}
+		} catch (err) {
+			console.error(`[update-check] Failed to fetch checksum for ${remoteVersion}: ${err}`);
+			return;
+		}
+
 		console.log(`[update-check] Update available: ${NORON_VERSION} → ${remoteVersion}`);
 
 		// Record and start the update workflow
@@ -85,6 +110,7 @@ export async function checkForUpdate(db: Database, config: BenchdConfig): Promis
 			version: remoteVersion,
 			downloadUrl: asset.browser_download_url,
 			expectedSize: asset.size,
+			expectedHash,
 		});
 	} catch (err) {
 		console.error("[update-check] Failed:", err);

@@ -58,11 +58,6 @@ function validateCallbackUrl(val: string): void {
 	}
 }
 
-/** Escape a value for safe inclusion in a shell-style env file. */
-function escapeEnvValue(val: string): string {
-	return val.replace(/[\$`"\\]/g, "\\$&");
-}
-
 async function spawn(
 	args: string[],
 ): Promise<{ exitCode: number; stdout: string; stderr: string }> {
@@ -160,7 +155,7 @@ export async function handleProvision(msg: ProvisionRequest): Promise<RunnerResp
 		"--cpuset-cpus",
 		getAllCores(),
 		"--cap-add=SYS_NICE",
-		"--cap-add=SYS_ADMIN",
+		"--cap-add=CAP_PERFMON",
 		IMAGE,
 	];
 	const result = await spawn(podmanArgs);

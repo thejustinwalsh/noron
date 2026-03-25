@@ -16,7 +16,7 @@ set -euo pipefail
 #   dist/web/bench-web              dist/dashboard/...
 #   dist/setup/bench-setup          dist/runner-image/Containerfile
 #   dist/cli/bench                  dist/runner-image/start.sh
-#   dist/shared/...                 dist/runner-image/runner-ctl.sh
+#   dist/runner-ctl/runner-ctld      dist/runner-image/bench-runner-update.sh
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 DIST_DIR="$(cd "${1:-${SCRIPT_DIR}/../../packages/iso/dist}" && pwd)"
@@ -44,8 +44,8 @@ for bin in benchd/benchd bench-exec/bench-exec web/bench-web setup/bench-setup c
 done
 
 for asset in dashboard/index.html benchd/hooks/job-started benchd/hooks/job-completed \
-             runner-image/Containerfile runner-image/start.sh runner-image/runner-ctl.sh \
-             runner-image/bench-runner-update.sh; do
+             runner-image/Containerfile runner-image/start.sh \
+             runner-image/bench-runner-update.sh runner-ctl/runner-ctld; do
     if [ ! -e "${DIST_DIR}/${asset}" ]; then
         echo "Error: Missing asset: ${DIST_DIR}/${asset}"
         echo "Run: BUN_TARGET=... turbo run build --filter=@noron/iso..."
@@ -118,12 +118,15 @@ cp "${DIST_DIR}/benchd/hooks/job-started" config/includes.chroot/usr/local/share
 cp "${DIST_DIR}/benchd/hooks/job-completed" config/includes.chroot/usr/local/share/bench/hooks/
 chmod +x config/includes.chroot/usr/local/share/bench/hooks/*
 
-# Copy runner image assets (Containerfile, start.sh, runner-ctl)
+# Copy runner image assets (Containerfile, start.sh)
 mkdir -p config/includes.chroot/usr/local/share/bench/runner
 cp "${DIST_DIR}/runner-image/Containerfile" config/includes.chroot/usr/local/share/bench/runner/
 cp "${DIST_DIR}/runner-image/start.sh" config/includes.chroot/usr/local/share/bench/runner/
-cp "${DIST_DIR}/runner-image/runner-ctl.sh" config/includes.chroot/usr/local/share/bench/
 cp "${DIST_DIR}/runner-image/bench-runner-update.sh" config/includes.chroot/usr/local/share/bench/
+
+# Copy runner-ctld daemon binary
+cp "${DIST_DIR}/runner-ctl/runner-ctld" config/includes.chroot/usr/local/bin/runner-ctld
+chmod +x config/includes.chroot/usr/local/bin/runner-ctld
 
 # Copy first-boot service
 mkdir -p config/includes.chroot/etc/systemd/system

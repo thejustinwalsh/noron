@@ -1,6 +1,6 @@
 # Noron
 
-Bun/TypeScript monorepo for a benchmark appliance — dedicated hardware that runs GitHub Actions benchmarks with <0.1% variance via hardware-level CPU isolation.
+Bun/TypeScript monorepo for a benchmark appliance — dedicated hardware that runs GitHub Actions benchmarks with ~1.6% median variance (as low as 0.08%) via hardware-level CPU isolation.
 
 ## Packages
 
@@ -32,6 +32,18 @@ bun test tests/integration/    # integration tests
 - CPU split: core 0 = housekeeping, cores 1..N = benchmarks (isolcpus, nohz_full, nosmt)
 - Thermal gating: wait for CPU temp to stabilize before running
 - Job tokens (32-byte hex) gate privileged IPC ops; invalidated on lock release
+
+## Security Conventions
+
+- All OAuth flows use random nonces as state + PKCE code challenges — never pass user data as OAuth state
+- Auth error messages must be generic — never reveal whether a user/account exists
+- All privileged IPC ops require valid job tokens — socket permissions are defense-in-depth, not the access control boundary
+- GitHub tokens and PATs encrypted at rest with AES-256-GCM (`packages/web/src/crypto.ts`)
+- Self-update archives require SHA-256 verification against published checksums
+- Session cookies: `HttpOnly; SameSite=Strict; Secure` (when HTTPS)
+- Container capabilities: only `SYS_NICE` + `CAP_PERFMON` — never `SYS_ADMIN`
+- Socket creation uses umask(0o007) before listen() to prevent TOCTOU permission races
+- Admin actions are audit-logged via `logAudit()` from `packages/web/src/db.ts`
 
 ## Development Rules
 

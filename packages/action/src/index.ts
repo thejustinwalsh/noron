@@ -9,6 +9,32 @@ import { spawn } from "node:child_process";
 import { appendFileSync, readFileSync } from "node:fs";
 import { type Socket, connect } from "node:net";
 
+/** Split a command string respecting single and double quotes. */
+export function splitCommand(input: string): string[] {
+	const tokens: string[] = [];
+	let current = "";
+	let inSingle = false;
+	let inDouble = false;
+
+	for (let i = 0; i < input.length; i++) {
+		const ch = input[i];
+		if (ch === "'" && !inDouble) {
+			inSingle = !inSingle;
+		} else if (ch === '"' && !inSingle) {
+			inDouble = !inDouble;
+		} else if ((ch === " " || ch === "\t") && !inSingle && !inDouble) {
+			if (current) {
+				tokens.push(current);
+				current = "";
+			}
+		} else {
+			current += ch;
+		}
+	}
+	if (current) tokens.push(current);
+	return tokens;
+}
+
 const SOCKET_PATH = process.env.BENCHD_SOCKET ?? "/var/run/benchd.sock";
 const JOB_TOKEN_PATH = process.env.JOB_TOKEN_PATH ?? "/opt/actions-runner/.benchd-token";
 
@@ -221,7 +247,7 @@ async function run(): Promise<void> {
 			benchExecArgs.push("--perf-stat", "--perf-stat-output", perfStatOutput);
 		}
 
-		benchExecArgs.push("--", ...command.split(" "));
+		benchExecArgs.push("--", ...splitCommand(command));
 
 		const child = spawn(
 			"sudo",

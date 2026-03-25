@@ -215,7 +215,6 @@ chmod +x "${MNT}/usr/local/share/bench/hooks/"*
 mkdir -p "${MNT}/usr/local/share/bench/runner"
 cp "${DIST_DIR}/runner-image/Containerfile"   "${MNT}/usr/local/share/bench/runner/"
 cp "${DIST_DIR}/runner-image/start.sh"        "${MNT}/usr/local/share/bench/runner/"
-cp "${DIST_DIR}/runner-image/runner-ctl.sh"   "${MNT}/usr/local/share/bench/"
 cp "${DIST_DIR}/runner-image/bench-runner-update.sh" "${MNT}/usr/local/share/bench/"
 
 # Install first-boot service

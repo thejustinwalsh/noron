@@ -25,7 +25,6 @@ chmod +x /usr/local/share/bench/hooks/*
 # Copy runner image assets
 mkdir -p /usr/local/share/bench/runner
 cp /tmp/overlay/usr/local/share/bench/runner/* /usr/local/share/bench/runner/
-cp /tmp/overlay/usr/local/share/bench/runner-ctl.sh /usr/local/share/bench/
 cp /tmp/overlay/usr/local/share/bench/bench-runner-update.sh /usr/local/share/bench/
 
 # Disable Armbian's first-login wizard. It's triggered by /root/.not_logged_in_yet

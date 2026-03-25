@@ -5,6 +5,7 @@ Before=slices.target
 [Slice]
 AllowedCPUs=1,2,3
 AllowedMemoryNodes=0
+Delegate=yes
 
 [Install]
 WantedBy=slices.target

@@ -9,7 +9,13 @@ import {
 	WaSpinner,
 } from "@awesome.me/webawesome/dist/react";
 import { useState } from "react";
-import { useInvites, useRunnerTimeout, useRunners, useViolations } from "../hooks/useApi";
+import {
+	useAuditLogs,
+	useInvites,
+	useRunnerTimeout,
+	useRunners,
+	useViolations,
+} from "../hooks/useApi";
 
 const STATUS_VARIANT: Record<string, "success" | "neutral" | "brand"> = {
 	Active: "success",
@@ -18,7 +24,7 @@ const STATUS_VARIANT: Record<string, "success" | "neutral" | "brand"> = {
 };
 
 export function AdminPanel() {
-	const { invites, loading, createInvite } = useInvites();
+	const { invites, loading, createInvite, revokeInvite } = useInvites();
 	const [newInviteUrl, setNewInviteUrl] = useState<string | null>(null);
 
 	const handleCreate = async () => {
@@ -105,6 +111,7 @@ export function AdminPanel() {
 								<th>Created</th>
 								<th>Expires</th>
 								<th className="th-center">Status</th>
+								<th style={{ width: "70px" }} />
 							</tr>
 						</thead>
 						<tbody>
@@ -123,6 +130,19 @@ export function AdminPanel() {
 												{status}
 											</WaBadge>
 										</td>
+										<td>
+											{status === "Active" && (
+												<WaButton
+													variant="danger"
+													appearance="plain"
+													size="small"
+													loading={revokeInvite.isPending}
+													onClick={() => revokeInvite.mutateAsync(invite.id)}
+												>
+													Revoke
+												</WaButton>
+											)}
+										</td>
 									</tr>
 								);
 							})}
@@ -133,6 +153,7 @@ export function AdminPanel() {
 
 			<RunnerPolicies />
 			<ViolationsPanel />
+			<AuditLogPanel />
 		</div>
 	);
 }
@@ -393,6 +414,54 @@ function ViolationsPanel() {
 					</table>
 				</div>
 			))}
+		</WaCard>
+	);
+}
+
+function AuditLogPanel() {
+	const { logs, loading } = useAuditLogs();
+
+	return (
+		<WaCard>
+			<h3 style={{ marginBottom: "12px" }}>
+				<WaIcon name="scroll" family="classic" variant="solid" style={{ marginRight: "6px" }} />
+				Audit Log
+			</h3>
+
+			{loading && (
+				<div style={{ display: "flex", justifyContent: "center", padding: "24px" }}>
+					<WaSpinner />
+				</div>
+			)}
+
+			{!loading && logs.length === 0 && <p className="muted">No audit log entries.</p>}
+
+			{logs.length > 0 && (
+				<table className="invite-table" style={{ fontSize: "12px" }}>
+					<thead>
+						<tr>
+							<th>Time</th>
+							<th>User</th>
+							<th>Action</th>
+							<th>Details</th>
+						</tr>
+					</thead>
+					<tbody>
+						{logs.map((entry) => (
+							<tr key={entry.id}>
+								<td>{new Date(entry.createdAt).toLocaleString()}</td>
+								<td>{entry.userLogin ?? "—"}</td>
+								<td>
+									<code>{entry.action}</code>
+								</td>
+								<td>
+									<code>{entry.details ?? "—"}</code>
+								</td>
+							</tr>
+						))}
+					</tbody>
+				</table>
+			)}
 		</WaCard>
 	);
 }

@@ -140,7 +140,15 @@ export function useInvites() {
 		},
 	});
 
-	return { invites, loading, createInvite };
+	const revokeInvite = useMutation({
+		mutationFn: (id: string) =>
+			fetchJson<{ ok: boolean }>(`/api/invites/${id}`, { method: "DELETE" }),
+		onSettled: () => {
+			queryClient.invalidateQueries({ queryKey: ["invites"] });
+		},
+	});
+
+	return { invites, loading, createInvite, revokeInvite };
 }
 
 const PER_PAGE = 100;
@@ -270,4 +278,21 @@ export function useWorkflowDetail(workflowRunId: string | null) {
 	});
 
 	return { run: data?.run ?? null, steps: data?.steps ?? [], loading };
+}
+
+interface AuditLogEntry {
+	id: string;
+	action: string;
+	details: string | null;
+	createdAt: number;
+	userLogin: string | null;
+}
+
+export function useAuditLogs() {
+	const { data: logs = [], isLoading: loading } = useQuery({
+		queryKey: ["audit-logs"],
+		queryFn: () => fetchJson<AuditLogEntry[]>("/api/audit-logs"),
+	});
+
+	return { logs, loading };
 }
