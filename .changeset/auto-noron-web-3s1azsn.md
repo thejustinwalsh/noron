@@ -5,24 +5,25 @@
 > Branch: fix-security-audit-2
 > PR: https://github.com/thejustinwalsh/noron/pull/11
 
-- CORS middleware added: API endpoints reject cross-origin requests; allowed origin is derived from `PUBLIC_URL` env var or localhost
-- Security headers added to all responses: `X-Frame-Options: DENY`, `Content-Security-Policy`, `X-Content-Type-Options: nosniff`, `X-XSS-Protection: 0`, `Referrer-Policy`
-- Session cookies hardened from `SameSite=Lax` to `SameSite=Strict`
-- Invite OAuth flow now uses a random nonce as OAuth state and a PKCE code challenge; the raw invite token is no longer passed as OAuth state, closing a CSRF vector
-- OAuth callback rejects any state value that doesn't match a known prefix (`device:`, `dashboard:`, `upgrade:`, `invite:`), preventing unrecognized state from being silently accepted
-- Auth error messages are now generic — failure pages and redirects no longer reveal whether a GitHub account is registered
-- Admin invite creation records `created_by` user on the invite row
-- New `DELETE /api/invites/:id` endpoint allows admins to revoke unused invites
-- New `GET /api/audit-logs` endpoint returns the last 200 admin actions (invite create/revoke, PAT add/remove) with user attribution
-- `audit_logs` table added via migration; `logAudit()` helper records admin actions
-- PAT input validated to max 256 characters before touching GitHub API or storage
-- Self-update downloads now require a matching `.sha256` checksum file published alongside the release archive; download is blocked if the file is missing or the hash doesn't match
-- Added `computeSha256()` utility to `crypto.ts` for SHA-256 hashing
-- Comprehensive security hardening tests added covering `computeSha256`, audit logging, invite revocation, DB schema migrations, security headers, CORS, OAuth state dispatch, and PAT length validation
+- CORS middleware added for all `/api/*` routes; cross-origin requests are rejected with `403`
+- Security response headers added globally: `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy`, and a `Content-Security-Policy`
+- Session cookies tightened from `SameSite=Lax` to `SameSite=Strict`
+- Invite OAuth flow now uses a random nonce + PKCE code challenge; the raw invite token is no longer passed as the OAuth `state` parameter
+- OAuth callback now validates `state` prefix (`upgrade:` / `invite:`); unknown state values return `400` instead of being silently processed
+- Auth error messages are now generic (`auth_failed`, "Authentication failed") — no longer reveal whether a user account exists
+- `DELETE /api/invites/:id` endpoint added; admin-only, rejects if invite already used
+- `GET /api/audit-logs` endpoint added; admin-only, returns last 200 entries
+- `audit_logs` table created on `initDb()`; `logAudit()` helper added
+- `invites.created_by` column added (schema migration on startup)
+- PAT submission now validates length (max 256 chars)
+- `pat.added` and `pat.removed` actions are audit-logged
+- `invite.created` and `invite.revoked` actions are audit-logged
+- Self-update: SHA-256 checksum file (`.sha256`) now required alongside release archive; archive integrity is verified before extraction
+- `computeSha256()` helper exported from `crypto.ts`
 
 ## BREAKING CHANGES
 
-- Existing deployments will have the `audit_logs` table and `invites.created_by` column added automatically on first startup via migrations — no manual action required
-- OAuth redirect error query param changed from `error=not_registered` to `error=auth_failed`; any client-side handling of the old value should be updated
+- `BENCHD_SOCKET` default is now `/run/benchd/benchd.sock`; update environment configuration on existing deployments
+- OAuth invite flow state parameter format changed to `invite:<nonce>`; in-flight invite links issued before this release will fail and must be re-generated
 
-These changes address multiple security findings: CSRF in OAuth invite flow, overly broad CORS policy, missing security headers, user enumeration via error messages, unverified self-update downloads, and lack of admin audit trail.
+Comprehensive security hardening: CSRF/CORS protection, PKCE on all OAuth flows, generic auth error messages, invite revocation, audit logging, and SHA-256 integrity checks for self-updates.

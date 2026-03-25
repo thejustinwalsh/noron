@@ -5,7 +5,11 @@
 > Branch: fix-security-audit-2
 > PR: https://github.com/thejustinwalsh/noron/pull/11
 
-- Runner containers now receive `CAP_PERFMON` instead of `SYS_ADMIN`, scoping container privilege to performance monitoring only
-- Removed dead `escapeEnvValue()` helper that was no longer referenced
+- Container volume mount changed from the socket file to its parent directory (`dirname(SOCKET_PATH)`) so the mount survives daemon restarts that recreate the socket
+- Runner container capability changed from `SYS_ADMIN` to `CAP_PERFMON`, following least-privilege principles
 
-This reduces the privilege surface of runner containers to the minimum required for benchmark execution.
+## BREAKING CHANGES
+
+- Socket path default is now `/run/benchd/benchd.sock`; the directory `/run/benchd/` is now mounted instead of the socket file directly
+
+Reduces container privileges to `SYS_NICE` + `CAP_PERFMON` only, and fixes a race condition where the volume mount became stale after a daemon restart.
