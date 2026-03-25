@@ -1,5 +1,27 @@
 # @noron/iso
 
+## 0.3.2
+
+### Patch Changes
+
+- [#13](https://github.com/thejustinwalsh/noron/pull/13) [`c023daa`](https://github.com/thejustinwalsh/noron/commit/c023daaa1f13789fc6c5850500921a38b404f60a) Thanks [@thejustinwalsh](https://github.com/thejustinwalsh)! - > Branch: fix-update-ui
+
+  > PR: https://github.com/thejustinwalsh/noron/pull/13
+
+  - ISO image now bundles `bench-updater.sh` from `provisioning/`
+  - ISO image now bundles static systemd unit files (`benchd.service`, `runner-ctld.service`) under `systemd/` for in-place service file updates
+
+  The ISO now ships the update script and systemd units needed for self-updating appliance deployments.
+
+- Updated dependencies [[`c023daa`](https://github.com/thejustinwalsh/noron/commit/c023daaa1f13789fc6c5850500921a38b404f60a), [`c023daa`](https://github.com/thejustinwalsh/noron/commit/c023daaa1f13789fc6c5850500921a38b404f60a), [`c023daa`](https://github.com/thejustinwalsh/noron/commit/c023daaa1f13789fc6c5850500921a38b404f60a), [`c023daa`](https://github.com/thejustinwalsh/noron/commit/c023daaa1f13789fc6c5850500921a38b404f60a), [`c023daa`](https://github.com/thejustinwalsh/noron/commit/c023daaa1f13789fc6c5850500921a38b404f60a), [`c023daa`](https://github.com/thejustinwalsh/noron/commit/c023daaa1f13789fc6c5850500921a38b404f60a)]:
+  - @noron/bench-exec@0.3.2
+  - @noron/benchd@0.3.2
+  - @noron/cli@0.3.2
+  - @noron/runner-ctl@0.3.2
+  - @noron/shared@0.3.2
+  - @noron/web@0.3.2
+  - @noron/setup@0.1.0
+
 ## 0.3.1
 
 ### Patch Changes

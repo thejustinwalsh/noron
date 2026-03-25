@@ -1,5 +1,20 @@
 # @noron/benchd
 
+## 0.3.2
+
+### Patch Changes
+
+- [#13](https://github.com/thejustinwalsh/noron/pull/13) [`c023daa`](https://github.com/thejustinwalsh/noron/commit/c023daaa1f13789fc6c5850500921a38b404f60a) Thanks [@thejustinwalsh](https://github.com/thejustinwalsh)! - > Branch: fix-update-ui
+
+  > PR: https://github.com/thejustinwalsh/noron/pull/13
+
+  - `CgroupManager.ensureSubtreeControl()` now always re-applies cgroup subtree control on every call instead of skipping after the first successful write; prevents stale cgroup configuration after `benchd` service restarts
+
+  Cgroup subtree control is now reliably re-applied across service restarts, preventing silent failures when the benchmark slice loses its controller configuration.
+
+- Updated dependencies [[`c023daa`](https://github.com/thejustinwalsh/noron/commit/c023daaa1f13789fc6c5850500921a38b404f60a)]:
+  - @noron/shared@0.3.2
+
 ## 0.3.1
 
 ### Patch Changes

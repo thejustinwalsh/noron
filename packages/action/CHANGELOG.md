@@ -1,5 +1,23 @@
 # @noron/action
 
+## 0.3.2
+
+### Patch Changes
+
+- [#13](https://github.com/thejustinwalsh/noron/pull/13) [`c023daa`](https://github.com/thejustinwalsh/noron/commit/c023daaa1f13789fc6c5850500921a38b404f60a) Thanks [@thejustinwalsh](https://github.com/thejustinwalsh)! - > Branch: fix-update-ui
+
+  > PR: https://github.com/thejustinwalsh/noron/pull/13
+
+  - Tmpfs mount type verified at action startup; emits a workflow warning if the configured path is not actually a tmpfs mount (e.g. mount unit inactive)
+  - Per-session subdirectory created under the tmpfs mount (`<benchTmpfs>/<sessionId>/`, mode 1777) to prevent output file collisions between concurrent runs
+  - `TMPDIR` and `BENCH_TMPFS` environment variables now point to the session-scoped subdirectory rather than the top-level tmpfs path
+  - `perf-stat` output path updated to follow the session-scoped tmpfs dir
+
+  The action now validates the tmpfs mount and scopes all benchmark I/O to a per-session subdirectory, preventing file collisions and surfacing mount misconfiguration early.
+
+- Updated dependencies [[`c023daa`](https://github.com/thejustinwalsh/noron/commit/c023daaa1f13789fc6c5850500921a38b404f60a)]:
+  - @noron/shared@0.3.2
+
 ## 0.3.1
 
 ### Patch Changes
