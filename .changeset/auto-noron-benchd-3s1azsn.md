@@ -5,9 +5,15 @@
 > Branch: fix-security-audit-2
 > PR: https://github.com/thejustinwalsh/noron/pull/11
 
-- Set `umask(0o007)` before Unix socket creation to prevent TOCTOU race where connections could arrive before permissions were applied
-- Socket chown failure (e.g., missing `CAP_CHOWN`) now falls back to `0o777` with a warning rather than a fatal exit; job tokens remain the privileged-op gate
-- Added `CAP_CHOWN` and `CAP_FOWNER` to the generated systemd unit `AmbientCapabilities` and `CapabilityBoundingSet`
-- `CgroupManager` now enables cpuset/cpu/memory/pids subtree controllers on the benchmark slice before the first job cgroup is created
+Socket security hardening:
+- `umask(0o007)` applied before `listen()` to eliminate TOCTOU race between socket creation and permission application
+- `CAP_CHOWN` and `CAP_FOWNER` added to `AmbientCapabilities` and `CapabilityBoundingSet` in the generated systemd unit so `chown root:bench` on the socket succeeds without `SYS_ADMIN`
+- When running as root with `chown` failing (e.g., missing `CAP_CHOWN`), now logs a warning and falls back to `0o777` instead of calling `process.exit(1)`; job tokens remain the access-control boundary
 
-Hardened socket lifecycle and cgroup setup; systemd unit now declares the capabilities needed for proper socket ownership.
+Cgroup improvements:
+- `CgroupManager` now lazily enables `cpuset`, `cpu`, `memory`, and `pids` subtree controllers on the benchmark slice before creating per-job cgroups, fixing failures on kernels that require explicit subtree delegation
+
+Socket path change:
+- Default socket path moved from `/var/run/benchd.sock` to `/run/benchd/benchd.sock` to align with the systemd `RuntimeDirectory=benchd` directive
+
+These commits harden socket creation against race conditions, fix capability requirements for production deployments, and ensure cgroup v2 subtree control is correctly initialized before job execution.

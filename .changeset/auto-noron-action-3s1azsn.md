@@ -5,9 +5,10 @@
 > Branch: fix-security-audit-2
 > PR: https://github.com/thejustinwalsh/noron/pull/11
 
-- Fixed command parsing to handle quoted arguments (single and double quotes); previously `command.split(" ")` broke commands with spaces in quoted args
-- Extracted `splitCommand` into its own module (`split-command.ts`) for reuse and testability
-- Added tests for `splitCommand` covering empty input, tabs, nested quotes, and mixed quotes
-- Updated default socket path to `/run/benchd/benchd.sock` (was `/var/run/benchd.sock`)
+- `splitCommand` extracted to `packages/action/src/split-command.ts`; `index.ts` now imports it rather than defining it inline
+- Default benchd socket path updated from `/var/run/benchd.sock` to `/run/benchd/benchd.sock` (matches XDG/systemd `RuntimeDirectory`)
 
-Security hardening and socket path standardization for the GitHub Action runner integration.
+Security fixes for the GitHub Action:
+- Updated test import to reference the new `split-command` module
+
+These commits extract a utility function for improved testability and align the Action's default socket path with the updated system-level convention.
