@@ -1,7 +1,7 @@
 // Collect dist/ outputs from all sibling packages into packages/iso/dist/
 // Turbo guarantees all deps are built before this runs (dependsOn: ["^build"]).
 // Walks packages/*/dist/ and copies whatever exists. No hardcoded list.
-import { cpSync, existsSync, mkdirSync, readdirSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 
 const ROOT = resolve(import.meta.dirname, "../..");
@@ -55,5 +55,11 @@ for (const svc of systemdServices) {
 	}
 }
 console.log(`  systemd/ (${systemdServices.length} files)`);
+
+// Version file — written from @noron/iso package.json so bench-updater
+// can update /var/lib/bench/version on apply.
+const pkgJson = JSON.parse(readFileSync(join(import.meta.dirname, "package.json"), "utf-8"));
+writeFileSync(join(DIST, "version"), pkgJson.version);
+console.log(`  version (${pkgJson.version})`);
 
 console.log(`\nCollected to ${DIST}`);

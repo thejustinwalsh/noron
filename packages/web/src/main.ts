@@ -41,6 +41,13 @@ setGate(gate);
 
 gate.on("stateChange", (from, to) => {
 	console.log(`[bench-gate] ${from} → ${to}`);
+	// Pause OpenWorkflow worker during benchmarks to eliminate SQLite polling I/O.
+	// The worker polls every ~1s which causes memory bus contention on ARM SoCs.
+	if (to === "draining" || to === "locked") {
+		worker.stop().catch((err) => console.error("[openworkflow] Failed to stop worker:", err));
+	} else if (to === "open") {
+		worker.start().catch((err) => console.error("[openworkflow] Failed to restart worker:", err));
+	}
 });
 gate.on("drainTimeout", (level, activeOps) => {
 	if (level === "soft")

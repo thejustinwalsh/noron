@@ -39,7 +39,18 @@ export interface ThermalHistory {
 	trend: "rising" | "falling" | "stable";
 }
 
-export type WsMessage = StatusUpdate | ThermalHistory | { type: "error"; message: string };
+export interface ThermalBackfill {
+	type: "thermal.backfill";
+	readings: { temp: number; ts: number }[];
+	lockAcquiredAt: number;
+	lockReleasedAt: number;
+}
+
+export type WsMessage =
+	| StatusUpdate
+	| ThermalHistory
+	| ThermalBackfill
+	| { type: "error"; message: string };
 
 export interface Runner {
 	id: string;

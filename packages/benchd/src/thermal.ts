@@ -1,5 +1,5 @@
-import { THERMAL_TIMEOUT_MS, ThermalRingBuffer, readCpuTemp } from "@noron/shared";
-import type { ThermalStatusRequest, ThermalWaitRequest } from "@noron/shared";
+import { THERMAL_TIMEOUT_MS } from "@noron/shared";
+import type { ThermalSensor, ThermalStatusRequest, ThermalWaitRequest } from "@noron/shared";
 import type { ClientConnection } from "./connection";
 import { log } from "./logger";
 
@@ -12,13 +12,11 @@ interface ThermalWaiter {
 
 /**
  * Monitors CPU temperature at a fixed interval.
- * Maintains a ring buffer of history and handles thermal.wait requests.
+ * Delegates all storage and reading to a ThermalSensor instance.
  */
 export class ThermalMonitor {
-	private history: ThermalRingBuffer;
 	private interval: Timer | null = null;
 	private waiters: ThermalWaiter[] = [];
-	private _currentTemp: number | null = null;
 	private idleBaseline: number | null = null;
 	private stableStartedAt: number | null = null;
 	private baselineSettlingMs: number;
@@ -26,16 +24,16 @@ export class ThermalMonitor {
 
 	constructor(
 		private pollIntervalMs: number,
+		private store: ThermalSensor,
 		private onUpdate: () => void,
 		options?: { thermalMarginC?: number; baselineSettlingMs?: number },
 	) {
-		this.history = new ThermalRingBuffer();
 		this.thermalMarginC = options?.thermalMarginC ?? 3;
 		this.baselineSettlingMs = options?.baselineSettlingMs ?? 30000;
 	}
 
 	start(): void {
-		this.poll(); // Immediate first read
+		this.poll();
 		this.interval = setInterval(() => this.poll(), this.pollIntervalMs);
 	}
 
@@ -48,7 +46,7 @@ export class ThermalMonitor {
 
 	waitForTarget(client: ClientConnection, msg: ThermalWaitRequest): void {
 		const effectiveTarget = this.getEffectiveTarget(msg.targetTemp);
-		const current = this._currentTemp;
+		const current = this.store.currentTemp;
 		if (current !== null && current <= effectiveTarget) {
 			client.send({
 				type: "thermal.ready",
@@ -77,18 +75,18 @@ export class ThermalMonitor {
 		client.send({
 			type: "thermal.status",
 			requestId: msg.requestId,
-			currentTemp: this._currentTemp ?? 0,
-			history: this.history.toArray(),
+			currentTemp: this.store.currentTemp ?? 0,
+			history: this.store.toArray(),
 			trend: this.currentTrend,
 		});
 	}
 
 	get currentTemp(): number | null {
-		return this._currentTemp;
+		return this.store.currentTemp;
 	}
 
 	get currentTrend(): "rising" | "falling" | "stable" {
-		return this.history.trend();
+		return this.store.trend();
 	}
 
 	getIdleBaseline(): number | null {
@@ -96,33 +94,23 @@ export class ThermalMonitor {
 	}
 
 	getEffectiveTarget(requestedTarget: number): number {
-		// If requestedTarget > 0: use it as absolute (explicit override)
-		// If requestedTarget === 0 and baseline established: return baseline + thermalMarginC
-		// If requestedTarget === 0 and no baseline: return config default (45°C fallback)
 		if (requestedTarget > 0) return requestedTarget;
 		if (this.idleBaseline !== null) return this.idleBaseline + this.thermalMarginC;
-		return 45; // fallback if no baseline yet
+		return 45;
 	}
 
 	private poll(): void {
-		const temp = readCpuTemp();
+		const temp = this.store.poll();
 		if (temp !== null) {
-			this._currentTemp = temp;
-			this.history.push(temp);
 			this.updateBaseline(temp);
 		}
 
-		// Always broadcast status updates — even without a thermal sensor
-		// (e.g., VMs, containers). Subscribers need CPU/memory/lock state.
 		this.onUpdate();
-
-		// Always check waiter deadlines — even without a sensor,
-		// thermal.wait requests must timeout so benchmarks proceed.
 		this.checkWaiters(temp ?? 0);
 	}
 
 	private updateBaseline(currentTemp: number): void {
-		const trend = this.history.trend();
+		const trend = this.store.trend();
 		if (trend === "stable" && (this.idleBaseline === null || currentTemp <= this.idleBaseline)) {
 			if (this.stableStartedAt === null) {
 				this.stableStartedAt = Date.now();

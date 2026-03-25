@@ -1,8 +1,7 @@
 import type { Database } from "bun:sqlite";
 import type { BenchdConfig } from "@noron/shared";
+import { NORON_VERSION } from "./version";
 import { startSelfUpdateWorkflow } from "./workflows/self-update";
-
-const NORON_VERSION = process.env.NORON_VERSION ?? "dev";
 
 /** Compare two semver strings. Returns >0 if a > b, <0 if a < b, 0 if equal. */
 export function compareSemver(a: string, b: string): number {
@@ -21,9 +20,17 @@ export function parseReleaseTag(tag: string): string | null {
 	return match?.[1] ?? null;
 }
 
+interface GitHubAsset {
+	name: string;
+	browser_download_url: string;
+	size: number;
+	/** SHA-256 digest computed by GitHub on upload — format: "sha256:<hex>" */
+	digest?: string;
+}
+
 interface GitHubRelease {
 	tag_name: string;
-	assets: { name: string; browser_download_url: string; size: number }[];
+	assets: GitHubAsset[];
 }
 
 /** Check GitHub Releases for a newer version. Starts update workflow if found. */
@@ -71,30 +78,17 @@ export async function checkForUpdate(db: Database, config: BenchdConfig): Promis
 			return;
 		}
 
-		// Require SHA-256 checksum file alongside the archive
-		const checksumAssetName = `${assetName}.sha256`;
-		const checksumAsset = release.assets.find((a) => a.name === checksumAssetName);
-		if (!checksumAsset) {
+		// Use GitHub's API-computed SHA-256 digest for integrity verification.
+		// This digest is computed by GitHub's infrastructure on upload — not by us.
+		// An attacker who compromises the repo can create new releases but cannot
+		// alter an existing release asset without GitHub recomputing the digest.
+		if (!asset.digest?.startsWith("sha256:")) {
 			console.error(
-				`[update-check] Release ${remoteVersion} missing checksum: ${checksumAssetName}`,
+				`[update-check] Release ${remoteVersion} asset missing GitHub digest: ${assetName}`,
 			);
 			return;
 		}
-
-		let expectedHash: string;
-		try {
-			const hashRes = await fetch(checksumAsset.browser_download_url);
-			if (!hashRes.ok) throw new Error(`HTTP ${hashRes.status}`);
-			// Format: "<hash>  <filename>\n" or just "<hash>\n"
-			const text = await hashRes.text();
-			expectedHash = text.trim().split(/\s+/)[0];
-			if (!/^[a-f0-9]{64}$/.test(expectedHash)) {
-				throw new Error(`Invalid hash format: ${expectedHash}`);
-			}
-		} catch (err) {
-			console.error(`[update-check] Failed to fetch checksum for ${remoteVersion}: ${err}`);
-			return;
-		}
+		const expectedHash = asset.digest.slice(7); // strip "sha256:" prefix
 
 		console.log(`[update-check] Update available: ${NORON_VERSION} → ${remoteVersion}`);
 

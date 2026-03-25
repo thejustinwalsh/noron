@@ -2,7 +2,13 @@ import { execSync } from "node:child_process";
 import { chmodSync, existsSync, readdirSync, rmSync, unlinkSync } from "node:fs";
 import { type Server, type Socket, createServer } from "node:net";
 import { join } from "node:path";
-import { BENCHMARK_TMPFS, readThrottleCounts } from "@noron/shared";
+import {
+	BENCHMARK_TMPFS,
+	THERMAL_HISTORY_SIZE,
+	ThermalSensor,
+	findCpuThermalZone,
+	readThrottleCounts,
+} from "@noron/shared";
 import type {
 	BenchdConfig,
 	CpuTopology,
@@ -39,25 +45,59 @@ export class BenchdServer {
 	private clients = new Set<ClientConnection>();
 	private subscribers = new Set<ClientConnection>();
 	private lock: LockManager;
+	private thermalStore: ThermalSensor;
 	private thermal: ThermalMonitor;
 	private cgroup: CgroupManager;
 	private sysMetrics = new SysMetrics();
 	private startedAt = 0;
+	private lastMemory: StatusUpdate["memory"] = { usedMb: 0, totalMb: 0, percent: 0 };
+	private lastDisk: StatusUpdate["disk"] = { usedGb: 0, totalGb: 0, percent: 0 };
+	private lastDiskReadAt = 0;
 	private throttleBaseline: Map<number, number> | null = null;
 	private lastThrottleResult: { cores: number[]; totalEvents: number } | null = null;
+	private lockAcquiredAt = 0;
 
 	constructor(private options: BenchdServerOptions) {
 		const { config, topology } = options;
+
+		// Unified thermal sensor + ring buffer + backfill store.
+		// Sized to hold full history + worst-case benchmark duration.
+		const maxReadings = Math.max(
+			THERMAL_HISTORY_SIZE,
+			Math.ceil(config.jobTimeoutMs / config.thermalPollIntervalMs) + 1,
+		);
+		this.thermalStore = new ThermalSensor(maxReadings);
+
+		const thermalPath = findCpuThermalZone();
+		if (thermalPath) {
+			try {
+				this.thermalStore.openSensor(thermalPath);
+			} catch (err) {
+				console.warn(`[benchd] FFI thermal sensor failed, sensor disabled: ${err}`);
+			}
+		}
+
 		this.lock = new LockManager(
 			() => this.broadcastStatus(),
 			config.jobTimeoutMs,
 			(owner, jobId, runId) => this.handleJobTimeout(owner, jobId, runId),
 			(repo, jobId, runId, reason) => this.broadcastViolation(repo, jobId, runId, reason),
 		);
-		this.thermal = new ThermalMonitor(config.thermalPollIntervalMs, () => this.broadcastStatus(), {
-			thermalMarginC: config.thermalMarginC,
-			baselineSettlingMs: config.thermalBaselineSettlingS * 1000,
-		});
+		this.thermal = new ThermalMonitor(
+			config.thermalPollIntervalMs,
+			this.thermalStore,
+			() => {
+				if (this.lock.currentHolder) {
+					this.thermalStore.recordBackfill();
+				} else {
+					this.broadcastStatus();
+				}
+			},
+			{
+				thermalMarginC: config.thermalMarginC,
+				baselineSettlingMs: config.thermalBaselineSettlingS * 1000,
+			},
+		);
 		this.cgroup = new CgroupManager(config.isolatedCores, config.benchmarkCgroup);
 	}
 
@@ -159,11 +199,14 @@ export class BenchdServer {
 				// Snapshot throttle counts when lock is granted
 				this.throttleBaseline = readThrottleCounts();
 				this.lastThrottleResult = null;
+				this.thermalStore.beginBackfill();
+				this.lockAcquiredAt = Date.now();
 				break;
 			case "lock.release": {
 				// Diff throttle counts before releasing the lock
 				this.diffThrottleCounts();
 				this.lock.release(client, msg);
+				this.flushLockThermalBuffer();
 				this.cleanupTmpfs();
 				break;
 			}
@@ -287,6 +330,30 @@ export class BenchdServer {
 		}
 	}
 
+	/** Throttle disk reads to once per 60s — disk changes slowly and statfs can trigger journal I/O */
+	private readDiskThrottled(locked: boolean): StatusUpdate["disk"] {
+		if (locked) return this.lastDisk;
+		const now = Date.now();
+		if (now - this.lastDiskReadAt >= 60_000) {
+			this.lastDisk = this.sysMetrics.readDisk();
+			this.lastDiskReadAt = now;
+		}
+		return this.lastDisk;
+	}
+
+	/** Send buffered thermal readings from the benchmark period to subscribers. */
+	private flushLockThermalBuffer(): void {
+		const backfill = this.thermalStore.flushBackfill();
+		if (!backfill) return;
+		for (const sub of this.subscribers) {
+			sub.send({
+				type: "thermal.backfill",
+				requestId: sub.subscriptionRequestId ?? "",
+				...backfill,
+			});
+		}
+	}
+
 	private broadcastStatus(): void {
 		for (const sub of this.subscribers) {
 			sub.send(this.buildStatusUpdate(sub.subscriptionRequestId ?? ""));
@@ -323,6 +390,10 @@ export class BenchdServer {
 	}
 
 	private buildStatusUpdate(requestId: string): StatusUpdate {
+		// Skip expensive procfs/statfs reads while a benchmark holds the lock —
+		// CPU%, memory%, disk% are dashboard-only metrics that cause memory bus
+		// traffic and cache evictions on ARM SoCs with shared L3.
+		const locked = this.lock.currentHolder !== null;
 		const update: StatusUpdate = {
 			type: "status.update",
 			requestId,
@@ -334,12 +405,16 @@ export class BenchdServer {
 				trend: this.thermal.currentTrend,
 				idleBaseline: this.thermal.getIdleBaseline(),
 			},
-			cpu: this.sysMetrics.readCpu(),
-			memory: this.sysMetrics.readMemory(),
-			disk: this.sysMetrics.readDisk(),
+			cpu: locked ? 0 : this.sysMetrics.readCpu(),
+			memory: locked ? this.lastMemory : this.sysMetrics.readMemory(),
+			disk: this.readDiskThrottled(locked),
 			uptime: Date.now() - this.startedAt,
 			version: process.env.NORON_VERSION ?? "dev",
 		};
+
+		if (!locked) {
+			this.lastMemory = update.memory;
+		}
 
 		if (this.lastThrottleResult) {
 			update.throttled = this.lastThrottleResult;

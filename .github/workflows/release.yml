@@ -117,11 +117,6 @@ jobs:
       - name: Create update archive (${{ matrix.arch }})
         run: tar -czf artifacts/noron-update-linux-${{ matrix.arch }}.tar.gz -C packages/iso/dist .
 
-      - name: Generate checksums (${{ matrix.arch }})
-        run: |
-          cd artifacts/
-          sha256sum noron-update-linux-${{ matrix.arch }}.tar.gz > noron-update-linux-${{ matrix.arch }}.tar.gz.sha256
-
       - uses: actions/upload-artifact@v7
         with:
           name: noron-${{ matrix.arch }}
@@ -231,9 +226,7 @@ jobs:
             artifacts/noron-x64.img.xz#Noron Image (x64)
             artifacts/noron-arm64.img.xz#Noron Image (arm64 server)
             artifacts/noron-update-linux-x64.tar.gz#Update Archive (x64)
-            artifacts/noron-update-linux-x64.tar.gz.sha256#Update Checksum (x64)
             artifacts/noron-update-linux-arm64.tar.gz#Update Archive (arm64)
-            artifacts/noron-update-linux-arm64.tar.gz.sha256#Update Checksum (arm64)
             artifacts/noron-orangepi5-plus.img.xz#Noron SBC Image (Orange Pi 5 Plus)
             artifacts/noron-rpi4b.img.xz#Noron SBC Image (Raspberry Pi 4/5)
         env:

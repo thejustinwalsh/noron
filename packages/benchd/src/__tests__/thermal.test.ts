@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { ThermalSensor } from "@noron/shared";
 import type { ClientConnection } from "../connection";
 import { ThermalMonitor } from "../thermal";
 
@@ -16,7 +17,7 @@ describe("ThermalMonitor", () => {
 	let monitor: ThermalMonitor;
 
 	beforeEach(() => {
-		monitor = new ThermalMonitor(50, () => {});
+		monitor = new ThermalMonitor(50, new ThermalSensor(), () => {});
 	});
 
 	afterEach(() => {

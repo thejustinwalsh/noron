@@ -4,8 +4,7 @@ import { Hono } from "hono";
 import { extractToken, getUserByToken } from "../auth-middleware";
 import { logAudit } from "../db";
 import { checkForUpdate } from "../update-check";
-
-const NORON_VERSION = process.env.NORON_VERSION ?? "dev";
+import { NORON_VERSION } from "../version";
 
 interface UpdateRow {
 	id: string;
@@ -130,7 +129,11 @@ export function updateRoutes(db: Database, config: BenchdConfig) {
 		const stderr = await new Response(proc.stderr).text();
 
 		if (exitCode !== 0) {
-			return c.json({ error: `Rollback failed: ${(stderr + stdout).trim()}` }, 500);
+			console.error(
+				`[update.rollback] bench-updater failed (exit ${exitCode}): ${(stderr + stdout).trim()}`,
+			);
+			logAudit(db, user.id, "update.rollback.failed", `Exit code ${exitCode}`);
+			return c.json({ error: "Rollback failed. Check system logs for details." }, 500);
 		}
 
 		logAudit(db, user.id, "update.rollback", `Manual rollback from ${NORON_VERSION}`);

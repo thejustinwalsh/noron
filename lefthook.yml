@@ -3,8 +3,8 @@ rc: .lefthookrc
 pre-commit:
   jobs:
     - name: action-build
-      glob: "packages/{action/src,shared/src}/**/*.ts"
-      run: bun run --cwd packages/action build && git add packages/action/dist/index.js
+      glob: "packages/{action,shared}/src/**/*.ts"
+      run: bun run --cwd packages/action build && git add packages/action/src/ packages/shared/src/ packages/action/dist/index.js
 
     - name: biome-fix
       glob: "*.{ts,tsx,js,jsx,json}"
