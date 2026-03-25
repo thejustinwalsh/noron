@@ -12,7 +12,7 @@ RestartSec=10
 ExecStart=/usr/bin/podman run --rm \
   --name bench-runner \
   --env-file /opt/runner/.env \
-  --volume {{ benchd_socket }}:{{ benchd_socket }}:rw \
+  --volume {{ benchd_socket | dirname }}:{{ benchd_socket | dirname }}:rw \
   --volume /usr/local/bin/bench-exec:/usr/local/bin/bench-exec:ro \
   --volume /usr/local/lib/benchd/hooks:/usr/local/lib/benchd/hooks:ro \
   --volume {{ bench_tmpfs_path }}:{{ bench_tmpfs_path }}:rw \

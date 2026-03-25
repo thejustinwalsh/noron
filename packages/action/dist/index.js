@@ -29,7 +29,7 @@ function splitCommand(input) {
     tokens.push(current);
   return tokens;
 }
-var SOCKET_PATH = process.env.BENCHD_SOCKET ?? "/var/run/benchd.sock";
+var SOCKET_PATH = process.env.BENCHD_SOCKET ?? "/run/benchd/benchd.sock";
 var JOB_TOKEN_PATH = process.env.JOB_TOKEN_PATH ?? "/opt/actions-runner/.benchd-token";
 function sendRequest(socketPath, msg) {
   return new Promise((resolve, reject) => {

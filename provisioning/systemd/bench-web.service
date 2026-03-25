@@ -17,7 +17,7 @@ WorkingDirectory=/var/lib/bench
 Environment=PORT=9216
 Environment=DATABASE_PATH=/var/lib/bench/bench.db
 Environment=WORKFLOW_DB_PATH=/var/lib/bench/workflows.db
-Environment=BENCHD_SOCKET=/var/run/benchd.sock
+Environment=BENCHD_SOCKET=/run/benchd/benchd.sock
 Environment=DASHBOARD_DIR=/var/lib/bench/dashboard
 Environment=GITHUB_CLIENT_ID=changeme
 Environment=GITHUB_CLIENT_SECRET=changeme

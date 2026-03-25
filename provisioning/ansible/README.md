@@ -71,7 +71,7 @@ benchmark_user: "bench"
 runner_user: "runner"
 
 # Daemon
-benchd_socket: "/var/run/benchd.sock"
+benchd_socket: "/run/benchd/benchd.sock"
 
 # Tmpfs for benchmark I/O (LLVM guideline: avoid disk variance)
 bench_tmpfs_path: "/mnt/bench-tmpfs"
@@ -174,7 +174,7 @@ To update binaries on deployed appliances, either:
 
 **Playbook fails at benchd role:** Ensure binaries are built first (`BUN_TARGET=bun-linux-arm64 bun run collect-dist`). The role copies pre-compiled binaries — it doesn't build from source.
 
-**Runner container won't start:** Check that Podman is installed (`podman --version`) and the benchd socket exists (`ls -la /var/run/benchd.sock`). View logs with `journalctl -u bench-runner`.
+**Runner container won't start:** Check that Podman is installed (`podman --version`) and the benchd socket exists (`ls -la /run/benchd/benchd.sock`). View logs with `journalctl -u bench-runner`.
 
 **Kernel params not applied:** Reboot after the first playbook run. Verify with `cat /proc/cmdline` — you should see `isolcpus=`, `nohz_full=`, etc.
 

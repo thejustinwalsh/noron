@@ -2,7 +2,7 @@
 
 ## Problem
 
-The benchd IPC socket has zero authentication. Any process that can reach `/var/run/benchd.sock` can:
+The benchd IPC socket has zero authentication. Any process that can reach `/run/benchd/benchd.sock` can:
 1. Acquire the machine-wide lock with fake credentials
 2. Prepare cgroup sessions and validate arbitrary PIDs
 3. Execute arbitrary commands on isolated benchmark cores via `sudo bench-exec`

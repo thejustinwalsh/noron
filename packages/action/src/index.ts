@@ -35,7 +35,7 @@ export function splitCommand(input: string): string[] {
 	return tokens;
 }
 
-const SOCKET_PATH = process.env.BENCHD_SOCKET ?? "/var/run/benchd.sock";
+const SOCKET_PATH = process.env.BENCHD_SOCKET ?? "/run/benchd/benchd.sock";
 const JOB_TOKEN_PATH = process.env.JOB_TOKEN_PATH ?? "/opt/actions-runner/.benchd-token";
 
 // --- Minimal IPC client for Node (no Bun APIs) ---

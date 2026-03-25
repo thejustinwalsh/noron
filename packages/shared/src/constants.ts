@@ -1,5 +1,5 @@
 /** Path to the benchd Unix domain socket */
-export const SOCKET_PATH = "/var/run/benchd.sock";
+export const SOCKET_PATH = "/run/benchd/benchd.sock";
 
 /** Systemd slice for benchmark cgroups */
 export const BENCHMARK_SLICE = "benchmark.slice";

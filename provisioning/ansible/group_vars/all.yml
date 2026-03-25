@@ -8,7 +8,7 @@ benchmark_user: "bench"
 runner_user: "runner"
 
 # Daemon config
-benchd_socket: "/var/run/benchd.sock"
+benchd_socket: "/run/benchd/benchd.sock"
 
 # Benchmark tmpfs (LLVM guideline: avoid disk I/O variance)
 bench_tmpfs_path: "/mnt/bench-tmpfs"

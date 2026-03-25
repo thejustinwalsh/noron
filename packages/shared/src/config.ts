@@ -37,7 +37,7 @@ export const DEFAULT_CONFIG: BenchdConfig = {
 	thermalTimeoutMs: 300_000,
 	thermalMarginC: 3,
 	thermalBaselineSettlingS: 30,
-	socketPath: "/var/run/benchd.sock",
+	socketPath: "/run/benchd/benchd.sock",
 	benchmarkSlice: "benchmark.slice",
 	benchmarkCgroup: "/sys/fs/cgroup/benchmark.slice",
 	benchTmpfs: "/mnt/bench-tmpfs",

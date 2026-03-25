@@ -9,7 +9,7 @@ set -euo pipefail
 # Usage: bench-runner-update [--force]
 #   --force: skip lock (for initial setup before benchd is running)
 
-SOCKET="/var/run/benchd.sock"
+SOCKET="/run/benchd/benchd.sock"
 RUNNER_DIR="/opt/runner"
 IMAGE_NAME="bench-runner"
 

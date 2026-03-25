@@ -118,7 +118,7 @@ After reboot, verify:
 - cat /proc/cmdline | grep isolcpus
 - systemctl status benchd bench-web runner-ctld
 - curl http://localhost:9216/health
-- ls -la /var/run/benchd.sock
+- ls -la /run/benchd/benchd.sock
 
 ### 5. Dashboard and runner registration
 - Open dashboard at http://<hostname>:9216 with the bootstrap invite URL shown after setup
@@ -332,7 +332,7 @@ The system follows the [LLVM Benchmarking Guidelines](https://llvm.org/docs/Benc
 
 ### IPC protocol
 
-All communication between components uses line-delimited JSON over a Unix domain socket (`/var/run/benchd.sock`), correlated via `requestId` UUIDs:
+All communication between components uses line-delimited JSON over a Unix domain socket (`/run/benchd/benchd.sock`), correlated via `requestId` UUIDs:
 
 | Message | Description |
 |---------|-------------|
@@ -380,7 +380,7 @@ thermal_history_size = 300
 benchmark_slice = "benchmark.slice"
 benchmark_cgroup = "/sys/fs/cgroup/benchmark.slice"
 bench_tmpfs = "/mnt/bench-tmpfs"
-socket_path = "/var/run/benchd.sock"
+socket_path = "/run/benchd/benchd.sock"
 
 # Job management
 lock_disconnect_grace_ms = 5000
@@ -409,7 +409,7 @@ update_check_interval_hours = 1
 | `benchmark_slice` | `string` | `benchmark.slice` | Systemd slice name for cgroup isolation |
 | `benchmark_cgroup` | `string` | `/sys/fs/cgroup/benchmark.slice` | Cgroup v2 filesystem path |
 | `bench_tmpfs` | `string` | `/mnt/bench-tmpfs` | Tmpfs mount point for benchmark I/O |
-| `socket_path` | `string` | `/var/run/benchd.sock` | Unix domain socket path for IPC |
+| `socket_path` | `string` | `/run/benchd/benchd.sock` | Unix domain socket path for IPC |
 | `lock_disconnect_grace_ms` | `number` | `5000` | Grace period before auto-releasing lock on disconnect |
 | `token_expiry_hours` | `number` | `24` | Job token validity duration |
 | `job_timeout_ms` | `number` | `600000` | Max job execution time (10 min) |

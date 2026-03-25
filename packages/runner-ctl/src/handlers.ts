@@ -1,4 +1,5 @@
 import { existsSync, mkdirSync, unlinkSync, writeFileSync } from "node:fs";
+import { dirname } from "node:path";
 import { BENCHMARK_TMPFS, DEFAULT_CONFIG, SOCKET_PATH, loadConfig } from "@noron/shared";
 
 const IMAGE = "bench-runner";
@@ -145,7 +146,7 @@ export async function handleProvision(msg: ProvisionRequest): Promise<RunnerResp
 		"--env-file",
 		envfile,
 		"--volume",
-		`${SOCKET_PATH}:${SOCKET_PATH}:rw`,
+		`${dirname(SOCKET_PATH)}:${dirname(SOCKET_PATH)}:rw`,
 		"--volume",
 		`${BENCH_EXEC}:${BENCH_EXEC}:ro`,
 		"--volume",
