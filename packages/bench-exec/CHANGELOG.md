@@ -1,5 +1,12 @@
 # @noron/bench-exec
 
+## 0.3.1
+
+### Patch Changes
+
+- Updated dependencies [[`3be0e74`](https://github.com/thejustinwalsh/noron/commit/3be0e74ba45268693c27eddb5a0734e039622e62)]:
+  - @noron/shared@0.3.1
+
 ## 0.3.0
 
 ### Patch Changes

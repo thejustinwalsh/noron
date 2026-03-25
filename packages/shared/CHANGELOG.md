@@ -1,5 +1,18 @@
 # @noron/shared
 
+## 0.3.1
+
+### Patch Changes
+
+- [#11](https://github.com/thejustinwalsh/noron/pull/11) [`3be0e74`](https://github.com/thejustinwalsh/noron/commit/3be0e74ba45268693c27eddb5a0734e039622e62) Thanks [@thejustinwalsh](https://github.com/thejustinwalsh)! - > Branch: fix-security-audit-2
+
+  > PR: https://github.com/thejustinwalsh/noron/pull/11
+
+  - `SOCKET_PATH` constant changed from `/var/run/benchd.sock` to `/run/benchd/benchd.sock`
+  - `DEFAULT_CONFIG.socketPath` updated to match
+
+  The new path aligns with the systemd `RuntimeDirectory=benchd` directive and is consistent across all packages and provisioning scripts.
+
 ## 0.3.0
 
 ### Minor Changes

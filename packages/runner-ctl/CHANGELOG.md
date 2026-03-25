@@ -1,5 +1,28 @@
 # @noron/runner-ctl
 
+## 0.3.1
+
+### Patch Changes
+
+- [#11](https://github.com/thejustinwalsh/noron/pull/11) [`5101300`](https://github.com/thejustinwalsh/noron/commit/5101300fe81fff57b5a14bca3c73e2bb1317d705) Thanks [@thejustinwalsh](https://github.com/thejustinwalsh)! - > Branch: fix-security-audit-2
+
+  > PR: https://github.com/thejustinwalsh/noron/pull/11
+
+  Socket path and container volume fix:
+
+  - Default benchd socket path updated from `/var/run/benchd.sock` to `/run/benchd/benchd.sock`
+  - Runner container now mounts the socket's parent directory (`/run/benchd`) instead of the socket file itself, fixing volume mount failures when the socket is recreated between runs
+
+  Capability reduction:
+
+  - Runner container capability changed from `SYS_ADMIN` to `CAP_PERFMON`; removes unnecessary privilege while retaining perf event access
+  - Removed unused `escapeEnvValue` helper
+
+  These commits correct the container volume mount strategy and reduce the runner container's Linux capabilities to the minimum required.
+
+- Updated dependencies [[`3be0e74`](https://github.com/thejustinwalsh/noron/commit/3be0e74ba45268693c27eddb5a0734e039622e62)]:
+  - @noron/shared@0.3.1
+
 ## 0.3.0
 
 ### Minor Changes

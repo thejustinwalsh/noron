@@ -1,5 +1,25 @@
 # @noron/action
 
+## 0.3.1
+
+### Patch Changes
+
+- [#11](https://github.com/thejustinwalsh/noron/pull/11) [`5101300`](https://github.com/thejustinwalsh/noron/commit/5101300fe81fff57b5a14bca3c73e2bb1317d705) Thanks [@thejustinwalsh](https://github.com/thejustinwalsh)! - > Branch: fix-security-audit-2
+
+  > PR: https://github.com/thejustinwalsh/noron/pull/11
+
+  - `splitCommand` extracted to `packages/action/src/split-command.ts`; `index.ts` now imports it rather than defining it inline
+  - Default benchd socket path updated from `/var/run/benchd.sock` to `/run/benchd/benchd.sock` (matches XDG/systemd `RuntimeDirectory`)
+
+  Security fixes for the GitHub Action:
+
+  - Updated test import to reference the new `split-command` module
+
+  These commits extract a utility function for improved testability and align the Action's default socket path with the updated system-level convention.
+
+- Updated dependencies [[`3be0e74`](https://github.com/thejustinwalsh/noron/commit/3be0e74ba45268693c27eddb5a0734e039622e62)]:
+  - @noron/shared@0.3.1
+
 ## 0.3.0
 
 ### Patch Changes
