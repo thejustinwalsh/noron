@@ -333,5 +333,15 @@ export function useUpdateStatus() {
 		},
 	});
 
-	return { updateStatus, loading, refetch, checkForUpdate, applyUpdate };
+	const rollback = useMutation({
+		mutationFn: () =>
+			fetchJson<{ message: string; previousVersion?: string }>("/api/update/rollback", {
+				method: "POST",
+			}),
+		onSettled: () => {
+			queryClient.invalidateQueries({ queryKey: ["update-status"] });
+		},
+	});
+
+	return { updateStatus, loading, refetch, checkForUpdate, applyUpdate, rollback };
 }

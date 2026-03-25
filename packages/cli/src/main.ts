@@ -8,6 +8,7 @@ import {
 	UpdateApplyCommand,
 	UpdateCheckCommand,
 	UpdateHistoryCommand,
+	UpdateRollbackCommand,
 	UpdateStatusCommand,
 } from "./commands/update";
 
@@ -25,6 +26,7 @@ cli.register(UpdateStatusCommand);
 cli.register(UpdateCheckCommand);
 cli.register(UpdateApplyCommand);
 cli.register(UpdateHistoryCommand);
+cli.register(UpdateRollbackCommand);
 cli.register(Builtins.HelpCommand);
 cli.register(Builtins.VersionCommand);
 

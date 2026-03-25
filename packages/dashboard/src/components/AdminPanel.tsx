@@ -486,7 +486,8 @@ function releaseUrl(repo: string, version: string): string {
 }
 
 function UpdatePanel({ lock }: { lock: LockHolder | null }) {
-	const { updateStatus, loading, checkForUpdate, applyUpdate } = useUpdateStatus();
+	const { updateStatus, loading, checkForUpdate, applyUpdate, rollback } = useUpdateStatus();
+	const [confirmRollback, setConfirmRollback] = useState(false);
 
 	const currentVersion = updateStatus?.currentVersion ?? null;
 	const updateRepo = updateStatus?.updateRepo ?? null;
@@ -495,6 +496,11 @@ function UpdatePanel({ lock }: { lock: LockHolder | null }) {
 	const hasAvailableUpdate =
 		!!latest && latest.version !== currentVersion && !inProgress && latest.state !== "completed";
 	const isLocked = !!lock;
+
+	const handleRollback = async () => {
+		await rollback.mutateAsync();
+		setConfirmRollback(false);
+	};
 
 	return (
 		<WaCard>
@@ -521,22 +527,59 @@ function UpdatePanel({ lock }: { lock: LockHolder | null }) {
 							variant="brand"
 							size="small"
 							loading={applyUpdate.isPending}
-							disabled={isLocked}
+							disabled={isLocked || confirmRollback}
 							onClick={() => applyUpdate.mutateAsync()}
 							title={isLocked ? "Cannot update while a benchmark is running" : undefined}
 						>
 							Update to {latest.version}
 						</WaButton>
 					)}
-					<WaButton
-						variant="brand"
-						size="small"
-						loading={checkForUpdate.isPending}
-						disabled={loading || inProgress || !updateRepo}
-						onClick={() => checkForUpdate.mutateAsync()}
-					>
-						Check for Updates
-					</WaButton>
+					{!confirmRollback && (
+						<WaButton
+							variant="brand"
+							size="small"
+							loading={checkForUpdate.isPending}
+							disabled={loading || inProgress || !updateRepo}
+							onClick={() => checkForUpdate.mutateAsync()}
+							style={{ minWidth: "150px" }}
+						>
+							Check for Updates
+						</WaButton>
+					)}
+					{confirmRollback && (
+						<WaButton
+							variant="danger"
+							size="small"
+							loading={rollback.isPending}
+							onClick={handleRollback}
+							style={{ minWidth: "150px" }}
+						>
+							Confirm Rollback
+						</WaButton>
+					)}
+					{!confirmRollback && (
+						<WaButton
+							variant="danger"
+							appearance="outlined"
+							size="small"
+							disabled={loading || inProgress || isLocked}
+							onClick={() => setConfirmRollback(true)}
+							title={isLocked ? "Cannot rollback while a benchmark is running" : undefined}
+							style={{ minWidth: "90px" }}
+						>
+							Rollback
+						</WaButton>
+					)}
+					{confirmRollback && (
+						<WaButton
+							variant="neutral"
+							size="small"
+							onClick={() => setConfirmRollback(false)}
+							style={{ minWidth: "90px" }}
+						>
+							Cancel
+						</WaButton>
+					)}
 				</div>
 			</div>
 

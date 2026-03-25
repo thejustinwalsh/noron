@@ -1,4 +1,4 @@
-import { BenchdClient, RunnerCtlClient, SOCKET_PATH } from "@noron/shared";
+import { BenchdClient, DEFAULT_WEB_PORT, RunnerCtlClient, SOCKET_PATH } from "@noron/shared";
 import { getWorkflowDb, ow, withGate } from "./index";
 
 export interface SelfUpdateInput {
@@ -145,19 +145,29 @@ const selfUpdate = ow.defineWorkflow<SelfUpdateInput, SelfUpdateOutput>(
 					{ name: `verify-health-${applyAttempt}-${healthAttempt}` },
 					async () => {
 						try {
-							// Check benchd is reachable
-							const client = new BenchdClient(process.env.BENCHD_SOCKET ?? SOCKET_PATH);
-							await client.connect();
-							const config = await client.request({
+							// 1. Version file must match expected version
+							const versionFile = await Bun.file(VERSION_FILE).text();
+							if (versionFile.trim() !== input.version) return false;
+
+							// 2. benchd daemon is reachable and responding
+							const benchd = new BenchdClient(process.env.BENCHD_SOCKET ?? SOCKET_PATH);
+							await benchd.connect();
+							const config = await benchd.request({
 								type: "config.get",
 								requestId: crypto.randomUUID(),
 							});
-							client.close();
+							benchd.close();
 							if (config.type !== "config.get") return false;
 
-							// Check version file matches expected
-							const versionFile = await Bun.file(VERSION_FILE).text();
-							if (versionFile.trim() !== input.version) return false;
+							// 3. runner-ctl daemon is reachable
+							const rctl = new RunnerCtlClient();
+							await rctl.connect();
+							rctl.close();
+
+							// 4. bench-web HTTP server is serving
+							const port = process.env.PORT ?? String(DEFAULT_WEB_PORT);
+							const webRes = await fetch(`http://localhost:${port}/api/update/status`);
+							if (!webRes.ok) return false;
 
 							return true;
 						} catch {

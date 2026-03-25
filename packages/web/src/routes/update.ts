@@ -2,6 +2,7 @@ import type { Database } from "bun:sqlite";
 import type { BenchdConfig } from "@noron/shared";
 import { Hono } from "hono";
 import { extractToken, getUserByToken } from "../auth-middleware";
+import { logAudit } from "../db";
 import { checkForUpdate } from "../update-check";
 
 const NORON_VERSION = process.env.NORON_VERSION ?? "dev";
@@ -92,6 +93,49 @@ export function updateRoutes(db: Database, config: BenchdConfig) {
 			version: latest.version,
 			state: latest.state,
 		});
+	});
+
+	// POST /update/rollback — manually rollback to previous version (admin only)
+	app.post("/update/rollback", async (c) => {
+		const token = extractToken(c.req.header("Cookie"), c.req.header("Authorization"));
+		if (!token) return c.json({ error: "Unauthorized" }, 401);
+		const user = getUserByToken(db, token);
+		if (!user || user.role !== "admin") return c.json({ error: "Forbidden" }, 403);
+
+		// Check if a rollback backup exists
+		const { existsSync } = await import("node:fs");
+		const { readdirSync } = await import("node:fs");
+		const updatesDir = "/var/lib/bench/updates";
+		let hasBackup = false;
+		try {
+			if (existsSync(updatesDir)) {
+				const entries = readdirSync(updatesDir);
+				hasBackup = entries.some((e) => e.startsWith("rollback-"));
+			}
+		} catch {
+			// Can't read dir — will let bench-updater report the error
+		}
+
+		if (!hasBackup) {
+			return c.json({ error: "No rollback backup available" }, 400);
+		}
+
+		// Execute rollback
+		const proc = Bun.spawn(["sudo", "bench-updater", "rollback"], {
+			stdout: "pipe",
+			stderr: "pipe",
+		});
+		const exitCode = await proc.exited;
+		const stdout = await new Response(proc.stdout).text();
+		const stderr = await new Response(proc.stderr).text();
+
+		if (exitCode !== 0) {
+			return c.json({ error: `Rollback failed: ${(stderr + stdout).trim()}` }, 500);
+		}
+
+		logAudit(db, user.id, "update.rollback", `Manual rollback from ${NORON_VERSION}`);
+
+		return c.json({ message: "Rollback complete", previousVersion: NORON_VERSION });
 	});
 
 	// GET /update/history — past updates

@@ -151,6 +151,49 @@ export class UpdateApplyCommand extends Command {
 	}
 }
 
+export class UpdateRollbackCommand extends Command {
+	static paths = [["update", "rollback"]];
+	static usage = Command.Usage({
+		description: "Rollback to the previous version",
+	});
+
+	async execute(): Promise<number> {
+		const config = loadConfig();
+		const creds = loadCredentials();
+		const baseUrl = config.serverUrl ?? "http://localhost:9216";
+
+		this.context.stdout.write("Rolling back to previous version...\n");
+
+		try {
+			const res = await fetch(`${baseUrl}/api/update/rollback`, {
+				method: "POST",
+				headers: creds ? { Authorization: `Bearer ${creds.githubToken}` } : {},
+			});
+
+			const data = (await res.json()) as {
+				message?: string;
+				error?: string;
+				previousVersion?: string;
+			};
+
+			if (!res.ok) {
+				this.context.stderr.write(`Rollback failed: ${data.error ?? res.statusText}\n`);
+				return 1;
+			}
+
+			this.context.stdout.write(`${data.message}\n`);
+			if (data.previousVersion) {
+				this.context.stdout.write(`Rolled back from: ${data.previousVersion}\n`);
+			}
+
+			return 0;
+		} catch {
+			this.context.stderr.write(`Cannot connect to bench-web at ${baseUrl}\n`);
+			return 1;
+		}
+	}
+}
+
 export class UpdateHistoryCommand extends Command {
 	static paths = [["update", "history"]];
 	static usage = Command.Usage({
