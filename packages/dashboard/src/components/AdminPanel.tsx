@@ -595,7 +595,9 @@ function UpdatePanel({ lock }: { lock: LockHolder | null }) {
 											{latest.state}
 										</WaBadge>
 									) : (
-										<WaBadge pill variant="success">up to date</WaBadge>
+										<WaBadge pill variant="success">
+											up to date
+										</WaBadge>
 									)}
 								</td>
 							</tr>

@@ -13,19 +13,16 @@ let cachedRelease: CachedRelease | null = null;
 
 async function fetchLatestRelease(): Promise<CachedRelease | null> {
 	try {
-		const res = await fetch(
-			`https://api.github.com/repos/${UPDATE_REPO}/releases/latest`,
-			{ headers: { Accept: "application/vnd.github+json" } },
-		);
+		const res = await fetch(`https://api.github.com/repos/${UPDATE_REPO}/releases/latest`, {
+			headers: { Accept: "application/vnd.github+json" },
+		});
 		if (!res.ok) return null;
 		const release = (await res.json()) as {
 			tag_name: string;
 			assets: { name: string }[];
 		};
 		const version = release.tag_name.replace(/^v/, "");
-		const hasUpdateArchive = release.assets.some((a) =>
-			a.name.startsWith("noron-update-linux-"),
-		);
+		const hasUpdateArchive = release.assets.some((a) => a.name.startsWith("noron-update-linux-"));
 		return { version, hasUpdateArchive };
 	} catch {
 		return null;
@@ -158,7 +155,11 @@ export function mockBenchd(): Plugin {
 					);
 					return;
 				}
-				if (req.url === "/api/update/status" || req.url === "/api/update/check" || req.url === "/api/update/apply") {
+				if (
+					req.url === "/api/update/status" ||
+					req.url === "/api/update/check" ||
+					req.url === "/api/update/apply"
+				) {
 					if (!cachedRelease) cachedRelease = await fetchLatestRelease();
 					const latest = cachedRelease;
 					const isNewer = latest && latest.version !== MOCK_CURRENT_VERSION;
@@ -172,9 +173,10 @@ export function mockBenchd(): Plugin {
 							JSON.stringify({
 								checked: true,
 								currentVersion: MOCK_CURRENT_VERSION,
-								latest: checked && checked.version !== MOCK_CURRENT_VERSION
-									? { version: checked.version, state: "pending" }
-									: null,
+								latest:
+									checked && checked.version !== MOCK_CURRENT_VERSION
+										? { version: checked.version, state: "pending" }
+										: null,
 							}),
 						);
 						return;

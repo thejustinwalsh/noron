@@ -313,10 +313,11 @@ export function useUpdateStatus() {
 
 	const checkForUpdate = useMutation({
 		mutationFn: () =>
-			fetchJson<{ checked: boolean; currentVersion: string; latest: { version: string; state: string } | null }>(
-				"/api/update/check",
-				{ method: "POST" },
-			),
+			fetchJson<{
+				checked: boolean;
+				currentVersion: string;
+				latest: { version: string; state: string } | null;
+			}>("/api/update/check", { method: "POST" }),
 		onSettled: () => {
 			queryClient.invalidateQueries({ queryKey: ["update-status"] });
 		},
