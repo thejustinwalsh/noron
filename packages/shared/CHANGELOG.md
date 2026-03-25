@@ -1,5 +1,18 @@
 # @noron/shared
 
+## 0.3.2
+
+### Patch Changes
+
+- [#13](https://github.com/thejustinwalsh/noron/pull/13) [`c023daa`](https://github.com/thejustinwalsh/noron/commit/c023daaa1f13789fc6c5850500921a38b404f60a) Thanks [@thejustinwalsh](https://github.com/thejustinwalsh)! - > Branch: fix-update-ui
+
+  > PR: https://github.com/thejustinwalsh/noron/pull/13
+
+  - `ThermalRingBuffer.trend()` default stability threshold raised from 0.5°C to 1.5°C to reduce false positives from sensor noise on SBCs (e.g. Orange Pi 5 Plus ~±0.9°C idle noise)
+  - `trend()` now accepts a configurable `thresholdC` parameter, allowing callers to override the threshold for their hardware
+
+  Thermal trend detection is more resilient to normal SBC idle temperature variation, preventing spurious "rising"/"falling" readings from sensor noise.
+
 ## 0.3.1
 
 ### Patch Changes

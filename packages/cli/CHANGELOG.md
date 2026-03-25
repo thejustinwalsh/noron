@@ -1,5 +1,21 @@
 # @noron/cli
 
+## 0.3.2
+
+### Patch Changes
+
+- [#13](https://github.com/thejustinwalsh/noron/pull/13) [`c023daa`](https://github.com/thejustinwalsh/noron/commit/c023daaa1f13789fc6c5850500921a38b404f60a) Thanks [@thejustinwalsh](https://github.com/thejustinwalsh)! - > Branch: fix-update-ui
+
+  > PR: https://github.com/thejustinwalsh/noron/pull/13
+
+  - New `noron update rollback` command to roll back the appliance to the previously installed version
+  - Calls `POST /api/update/rollback` on the configured bench-web server; reports the version rolled back from on success
+
+  The CLI now supports manual rollback via `noron update rollback`.
+
+- Updated dependencies [[`c023daa`](https://github.com/thejustinwalsh/noron/commit/c023daaa1f13789fc6c5850500921a38b404f60a)]:
+  - @noron/shared@0.3.2
+
 ## 0.3.1
 
 ### Patch Changes

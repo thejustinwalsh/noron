@@ -1,5 +1,20 @@
 # @noron/bench-exec
 
+## 0.3.2
+
+### Patch Changes
+
+- [#13](https://github.com/thejustinwalsh/noron/pull/13) [`c023daa`](https://github.com/thejustinwalsh/noron/commit/c023daaa1f13789fc6c5850500921a38b404f60a) Thanks [@thejustinwalsh](https://github.com/thejustinwalsh)! - > Branch: fix-update-ui
+
+  > PR: https://github.com/thejustinwalsh/noron/pull/13
+
+  - Internal formatting cleanup around the perf stat privilege-separation comment (no functional changes)
+
+  No behavioral changes in this release.
+
+- Updated dependencies [[`c023daa`](https://github.com/thejustinwalsh/noron/commit/c023daaa1f13789fc6c5850500921a38b404f60a)]:
+  - @noron/shared@0.3.2
+
 ## 0.3.1
 
 ### Patch Changes
