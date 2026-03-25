@@ -1,0 +1,11 @@
+rc: .lefthookrc
+
+pre-commit:
+  jobs:
+    - name: action-build
+      glob: "packages/{action/src,shared/src}/**/*.ts"
+      run: bun run --cwd packages/action build && git add packages/action/dist/index.js
+
+    - name: biome-fix
+      glob: "*.{ts,tsx,js,jsx,json}"
+      run: bunx biome check --write --staged --no-errors-on-unmatched && git add {staged_files}
