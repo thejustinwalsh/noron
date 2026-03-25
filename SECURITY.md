@@ -43,6 +43,16 @@ WebSocket connections are limited to 50 total / 5 per IP.
 | Hook binaries | `/usr/local/lib/benchd/hooks/` (ro) | Read-only |
 | Benchmark tmpfs | `/mnt/bench-tmpfs` (rw) | Cleaned on lock release |
 
+### Container capabilities
+
+| Capability | Reason |
+|------------|--------|
+| `SYS_NICE` | Set CPU affinity and real-time scheduling priority for benchmark isolation |
+| `CAP_PERFMON` | Access hardware performance counters via `perf stat` |
+| `SYS_ADMIN` | Required for `perf stat` hardware counter access — ARM64 PMU drivers do not honor `CAP_PERFMON` alone |
+
+`SYS_ADMIN` is the broadest capability granted. It is mitigated by: the container runs as non-root user `runner`, sudoers is scoped to only `bench-exec` with `SETENV`, and `bench-exec` drops root before executing user code.
+
 ### Inaccessible from containers
 
 Host filesystem (`/etc/benchd/`, SQLite database, encryption key, other runners' env files), host process table, other containers' filesystems.

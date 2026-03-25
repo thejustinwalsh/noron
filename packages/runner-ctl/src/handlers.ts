@@ -157,6 +157,7 @@ export async function handleProvision(msg: ProvisionRequest): Promise<RunnerResp
 		getAllCores(),
 		"--cap-add=SYS_NICE",
 		"--cap-add=CAP_PERFMON",
+		"--cap-add=SYS_ADMIN",
 		IMAGE,
 	];
 	const result = await spawn(podmanArgs);

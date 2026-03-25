@@ -469,7 +469,7 @@ Updates can also be managed from the dashboard admin panel — check for updates
 
 - **Job tokens** — 32-byte cryptographic tokens gate all privileged IPC operations (thermal wait, exec prepare, cgroup management). Tokens are generated per lock acquisition and invalidated on release.
 - **Privilege separation** — `benchd` runs as root for cgroup/CPU management, `bench-web` runs as `bench` user, runner containers run as `runner`. `bench-exec` is the only sudo-allowed binary, scoped via sudoers with `SETENV`.
-- **Container isolation** — runner containers get only `SYS_NICE` and `CAP_PERFMON` capabilities. Benchmark tmpfs and hooks are bind-mounted read-only.
+- **Container isolation** — runner containers get `SYS_NICE`, `CAP_PERFMON`, and `SYS_ADMIN` capabilities (ARM64 requires `SYS_ADMIN` for `perf stat` hardware counter access). Benchmark tmpfs and hooks are bind-mounted read-only.
 
 ### Update integrity
 
