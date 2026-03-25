@@ -98,8 +98,8 @@ ReadWritePaths=/run /var/run /sys/fs/cgroup/benchmark.slice /sys/devices/system/
 PrivateTmp=true
 NoNewPrivileges=false
 
-AmbientCapabilities=CAP_SYS_NICE CAP_SYS_ADMIN
-CapabilityBoundingSet=CAP_SYS_NICE CAP_SYS_ADMIN CAP_DAC_OVERRIDE
+AmbientCapabilities=CAP_SYS_NICE CAP_SYS_ADMIN CAP_CHOWN CAP_FOWNER
+CapabilityBoundingSet=CAP_SYS_NICE CAP_SYS_ADMIN CAP_DAC_OVERRIDE CAP_CHOWN CAP_FOWNER
 
 RuntimeDirectory=benchd
 ExecStartPre=/bin/rm -f /var/run/benchd.sock

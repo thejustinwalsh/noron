@@ -89,12 +89,11 @@ export class BenchdServer {
 					chmodSync(this.options.socketPath, 0o770);
 				} catch {
 					if (process.getuid?.() === 0) {
-						// Running as root but bench group doesn't exist — refuse insecure socket
-						log("error", "server", "bench group not found — cannot secure socket. Exiting.");
-						process.exit(1);
+						// Running as root but chown failed — likely missing CAP_CHOWN
+						// in the systemd unit. Fall back to 0o777; job tokens still
+						// gate all privileged ops.
+						log("warn", "server", "chown failed (missing CAP_CHOWN?) — using 0o777");
 					}
-					// Non-root (dev/test) — fall back to world-accessible socket.
-					// Privileged IPC ops are still gated by job tokens.
 					chmodSync(this.options.socketPath, 0o777);
 				}
 				log("info", "server", `Listening on ${this.options.socketPath}`);
