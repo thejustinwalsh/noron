@@ -122,50 +122,63 @@ const selfUpdate = ow.defineWorkflow<SelfUpdateInput, SelfUpdateOutput>(
 			}
 		});
 
-		// Step 5: Apply update — this restarts bench-web, so workflow state
-		// must be persisted before this point. OpenWorkflow handles this via SQLite.
-		await step.run({ name: "apply-update" }, async () => {
-			const result = await runCmd(["sudo", "bench-updater", "apply", updateDir]);
-			if (!result.ok) {
-				throw new Error(`Apply failed: ${result.output}`);
-			}
-			// After this, bench-web restarts and the workflow resumes at step 6
-		});
-
-		// Step 6: Verify health (runs after bench-web restarts)
-		// Short delay to let services stabilize
-		await step.sleep("post-restart-settle", "10s");
-
+		// Step 5–6: Apply update then verify health. If the first apply isn't
+		// healthy, re-apply once (new services may need the updated code to
+		// start correctly) before falling back to a full rollback.
 		let healthy = false;
-		for (let attempt = 0; attempt < 3; attempt++) {
-			healthy = await step.run({ name: `verify-health-${attempt}` }, async () => {
-				try {
-					// Check benchd is reachable
-					const client = new BenchdClient(process.env.BENCHD_SOCKET ?? SOCKET_PATH);
-					await client.connect();
-					const config = await client.request({
-						type: "config.get",
-						requestId: crypto.randomUUID(),
-					});
-					client.close();
-					if (config.type !== "config.get") return false;
-
-					// Check version file matches expected
-					const versionFile = await Bun.file(VERSION_FILE).text();
-					if (versionFile.trim() !== input.version) return false;
-
-					return true;
-				} catch {
-					return false;
+		for (let applyAttempt = 0; applyAttempt < 2 && !healthy; applyAttempt++) {
+			// Apply update — this restarts bench-web, so workflow state
+			// must be persisted before this point. OpenWorkflow handles this via SQLite.
+			await step.run({ name: `apply-update-${applyAttempt}` }, async () => {
+				const result = await runCmd(["sudo", "bench-updater", "apply", updateDir]);
+				if (!result.ok) {
+					throw new Error(`Apply failed: ${result.output}`);
 				}
+				// After this, bench-web restarts and the workflow resumes at health check
 			});
 
-			if (healthy) break;
-			await step.sleep(`health-retry-${attempt}`, "30s");
+			// Verify health (runs after bench-web restarts)
+			await step.sleep(`post-restart-settle-${applyAttempt}`, "10s");
+
+			for (let healthAttempt = 0; healthAttempt < 3; healthAttempt++) {
+				healthy = await step.run(
+					{ name: `verify-health-${applyAttempt}-${healthAttempt}` },
+					async () => {
+						try {
+							// Check benchd is reachable
+							const client = new BenchdClient(process.env.BENCHD_SOCKET ?? SOCKET_PATH);
+							await client.connect();
+							const config = await client.request({
+								type: "config.get",
+								requestId: crypto.randomUUID(),
+							});
+							client.close();
+							if (config.type !== "config.get") return false;
+
+							// Check version file matches expected
+							const versionFile = await Bun.file(VERSION_FILE).text();
+							if (versionFile.trim() !== input.version) return false;
+
+							return true;
+						} catch {
+							return false;
+						}
+					},
+				);
+
+				if (healthy) break;
+				await step.sleep(`health-retry-${applyAttempt}-${healthAttempt}`, "30s");
+			}
+
+			if (!healthy && applyAttempt === 0) {
+				console.error(
+					`[self-update] Health check failed after first apply of ${input.version} — retrying apply`,
+				);
+			}
 		}
 
 		if (!healthy) {
-			// Rollback
+			// Both apply attempts failed — rollback to backup
 			await step.run({ name: "rollback" }, async () => {
 				console.error(
 					`[self-update] Health check failed after update to ${input.version} — rolling back`,
