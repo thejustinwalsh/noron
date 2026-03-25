@@ -5,9 +5,7 @@
 > Branch: fix-security-audit-2
 > PR: https://github.com/thejustinwalsh/noron/pull/11
 
-**Security audit and bug fixes**
+- Runner containers now receive `CAP_PERFMON` instead of `SYS_ADMIN`, scoping container privilege to performance monitoring only
+- Removed dead `escapeEnvValue()` helper that was no longer referenced
 
-- Replaced `--cap-add=SYS_ADMIN` with `--cap-add=CAP_PERFMON` for runner Podman containers, reducing the container privilege surface to the minimum needed for performance counters
-- Removed unused `escapeEnvValue()` shell-escape helper
-
-Runner containers no longer receive `SYS_ADMIN`; only `SYS_NICE` and `CAP_PERFMON` are granted.
+This reduces the privilege surface of runner containers to the minimum required for benchmark execution.

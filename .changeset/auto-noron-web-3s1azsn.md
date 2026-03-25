@@ -5,35 +5,24 @@
 > Branch: fix-security-audit-2
 > PR: https://github.com/thejustinwalsh/noron/pull/11
 
-**Security audit and bug fixes**
+- CORS middleware added: API endpoints reject cross-origin requests; allowed origin is derived from `PUBLIC_URL` env var or localhost
+- Security headers added to all responses: `X-Frame-Options: DENY`, `Content-Security-Policy`, `X-Content-Type-Options: nosniff`, `X-XSS-Protection: 0`, `Referrer-Policy`
+- Session cookies hardened from `SameSite=Lax` to `SameSite=Strict`
+- Invite OAuth flow now uses a random nonce as OAuth state and a PKCE code challenge; the raw invite token is no longer passed as OAuth state, closing a CSRF vector
+- OAuth callback rejects any state value that doesn't match a known prefix (`device:`, `dashboard:`, `upgrade:`, `invite:`), preventing unrecognized state from being silently accepted
+- Auth error messages are now generic — failure pages and redirects no longer reveal whether a GitHub account is registered
+- Admin invite creation records `created_by` user on the invite row
+- New `DELETE /api/invites/:id` endpoint allows admins to revoke unused invites
+- New `GET /api/audit-logs` endpoint returns the last 200 admin actions (invite create/revoke, PAT add/remove) with user attribution
+- `audit_logs` table added via migration; `logAudit()` helper records admin actions
+- PAT input validated to max 256 characters before touching GitHub API or storage
+- Self-update downloads now require a matching `.sha256` checksum file published alongside the release archive; download is blocked if the file is missing or the hash doesn't match
+- Added `computeSha256()` utility to `crypto.ts` for SHA-256 hashing
+- Comprehensive security hardening tests added covering `computeSha256`, audit logging, invite revocation, DB schema migrations, security headers, CORS, OAuth state dispatch, and PAT length validation
 
-**Authentication**
-- Session cookies upgraded from `SameSite=Lax` to `SameSite=Strict`
-- OAuth callback now validates the state prefix (`invite:`, `upgrade:`); unknown state values return 400 instead of being silently processed
-- Error messages for failed authentication are now generic and do not reveal whether a GitHub user is registered
-- Invite OAuth flow now generates a random nonce + PKCE code challenge/verifier; the raw invite token is no longer passed as the OAuth `state` parameter
+## BREAKING CHANGES
 
-**Admin API**
-- New `DELETE /api/invites/:id` endpoint to revoke unused invites (admin only); revocation is audit-logged
-- New `GET /api/audit-logs` endpoint returning the 200 most recent admin actions (admin only)
-- Invite creation now records `created_by` user ID in the database
+- Existing deployments will have the `audit_logs` table and `invites.created_by` column added automatically on first startup via migrations — no manual action required
+- OAuth redirect error query param changed from `error=not_registered` to `error=auth_failed`; any client-side handling of the old value should be updated
 
-**Security headers and CORS**
-- All responses now include `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy`, and a restrictive `Content-Security-Policy`
-- Cross-origin requests to `/api/*` are rejected with 403 unless the origin matches `PUBLIC_URL`
-
-**PAT management**
-- GitHub PAT input is now capped at 256 characters
-- PAT add and remove actions are audit-logged
-
-**Self-update integrity**
-- Update check now requires a `.sha256` checksum file alongside each release archive; update is aborted if the file is missing or the hash is malformed
-- Self-update workflow verifies the SHA-256 digest of the downloaded archive before extracting
-- Release CI publishes `.sha256` checksum files for both x64 and arm64 update archives
-
-**Database**
-- Added `created_by` column to `invites` table (auto-migrated)
-- Added `audit_logs` table with `idx_audit_logs_created` index (auto-migrated)
-- Added `logAudit()` helper in `db.ts`
-
-Comprehensive security hardening pass: CSRF/PKCE for invite flow, generic auth errors, strict CORS and security headers, SHA-256 update verification, audit logging, and reduced container capabilities.
+These changes address multiple security findings: CSRF in OAuth invite flow, overly broad CORS policy, missing security headers, user enumeration via error messages, unverified self-update downloads, and lack of admin audit trail.

@@ -5,11 +5,7 @@
 > Branch: fix-security-audit-2
 > PR: https://github.com/thejustinwalsh/noron/pull/11
 
-**Security audit and bug fixes**
+- Admin panel now shows a Revoke button next to each active invite; used invites cannot be revoked
+- New Audit Log panel in the admin panel displays the last 200 admin actions with timestamp, user, action type, and details
 
-- Added "Revoke" button for active invites in the Admin Panel; revoked invites are immediately invalidated
-- Added Audit Log panel in the Admin Panel showing a timestamped table of admin actions (invite creation/revocation, PAT changes) with the acting user's GitHub login
-- Added `revokeInvite` mutation to `useInvites()` hook (`DELETE /api/invites/:id`)
-- Added `useAuditLogs()` hook for fetching audit log entries from `/api/audit-logs`
-
-Admin panel gains invite revocation and a read-only audit log view for tracking admin actions.
+These changes give administrators visibility into invite and credential activity and the ability to invalidate outstanding invites.

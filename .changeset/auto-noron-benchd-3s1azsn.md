@@ -5,11 +5,9 @@
 > Branch: fix-security-audit-2
 > PR: https://github.com/thejustinwalsh/noron/pull/11
 
-**Security audit and bug fixes**
+- Socket creation now sets `umask(0o007)` before calling `listen()`, eliminating the TOCTOU race window between socket creation and permission application
+- When running as root and `chown root:bench` fails (e.g., missing `CAP_CHOWN`), server now falls back to `0o777` with a warning rather than exiting; job tokens remain the authoritative access-control boundary
+- Cgroup subtree control (`+cpuset +cpu +memory +pids`) is now enabled on the benchmark slice automatically before creating the first per-job cgroup, fixing cgroup v2 setups where subdelegation was not pre-configured
+- Added `CAP_CHOWN` and `CAP_FOWNER` to `AmbientCapabilities` and `CapabilityBoundingSet` in the generated systemd unit so socket ownership can be set without root fallback
 
-- Fixed TOCTOU socket permission race: `umask(0o007)` is now set before the socket file is created rather than after `listen()` returns, preventing a window where the socket is accessible with wrong permissions
-- Hardened socket security: when running as root, if the `bench` group is not found, benchd now exits with an error instead of falling back to a world-accessible socket (mode 0777)
-- Fixed cgroup v2 controller delegation: `ensureSubtreeControl()` now writes `+cpuset +cpu +memory +pids` to `cgroup.subtree_control` on the benchmark slice before creating per-job child cgroups, fixing failures on systems where controllers are not delegated by default
-- Added `Delegate=yes` to `benchmark.slice` systemd unit so the kernel allows benchd to manage controllers within the slice
-
-Hardens the IPC socket against TOCTOU races, refuses insecure fallback when running as root, and fixes cgroup v2 controller delegation required for CPU/memory isolation.
+These changes harden socket security, fix cgroup v2 permission setup, and ensure the generated systemd unit carries the capabilities required for secure operation.
