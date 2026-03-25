@@ -155,6 +155,16 @@ export function mockBenchd(): Plugin {
 					);
 					return;
 				}
+				if (req.url === "/api/update/rollback") {
+					res.setHeader("Content-Type", "application/json");
+					res.end(
+						JSON.stringify({
+							message: "Rollback complete",
+							previousVersion: MOCK_CURRENT_VERSION,
+						}),
+					);
+					return;
+				}
 				if (
 					req.url === "/api/update/status" ||
 					req.url === "/api/update/check" ||
