@@ -165,14 +165,6 @@ body {
 	flex: 1;
 }
 
-.lock-card--active {
-	background: rgba(215, 128, 0, 0.04);
-}
-
-.lock-card--active h3 {
-	color: var(--yellow);
-}
-
 .lock-card-head {
 	display: flex;
 	align-items: center;

@@ -37,16 +37,11 @@ export function LockStatus({ lock, queueDepth }: LockStatusProps) {
 	if (lock) {
 		return (
 			<WaCard>
-				<div className="lock-card lock-card--active">
+				<div className="lock-card">
 					<div className="lock-card-head">
 						<h3>
-							<WaIcon
-								name="bolt"
-								family="classic"
-								variant="solid"
-								style={{ marginRight: "6px", color: "var(--yellow)" }}
-							/>
-							Benchmarking
+							<WaIcon name="lock" family="classic" variant="solid" style={{ marginRight: "6px" }} />
+							Lock
 						</h3>
 						<WaBadge pill variant="warning" attention="pulse">
 							HELD
