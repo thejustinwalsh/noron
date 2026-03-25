@@ -143,10 +143,11 @@ const healRunner = ow.defineWorkflow<HealInput, HealOutput>(
 );
 
 /** Start a heal workflow. Returns the workflow run ID.
- *  Idempotent: calling twice with the same runnerId reuses the existing run. */
+ *  Each invocation creates a new workflow run — the idempotency key includes
+ *  a timestamp so that a runner can be healed multiple times. */
 export async function startHealWorkflow(input: HealInput): Promise<string> {
 	const handle = await healRunner.run(input, {
-		idempotencyKey: `heal:${input.runnerId}`,
+		idempotencyKey: `heal:${input.runnerId}:${Date.now()}`,
 	});
 	return handle.workflowRun.id;
 }

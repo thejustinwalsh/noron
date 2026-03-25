@@ -15,7 +15,7 @@ There is no isolation between tenants at the benchmark execution layer. All benc
 
 - **GitHub OAuth** (PKCE-protected). No local passwords.
 - **Invite system** — single-use tokens with 24-hour expiry. Generic error for all invalid states (no token enumeration).
-- **Session tokens** — HttpOnly cookies (SameSite=Lax, Secure when HTTPS), Bearer tokens for CLI/API. Sessions expire after 30 days.
+- **Session tokens** — HttpOnly cookies (SameSite=Strict, Secure when HTTPS), Bearer tokens for CLI/API. Sessions expire after 30 days.
 - **Token storage** — GitHub OAuth tokens encrypted at rest (AES-256-GCM). Encryption key at `/etc/benchd/encryption.key` (mode 0600, root-only), inaccessible from runner containers.
 - **Rate limiting** — auth (20 req/min), invites (10 req/min), runner creation (5 req/min), callbacks (10 req/min). All per-IP.
 
@@ -82,7 +82,7 @@ The benchd socket is owned by `root:bench` with mode `0770`. In container enviro
 ## Known limitations
 
 - **ASLR disabled** (`kernel.randomize_va_space=0`) for benchmark determinism. Reduces exploit difficulty for memory corruption attacks.
-- **No audit logging** beyond systemd journal and violation tracking.
+- **Audit logging** covers admin actions (invite creation/revocation, PAT changes, manual rollbacks) via the `/api/audit-logs` endpoint and dashboard admin panel. Does not yet cover all mutation operations.
 - **Unrestricted network** from runner containers (needed for repo cloning). Containers can exfiltrate data.
 - **WebSocket auth in query string** — browser WebSocket API limitation. Mitigated by HTTPS and configuring the reverse proxy to not log query parameters.
 

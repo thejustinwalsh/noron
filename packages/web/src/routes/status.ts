@@ -196,6 +196,7 @@ export function statusRoutes(db: Database): Hono {
 
 		if (!user.githubPat && !user.githubToken) {
 			// No GitHub token — just delete the DB record without cleanup
+			db.run("DELETE FROM violations WHERE runner_id = ?", [runnerId]);
 			db.run("DELETE FROM runners WHERE id = ?", [runnerId]);
 			return c.json({ ok: true });
 		}
@@ -203,6 +204,7 @@ export function statusRoutes(db: Database): Hono {
 		// Runners that aren't actively running have nothing to clean up —
 		// skip the deprovision workflow and just delete the DB record.
 		if (runner.status === "pending" || runner.status === "failed" || runner.status === "offline") {
+			db.run("DELETE FROM violations WHERE runner_id = ?", [runnerId]);
 			db.run("DELETE FROM runners WHERE id = ?", [runnerId]);
 			return c.json({ ok: true });
 		}

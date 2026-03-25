@@ -126,6 +126,7 @@ if (usePerfStat) {
 		console.error("bench-exec: --perf-stat requested but perf is not available on this system");
 		process.exit(1);
 	}
+
 	// perf needs root for hardware counters — drop privileges for the benchmark
 	// command only, by wrapping it with sudo -u.
 	// Use `env KEY=VALUE` instead of sudo --preserve-env to bypass env_reset —

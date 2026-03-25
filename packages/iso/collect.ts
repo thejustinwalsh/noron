@@ -37,4 +37,23 @@ for (const asset of runnerAssets) {
 }
 console.log(`  runner-image/ (${runnerAssets.length} files)`);
 
+// bench-updater script
+const updaterSrc = join(ROOT, "provisioning", "bench-updater.sh");
+if (existsSync(updaterSrc)) {
+	cpSync(updaterSrc, join(DIST, "bench-updater.sh"));
+	console.log("  bench-updater.sh");
+}
+
+// Systemd service templates (benchd + runner-ctld are static, bench-web has config)
+const systemdDest = join(DIST, "systemd");
+mkdirSync(systemdDest, { recursive: true });
+const systemdServices = ["benchd.service", "runner-ctld.service"];
+for (const svc of systemdServices) {
+	const src = join(ROOT, "provisioning", "systemd", svc);
+	if (existsSync(src)) {
+		cpSync(src, join(systemdDest, svc));
+	}
+}
+console.log(`  systemd/ (${systemdServices.length} files)`);
+
 console.log(`\nCollected to ${DIST}`);

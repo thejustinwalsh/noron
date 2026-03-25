@@ -117,8 +117,18 @@ async function run() {
         cores = configResp.isolatedCores.join(",");
         benchTmpfs = configResp.benchTmpfs ?? "";
         console.log(`Auto-detected isolated cores from benchd: ${cores}`);
-        if (benchTmpfs)
+        if (benchTmpfs) {
           console.log(`Benchmark tmpfs: ${benchTmpfs}`);
+          try {
+            const { execSync } = __require("node:child_process");
+            const fstype = execSync(`stat -f -c %T ${benchTmpfs}`, {
+              encoding: "utf-8"
+            }).trim();
+            if (fstype !== "tmpfs") {
+              console.log(`::warning::${benchTmpfs} is not a tmpfs mount (${fstype}) — benchmark I/O variance may be higher. Check that the tmpfs mount unit is active.`);
+            }
+          } catch {}
+        }
       } else {
         console.log("::warning::Could not get core config from benchd, using fallback 1,2,3");
         cores = "1,2,3";
@@ -183,10 +193,15 @@ async function run() {
     ...process.env.BENCH_OUTPUT ? { BENCH_OUTPUT: __require("node:path").resolve(cwd, process.env.BENCH_OUTPUT) } : {}
   };
   const useTmpfs = process.env.BENCH_USE_TMPFS !== "false";
-  if (benchTmpfs && useTmpfs) {
-    benchEnv.TMPDIR = benchTmpfs;
-    benchEnv.BENCH_TMPFS = benchTmpfs;
-    console.log(`Using tmpfs at ${benchTmpfs} for benchmark I/O (TMPDIR set automatically)`);
+  if (benchTmpfs && useTmpfs && sessionId) {
+    const path = __require("node:path");
+    const fs = __require("node:fs");
+    const sessionDir = path.join(benchTmpfs, sessionId);
+    fs.mkdirSync(sessionDir, { recursive: true });
+    fs.chmodSync(sessionDir, 1023);
+    benchEnv.TMPDIR = sessionDir;
+    benchEnv.BENCH_TMPFS = sessionDir;
+    console.log(`Using tmpfs at ${sessionDir} for benchmark I/O (TMPDIR set automatically)`);
     console.log("All temp file operations will use RAM-backed storage for consistent I/O latency.");
   } else if (!useTmpfs) {
     console.log("Tmpfs disabled for this run (use-tmpfs: false). Benchmark I/O will use disk.");
@@ -194,7 +209,7 @@ async function run() {
     console.log("::notice::No tmpfs available — benchmark I/O will use disk. For lower variance, configure tmpfs in /etc/benchd/config.toml (requires sufficient RAM).");
   }
   const usePerfStat = process.env.BENCH_PERF_STAT === "true";
-  const perfStatOutput = benchTmpfs ? `${benchTmpfs}/perf-stat.tsv` : "/tmp/bench-perf-stat.tsv";
+  const perfStatOutput = benchEnv.BENCH_TMPFS ? `${benchEnv.BENCH_TMPFS}/perf-stat.tsv` : "/tmp/bench-perf-stat.tsv";
   const perfStatJson = perfStatOutput.replace(/\.\w+$/, ".json");
   console.log(`::group::Benchmark: ${command}`);
   const exitCode = await new Promise((resolve) => {

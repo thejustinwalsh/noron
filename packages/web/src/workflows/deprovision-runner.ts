@@ -122,7 +122,7 @@ const deprovisionRunner = ow.defineWorkflow<DeprovisionInput, DeprovisionOutput>
 	},
 );
 
-/** Start a deprovisioning workflow.
+/** Start a deprovisioning workflow. Returns the workflow run ID.
  *  Idempotent: calling twice with the same runnerId reuses the existing run. */
 export async function startDeprovisionWorkflow(input: DeprovisionInput): Promise<string> {
 	const handle = await deprovisionRunner.run(input, {

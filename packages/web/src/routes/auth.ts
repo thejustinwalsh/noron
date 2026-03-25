@@ -196,14 +196,12 @@ export function authRoutes(db: Database): Hono {
 			return c.text("Invalid authentication state", 400);
 		} catch (err) {
 			console.error("OAuth callback error:", err);
-			const message = err instanceof Error ? err.message : String(err);
 			c.status(500);
 			return c.html(html`
 				<!DOCTYPE html>
 				<html><body style="font-family:system-ui;max-width:500px;margin:100px auto;text-align:center">
 					<h2>Authentication Error</h2>
-					<p>${message}</p>
-					<p style="color:#999;font-size:13px">Check that GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET are set correctly.</p>
+					<p>Unable to complete sign-in. Please try again or contact your administrator.</p>
 				</body></html>
 			`);
 		}

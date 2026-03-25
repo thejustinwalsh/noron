@@ -74,4 +74,20 @@ describe("tmpfs cleanup between runs", () => {
 		const cleaned = cleanupTmpfs("/nonexistent/path/bench-tmpfs");
 		expect(cleaned).toBe(0);
 	});
+
+	test("cleans per-session subdirectories with mixed ownership files", () => {
+		// Simulates the per-session pattern: {tmpfs}/{sessionId}/perf-stat.tsv
+		const session1 = join(tmpfsDir, "aaaa-bbbb-cccc");
+		const session2 = join(tmpfsDir, "dddd-eeee-ffff");
+		mkdirSync(session1);
+		mkdirSync(session2);
+		writeFileSync(join(session1, "perf-stat.tsv"), "perf data");
+		writeFileSync(join(session1, "perf-stat.json"), '{"ipc": 1.5}');
+		writeFileSync(join(session2, "perf-stat.tsv"), "perf data 2");
+		writeFileSync(join(session2, "output.json"), '{"results": []}');
+
+		const cleaned = cleanupTmpfs(tmpfsDir);
+		expect(cleaned).toBe(2);
+		expect(readdirSync(tmpfsDir)).toHaveLength(0);
+	});
 });

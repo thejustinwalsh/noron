@@ -1,0 +1,20 @@
+[Unit]
+Description=Runner Container Lifecycle Daemon
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/runner-ctld
+User=root
+Group=root
+Restart=on-failure
+RestartSec=5
+
+# Pin to housekeeping core — never steal benchmark CPU time
+CPUAffinity=0
+
+ExecStartPre=/bin/rm -f /var/run/runner-ctl.sock
+Environment=RUNNER_CTL_SOCKET=/var/run/runner-ctl.sock
+
+[Install]
+WantedBy=multi-user.target

@@ -21,6 +21,8 @@ RUNNER_DIR="/opt/runner"
 RUNNER_FILES=(Containerfile start.sh bench-runner-update.sh)
 VERSION_FILE="/var/lib/bench/version"
 UPDATES_DIR="/var/lib/bench/updates"
+SYSTEMD_DIR="/etc/systemd/system"
+STATIC_SERVICES=(benchd.service runner-ctld.service)
 SELF_NAME="bench-updater"
 SOCKET="/run/benchd/benchd.sock"
 RUNNER_CTLD_SERVICE="/etc/systemd/system/runner-ctld.service"
@@ -86,6 +88,16 @@ stop_services() {
 }
 
 start_services() {
+	# Ensure tmpfs mount is active before starting services —
+	# the mount unit may have been disabled or stopped during the update.
+	local tmpfs_unit
+	tmpfs_unit=$(systemctl list-unit-files --type=mount --no-legend \
+		| awk '/bench.*tmpfs/ {print $1}' | head -n1)
+	if [[ -n "$tmpfs_unit" ]]; then
+		info "ensuring tmpfs mount: $tmpfs_unit"
+		systemctl enable --now "$tmpfs_unit" 2>/dev/null || info "tmpfs mount failed (non-fatal)"
+	fi
+
 	info "starting benchd.service"
 	systemctl start benchd.service
 	info "starting runner-ctld.service"
@@ -184,6 +196,23 @@ install_from_source() {
 		fi
 	done
 
+	# --- systemd units (static services only) ---
+	if [[ -d "$src/systemd" ]]; then
+		info "updating systemd service files"
+		for svc in "${STATIC_SERVICES[@]}"; do
+			if [[ -f "$src/systemd/$svc" ]]; then
+				install -m 0644 "$src/systemd/$svc" "$SYSTEMD_DIR/$svc"
+			fi
+		done
+
+		# Migrate known path changes in bench-web.service (config-dependent, not replaced)
+		if [[ -f "$SYSTEMD_DIR/bench-web.service" ]]; then
+			sed -i 's|/var/run/benchd\.sock|/run/benchd/benchd.sock|g' "$SYSTEMD_DIR/bench-web.service"
+		fi
+
+		systemctl daemon-reload
+	fi
+
 	# --- version ---
 	if [[ -f "$src/version" ]]; then
 		info "writing version file"
@@ -248,6 +277,14 @@ cmd_backup() {
 	for f in "${RUNNER_FILES[@]}"; do
 		if [[ -f "$RUNNER_DIR/$f" ]]; then
 			cp "$RUNNER_DIR/$f" "$backup_dir/runner-image/$f"
+		fi
+	done
+
+	# systemd units
+	mkdir -p "$backup_dir/systemd"
+	for svc in "${STATIC_SERVICES[@]}"; do
+		if [[ -f "$SYSTEMD_DIR/$svc" ]]; then
+			cp "$SYSTEMD_DIR/$svc" "$backup_dir/systemd/$svc"
 		fi
 	done
 

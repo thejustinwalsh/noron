@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/hero-image.png" alt="Noron Benchmarks" width="100%" />
+</p>
+
 # Noron
 
 A dedicated benchmark appliance for GitHub Actions that achieves **~1.6% median variance** (as low as 0.08%) through hardware-level CPU isolation, thermal gating, and serial job execution. Turn any spare machine — an Orange Pi on your desk, a rack server, or a cloud VM — into a rock-solid benchmark runner that produces results you can actually trust.
@@ -429,11 +433,13 @@ Core allocation is auto-detected during setup based on your hardware:
 The appliance updates itself automatically from GitHub Releases. Configure with `update_repo`, `update_auto`, and `update_check_interval_hours` in config.toml.
 
 Updates are **safe by design**:
-- Never runs during a benchmark — waits for the lock to be idle before applying
-- Refuses to proceed if a benchmark is currently running
-- Backs up current binaries before replacing
-- Health-checks after restart — auto-rolls back if anything fails
-- Rebuilds the runner container with new assets
+- Never runs during a benchmark — waits for idle before applying
+- SHA-256 verified downloads from GitHub Releases
+- Full backup before every update with automatic rollback on failure
+- Retry-on-failure — re-applies once before rolling back
+- Health verification of all services after each apply
+- Updates binaries, hooks, dashboard, runner assets, systemd units, and runner containers
+- Manual rollback available via CLI or dashboard admin panel
 
 ### Runner container updates
 
@@ -444,8 +450,11 @@ Manual update via CLI:
 bench update              # show current version and status
 bench update check        # check for updates now
 bench update apply        # apply available update
+bench update rollback     # rollback to previous version
 bench update history      # show past updates
 ```
+
+Updates can also be managed from the dashboard admin panel — check for updates, apply, or rollback with one click.
 
 ## Security
 

@@ -204,12 +204,24 @@ export async function handleStatus(msg: StatusRequest): Promise<RunnerResponse> 
 	const inspect = await spawn(["podman", "inspect", "--format", "{{.State.Status}}", cname]);
 	const state = inspect.stdout.trim() || "unknown";
 
-	return {
-		requestId: msg.requestId,
-		type: "status",
-		state: state === "running" ? "running" : "stopped",
-		detail: state,
-	};
+	if (state !== "running") {
+		return { requestId: msg.requestId, type: "status", state: "stopped", detail: state };
+	}
+
+	// Verify the benchd socket bind mount is live inside the container.
+	// If benchd restarted, the RuntimeDirectory is recreated and the
+	// container's bind mount goes stale — the socket file disappears.
+	const socketCheck = await spawn(["podman", "exec", cname, "test", "-S", SOCKET_PATH]);
+	if (socketCheck.exitCode !== 0) {
+		return {
+			requestId: msg.requestId,
+			type: "status",
+			state: "stale",
+			detail: "benchd socket not reachable inside container",
+		};
+	}
+
+	return { requestId: msg.requestId, type: "status", state: "running", detail: state };
 }
 
 export async function dispatch(msg: RunnerRequest): Promise<RunnerResponse> {
