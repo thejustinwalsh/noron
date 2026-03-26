@@ -343,6 +343,18 @@ cmd_rollback() {
 
 	[[ -n "$latest" ]] || die "no rollback backups found in $UPDATES_DIR"
 
+	# Verify backup integrity before attempting rollback
+	local required=(
+		"benchd/benchd"
+		"bench-exec/bench-exec"
+		"web/bench-web"
+		"cli/bench"
+		"runner-ctl/runner-ctld"
+	)
+	for f in "${required[@]}"; do
+		[[ -f "$latest/$f" ]] || die "backup corrupted: missing $f in $latest"
+	done
+
 	info "rolling back from $latest"
 
 	ensure_idle

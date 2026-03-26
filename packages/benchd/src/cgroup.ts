@@ -25,18 +25,18 @@ export class CgroupManager {
 	) {}
 
 	/** Enable cpuset/cpu/memory/pids controllers on the benchmark slice.
-	 *  Always re-applies — cgroup state can be lost across service restarts. */
+	 *  Cached after first success — reset via resetSubtreeControl() if cgroup
+	 *  state is lost (e.g., after a service restart detected by health check). */
 	private async ensureSubtreeControl(): Promise<void> {
+		if (this.subtreeControlReady) return;
 		try {
 			await mkdir(this.benchmarkCgroup, { recursive: true });
 			await writeFile(
 				`${this.benchmarkCgroup}/cgroup.subtree_control`,
 				"+cpuset +cpu +memory +pids",
 			);
-			if (!this.subtreeControlReady) {
-				log("info", "cgroup", "Enabled subtree control on benchmark slice");
-				this.subtreeControlReady = true;
-			}
+			this.subtreeControlReady = true;
+			log("info", "cgroup", "Enabled subtree control on benchmark slice");
 		} catch (err) {
 			log("warn", "cgroup", `Failed to enable subtree control: ${err}`);
 		}

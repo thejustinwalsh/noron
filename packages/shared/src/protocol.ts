@@ -186,6 +186,14 @@ export interface StatusSubscribeRequest extends BaseRequest {
 	type: "status.subscribe";
 }
 
+/** Thermal readings buffered during a benchmark, sent on lock release for dashboard backfill */
+export interface ThermalBackfill extends BaseResponse {
+	type: "thermal.backfill";
+	readings: { temp: number; ts: number }[];
+	lockAcquiredAt: number;
+	lockReleasedAt: number;
+}
+
 export interface StatusUpdate extends BaseResponse {
 	type: "status.update";
 	timestamp: number;

@@ -120,8 +120,8 @@ async function run() {
         if (benchTmpfs) {
           console.log(`Benchmark tmpfs: ${benchTmpfs}`);
           try {
-            const { execSync } = __require("node:child_process");
-            const fstype = execSync(`stat -f -c %T ${benchTmpfs}`, {
+            const { execFileSync } = __require("node:child_process");
+            const fstype = execFileSync("stat", ["-f", "-c", "%T", benchTmpfs], {
               encoding: "utf-8"
             }).trim();
             if (fstype !== "tmpfs") {

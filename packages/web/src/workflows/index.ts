@@ -86,7 +86,7 @@ export function deleteRunner(runnerId: string): void {
 	db.run("DELETE FROM runners WHERE id = ?", [runnerId]);
 }
 
-const MAX_WORKFLOW_RUNS = 100;
+const MAX_WORKFLOW_RUNS = 20;
 
 /** Keep only the newest MAX_WORKFLOW_RUNS finished workflow runs.
  *  Active runs (pending/running/sleeping) are never deleted.

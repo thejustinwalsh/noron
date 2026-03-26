@@ -112,10 +112,12 @@ async function run(): Promise<void> {
 				if (benchTmpfs) {
 					console.log(`Benchmark tmpfs: ${benchTmpfs}`);
 					try {
-						const { execSync } = require("node:child_process");
-						const fstype = execSync(`stat -f -c %T ${benchTmpfs}`, {
-							encoding: "utf-8",
-						}).trim();
+						const { execFileSync } = require("node:child_process");
+						const fstype = (
+							execFileSync("stat", ["-f", "-c", "%T", benchTmpfs], {
+								encoding: "utf-8",
+							}) as string
+						).trim();
 						if (fstype !== "tmpfs") {
 							console.log(
 								`::warning::${benchTmpfs} is not a tmpfs mount (${fstype}) — benchmark I/O variance may be higher. Check that the tmpfs mount unit is active.`,

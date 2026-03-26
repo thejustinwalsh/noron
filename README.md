@@ -473,7 +473,7 @@ Updates can also be managed from the dashboard admin panel — check for updates
 
 ### Update integrity
 
-- **SHA-256 verification** — self-update downloads are verified against checksums published alongside release archives. Updates are blocked if the checksum file is missing or the hash doesn't match.
+- **SHA-256 verification** — self-update downloads are verified against GitHub's API-computed digest, not sidecar checksum files. The digest is computed by GitHub's infrastructure when the asset is uploaded, providing independent integrity verification.
 - **Automatic rollback** — failed health checks after an update trigger automatic rollback to the previous version.
 
 ### Web hardening
