@@ -11,8 +11,8 @@ A dedicated benchmark appliance for GitHub Actions that achieves **~1.6% median 
 - **~1.6% median variance** (as low as 0.08%) — `isolcpus`, tickless cores, IRQ pinning, and thermal gating eliminate the noise that makes benchmarks useless on shared infrastructure
 - **Zero config for users** — admins set up the appliance once; everyone else just adds `runs-on: [self-hosted, noron]` to their workflow
 - **One job at a time** — machine-wide FIFO lock ensures zero contention between benchmark runs
-- **Self-updating** — the appliance checks GitHub Releases and updates itself automatically, with rollback on failure
-- **Board-specific SBC images** — pre-built `.img` files for Orange Pi 5 Plus and Raspberry Pi 4/5, plus generic ISOs for x86_64 and ARM64 servers
+- **Update-ready** — appliances can self-update from private update artifacts with rollback on failure
+- **Board-specific Armbian images** — pre-built `.img` files for Orange Pi 5 Plus and Raspberry Pi 4/5
 
 ## Quick start — self-hosted runner setup
 
@@ -36,27 +36,7 @@ Or use [balenaEtcher](https://etcher.balena.io/) which handles `.img.xz` files d
 
 Boot, run the setup wizard, reboot, done. See the [deployment guide](packages/iso/README.md) for details.
 
-### Option 2: Disk image (x86_64, generic ARM64)
-
-For bare metal servers, cloud dedicated instances, or self-hosted hardware, download from the [latest release](../../releases):
-
-| Platform | Image |
-|----------|-------|
-| x86_64 PC / server | `noron-x64.img.xz` |
-| ARM64 server | `noron-arm64.img.xz` |
-
-```bash
-# Flash to disk (self-hosted hardware)
-xzcat noron-x64.img.xz | sudo dd of=/dev/sdX bs=4M status=progress
-
-# Cloud providers: decompress and upload the raw .img
-unxz noron-x64.img.xz
-# Then upload via provider dashboard or API
-```
-
-Works with Hetzner (`dd` from rescue), OVH (BYOI raw upload), AWS (import-image), or any provider that accepts raw disk images.
-
-### Option 3: Ansible (fleet management)
+### Option 2: Ansible (fleet management)
 
 For provisioning multiple appliances or automated repeatable deployments:
 
@@ -67,7 +47,7 @@ ansible-playbook -i inventory.local.yml playbook.yml --ask-vault-pass
 
 > **Full Ansible guide** including inventory setup, per-machine core allocation, and secrets management: **[provisioning/ansible/README.md](provisioning/ansible/README.md)**
 
-### Option 4: LLM-assisted setup
+### Option 3: LLM-assisted setup
 
 If you have a bare metal PC or SBC and want guided help, paste the following prompt into your LLM of choice along with the hardware you're working with:
 
@@ -88,8 +68,7 @@ pinning, and serial job execution to produce stable benchmark results.
 ## What I need help with
 
 ### 1. Image selection and flashing
-- SBC: board-specific .img.xz from GitHub Releases (Orange Pi 5 Plus, Raspberry Pi 4/5)
-- x64/arm64 server: generic .img.xz from GitHub Releases
+- SBC: board-specific Armbian .img.xz from GitHub Releases (Orange Pi 5 Plus, Raspberry Pi 4/5)
 - Flash with: xzcat <image>.img.xz | sudo dd of=/dev/sdX bs=4M status=progress
 
 ### 2. First boot and setup wizard
@@ -430,11 +409,11 @@ Core allocation is auto-detected during setup based on your hardware:
 
 ## Self-updates
 
-The appliance updates itself automatically from GitHub Releases. Configure with `update_repo`, `update_auto`, and `update_check_interval_hours` in config.toml.
+Public GitHub Releases publish only Armbian SBC images. They do not publish generic server images or update archives. Appliance self-updates are still supported when you provide private update artifacts and configure `update_repo`, `update_auto`, and `update_check_interval_hours` in config.toml.
 
 Updates are **safe by design**:
 - Never runs during a benchmark — waits for idle before applying
-- SHA-256 verified downloads from GitHub Releases
+- SHA-256 verified downloads from the configured release source
 - Full backup before every update with automatic rollback on failure
 - Retry-on-failure — re-applies once before rolling back
 - Health verification of all services after each apply
@@ -534,14 +513,9 @@ bun run lint:fix
 
 ```bash
 # Build all packages and collect artifacts into packages/iso/dist/
-BUN_TARGET=bun-linux-arm64 bun run collect-dist   # ARM64
-BUN_TARGET=bun-linux-x64 bun run collect-dist     # x64
+BUN_TARGET=bun-linux-arm64 bun run collect-dist
 
-# Build server disk images (requires root, debootstrap, or Docker)
-sudo ./provisioning/img/build-img.sh arm64 packages/iso/dist/ artifacts/
-sudo ./provisioning/img/build-img.sh amd64 packages/iso/dist/ artifacts/
-
-# Build SBC images (requires Armbian build framework + Docker)
+# Build Armbian SBC images (requires Armbian build framework + Docker)
 ./provisioning/sbc/build-sbc-image.sh orangepi5-plus packages/iso/dist/ artifacts/
 ./provisioning/sbc/build-sbc-image.sh rpi4b packages/iso/dist/ artifacts/
 ```
@@ -569,7 +543,7 @@ See [dev/README.md](dev/README.md) for the full local development guide.
 | RAM | 2 GB | 4 GB+ |
 | Storage | 8 GB (SD card or SSD) | 16 GB+ SSD |
 | OS | Debian 12 (bookworm) | Provided via image |
-| Architecture | x86_64 or ARM64 (aarch64) | ARM64 SBCs: Orange Pi 5 Plus, Raspberry Pi 4/5 |
+| Architecture | ARM64 SBCs | Orange Pi 5 Plus, Raspberry Pi 4/5 |
 
 More cores = more isolation options. The appliance reserves 1 core for OS/daemon/web overhead and dedicates the rest exclusively to benchmarks.
 

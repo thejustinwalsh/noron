@@ -67,66 +67,6 @@ jobs:
             echo "build=false" >> "$GITHUB_OUTPUT"
           fi
 
-  build-img:
-    name: Build Image (${{ matrix.arch }})
-    runs-on: ${{ matrix.runner }}
-    needs: release
-    if: needs.release.outputs.build-iso == 'true'
-    strategy:
-      matrix:
-        include:
-          - arch: x64
-            deb_arch: amd64
-            bun_target: bun-linux-x64
-            runner: ubuntu-latest
-          - arch: arm64
-            deb_arch: arm64
-            bun_target: bun-linux-arm64
-            runner: ubuntu-24.04-arm
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          ref: main
-      - uses: oven-sh/setup-bun@v2
-      - run: bun install --frozen-lockfile
-
-      - uses: actions/cache@v4
-        with:
-          path: .turbo
-          key: turbo-${{ runner.os }}-${{ matrix.arch }}-${{ github.sha }}
-          restore-keys: turbo-${{ runner.os }}-${{ matrix.arch }}-
-
-      - name: Collect dist (${{ matrix.arch }})
-        run: BUN_TARGET=${{ matrix.bun_target }} bun run collect-dist
-
-      - name: Validate dist assets
-        run: bun test tests/e2e/iso-assets.test.ts
-        env:
-          BENCH_ENCRYPTION_KEY: "0000000000000000000000000000000000000000000000000000000000000000"
-
-      - name: Build disk image (${{ matrix.arch }})
-        run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq debootstrap parted dosfstools e2fsprogs kpartx xz-utils
-          if [ "$(dpkg --print-architecture)" != "${{ matrix.deb_arch }}" ]; then
-            sudo apt-get install -y -qq qemu-user-static
-          fi
-          mkdir -p artifacts/
-          sudo ./provisioning/img/build-img.sh ${{ matrix.deb_arch }} packages/iso/dist/ artifacts/ "${{ needs.release.outputs.iso-version || '0.0.0' }}"
-
-      - name: Create update archive (${{ matrix.arch }})
-        run: tar -czf artifacts/noron-update-linux-${{ matrix.arch }}.tar.gz -C packages/iso/dist .
-
-      - name: Generate checksums (${{ matrix.arch }})
-        run: |
-          cd artifacts/
-          sha256sum noron-update-linux-${{ matrix.arch }}.tar.gz > noron-update-linux-${{ matrix.arch }}.tar.gz.sha256
-
-      - uses: actions/upload-artifact@v7
-        with:
-          name: noron-${{ matrix.arch }}
-          path: artifacts/
-
   build-sbc:
     name: Build SBC (${{ matrix.board }})
     runs-on: ubuntu-24.04-arm
@@ -196,24 +136,14 @@ jobs:
   github-release:
     name: GitHub Release
     runs-on: ubuntu-latest
-    needs: [release, build-img, build-sbc]
-    if: needs.release.outputs.build-iso == 'true' && needs.build-img.result == 'success' && needs.build-sbc.result == 'success'
+    needs: [release, build-sbc]
+    if: needs.release.outputs.build-iso == 'true' && needs.build-sbc.result == 'success'
     permissions:
       contents: write
     steps:
       - uses: actions/checkout@v6
         with:
           ref: main
-
-      - uses: actions/download-artifact@v8
-        with:
-          name: noron-x64
-          path: artifacts/
-
-      - uses: actions/download-artifact@v8
-        with:
-          name: noron-arm64
-          path: artifacts/
 
       - uses: actions/download-artifact@v8
         with:
@@ -228,13 +158,7 @@ jobs:
       - uses: thejustinwalsh/workflows/fixed-github-release@main
         with:
           artifacts: |
-            artifacts/noron-x64.img.xz#Noron Image (x64)
-            artifacts/noron-arm64.img.xz#Noron Image (arm64 server)
-            artifacts/noron-update-linux-x64.tar.gz#Update Archive (x64)
-            artifacts/noron-update-linux-x64.tar.gz.sha256#Update Checksum (x64)
-            artifacts/noron-update-linux-arm64.tar.gz#Update Archive (arm64)
-            artifacts/noron-update-linux-arm64.tar.gz.sha256#Update Checksum (arm64)
-            artifacts/noron-orangepi5-plus.img.xz#Noron SBC Image (Orange Pi 5 Plus)
-            artifacts/noron-rpi4b.img.xz#Noron SBC Image (Raspberry Pi 4/5)
+            artifacts/noron-orangepi5-plus.img.xz#Noron Armbian Image (Orange Pi 5 Plus)
+            artifacts/noron-rpi4b.img.xz#Noron Armbian Image (Raspberry Pi 4/5)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

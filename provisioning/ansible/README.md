@@ -161,7 +161,7 @@ provisioning/ansible/
 
 To update binaries on deployed appliances, either:
 
-1. **Self-update** (recommended) — configure `update_repo` in `/etc/benchd/config.toml` on each appliance. They'll poll GitHub Releases and update themselves. See the [ISO docs](../../packages/iso/README.md#self-updates).
+1. **Self-update with private artifacts** — configure `update_repo` in `/etc/benchd/config.toml` on each appliance. Public GitHub Releases do not include update archives, so this requires a private release/source that publishes them. See the [ISO docs](../../packages/iso/README.md#self-updates).
 
 2. **Re-run the playbook** — build new binaries locally, then re-run:
    ```bash

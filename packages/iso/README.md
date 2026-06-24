@@ -1,6 +1,9 @@
 # @noron/iso — Benchmark Appliance Images
 
-Builds bootable disk images for the Noron benchmark appliance: board-specific `.img` files for SBCs via Armbian, and generic `.img` files for x86_64 and ARM64 servers via debootstrap. These are the deployment artifacts — flash to disk, upload to a cloud provider, or boot from USB.
+Builds bootable disk images for the Noron benchmark appliance. Public GitHub
+releases publish only board-specific Armbian `.img` files for supported SBCs.
+Generic x86_64 and ARM64 server images may be built locally for private use, but
+they are not public release artifacts.
 
 ## What's inside
 
@@ -20,7 +23,7 @@ Every image ships with a complete, pre-installed benchmark appliance:
 
 ### What you need
 
-- An SBC (Orange Pi 5 Plus, Raspberry Pi 4/5) or x86_64 machine
+- An SBC (Orange Pi 5 Plus, Raspberry Pi 4/5)
 - MicroSD card (16GB+) or SSD/eMMC
 - Ethernet connection (wired recommended for consistent benchmarks)
 - A GitHub OAuth App ([create one](https://github.com/settings/developers))
@@ -29,38 +32,21 @@ Every image ships with a complete, pre-installed benchmark appliance:
 
 Download from the [latest release](https://github.com/thejustinwalsh/noron/releases).
 
-**SBC users** — grab the board-specific `.img`:
+Grab the board-specific Armbian `.img`:
 
 | Board | Image | Architecture |
 |-------|-------|-------------|
 | Orange Pi 5 Plus | `noron-orangepi5-plus.img.xz` | ARM64 (RK3588) |
 | Raspberry Pi 4/5 | `noron-rpi4b.img.xz` | ARM64 |
 
-**x86_64 / generic ARM64 servers** — grab the disk image:
-
-| Platform | Image |
-|----------|-------|
-| x86_64 bare metal / cloud | `noron-x64.img.xz` |
-| ARM64 server | `noron-arm64.img.xz` |
-
 Flash with [balenaEtcher](https://etcher.balena.io/) or the command line:
 
 ```bash
 # SBC (SD card / eMMC)
 xzcat noron-orangepi5-plus.img.xz | sudo dd of=/dev/sdX bs=4M status=progress
-
-# Server (flash to disk or USB)
-xzcat noron-x64.img.xz | sudo dd of=/dev/sdX bs=4M status=progress
-
-# Cloud providers: decompress and upload the raw .img
-unxz noron-x64.img.xz
 ```
 
 Replace `/dev/sdX` with your target drive (use `lsblk` to find it).
-
-Works with Hetzner (`dd` from rescue), OVH (BYOI raw upload), AWS (import-image to AMI), or any provider that accepts raw disk images.
-
-For cloud providers, upload the raw `.img` as a custom image. Dedicated/metal instances are recommended — VMs with shared CPU cores won't achieve the same isolation as bare metal.
 
 ### 2. First boot
 
@@ -127,7 +113,7 @@ For fleet management or automated provisioning of multiple appliances, see the [
 
 ## Self-updates
 
-The appliance updates itself automatically from GitHub Releases. Configure in `/etc/benchd/config.toml`:
+Public GitHub Releases publish only Armbian SBC images. They do not publish update archives. Appliance self-updates are still supported when you provide private update artifacts and configure `/etc/benchd/config.toml`:
 
 ```toml
 # GitHub repo to check for new releases
@@ -142,7 +128,7 @@ update_check_interval_hours = 1
 
 Updates are **safe by design**:
 - Never runs during a benchmark (paused by the benchmark gate)
-- Downloads the update archive, then waits for the lock to be idle
+- Downloads the configured update archive, then waits for the lock to be idle
 - Backs up current binaries before replacing
 - Health-checks after restart — auto-rolls back if anything fails
 - Rebuilds the runner container with new assets
@@ -169,9 +155,9 @@ BUN_TARGET=bun-linux-x64 bun run collect-dist     # x64
 
 Turbo handles the full dependency graph — `shared` builds first, then binaries in parallel, then the iso package collects everything.
 
-### Building server images (x86_64, generic ARM64)
+### Building private server images (x86_64, generic ARM64)
 
-Server images use debootstrap to create a minimal Debian 12 disk image with GRUB EFI boot. Must run as root on a Linux system (or via Docker):
+Server images use debootstrap to create a minimal Debian 12 disk image with GRUB EFI boot. They are for local/private use and are not attached to public GitHub releases. Must run as root on a Linux system (or via Docker):
 
 ```bash
 # Direct (requires root, debootstrap, parted)
@@ -215,9 +201,8 @@ Requires Docker and ~30GB disk space. Supported boards:
 The [release workflow](../../.github/workflows/release.yml) automates everything:
 
 1. **release** — Changesets version bump, tag `@noron/iso@X.Y.Z`
-2. **build-img** — Matrix build: x64 on `ubuntu-latest`, arm64 on `ubuntu-24.04-arm` (debootstrap)
-3. **build-sbc** — Matrix build: Orange Pi 5 Plus and RPi 4/5 on `ubuntu-24.04-arm` (Armbian)
-4. **github-release** — Collects all 6 artifacts (2 server images + 2 update archives + 2 SBC images) into a GitHub Release
+2. **build-sbc** — Matrix build: Orange Pi 5 Plus and RPi 4/5 on `ubuntu-24.04-arm` (Armbian)
+3. **github-release** — Publishes only the Armbian SBC images to GitHub Releases
 
 ## Architecture-specific notes
 
