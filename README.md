@@ -456,6 +456,25 @@ bench update history      # show past updates
 
 Updates can also be managed from the dashboard admin panel — check for updates, apply, or rollback with one click.
 
+## Public signup funnel
+
+Appliance deployments are dashboard-first by default: `/` redirects to `/dashboard/`, and the signup
+landing page is disabled. This keeps self-hosted Armbian boards from showing commercial signup UI.
+
+Enable the public landing page and access-request form only on the hosted/commercial deployment:
+
+```ini
+NORON_PUBLIC_SIGNUP=1
+CLOUDFLARE_ACCOUNT_ID=...
+CLOUDFLARE_API_TOKEN=...
+SIGNUP_NOTIFY_FROM="Noron <signup@your-domain.example>"
+SIGNUP_NOTIFY_TO=you@example.com
+```
+
+Valid signup requests are stored in `signup_applications`. When the Cloudflare email variables are
+present, bench-web also sends a notification email through Cloudflare Email Sending. If notification
+delivery fails, the request remains stored and the user still sees the thank-you page.
+
 ## Security
 
 ### Access control

@@ -1,10 +1,15 @@
 import type { Database } from "bun:sqlite";
 import { Hono } from "hono";
 import { html } from "hono/html";
+import type { SignupNotifier } from "../signup-notify";
 
 const PROJECT_TYPES = new Set(["open-source", "internal", "commercial", "research", "other"]);
 
-export function landingRoutes(db: Database): Hono {
+interface LandingRoutesOptions {
+	notifySignup?: SignupNotifier;
+}
+
+export function landingRoutes(db: Database, options: LandingRoutesOptions = {}): Hono {
 	const app = new Hono();
 
 	app.get("/", (c) =>
@@ -349,6 +354,8 @@ export function landingRoutes(db: Database): Hono {
 		const projectType = field(body.project_type);
 		const githubUrl = optionalField(body.github_url);
 		const useCase = field(body.use_case);
+		const ip = clientIp(c.req.header("x-forwarded-for"), c.req.header("x-real-ip"));
+		const userAgent = c.req.header("user-agent") ?? null;
 
 		if (!isValidEmail(email) || !PROJECT_TYPES.has(projectType) || useCase.length < 10) {
 			return c.text("Please provide a valid email, use type, and use case.", 400);
@@ -370,10 +377,25 @@ export function landingRoutes(db: Database): Hono {
 				githubUrl,
 				useCase,
 				Date.now(),
-				clientIp(c.req.header("x-forwarded-for"), c.req.header("x-real-ip")),
-				c.req.header("user-agent") ?? null,
+				ip,
+				userAgent,
 			],
 		);
+
+		try {
+			await options.notifySignup?.({
+				email,
+				name,
+				company,
+				projectType,
+				githubUrl,
+				useCase,
+				ip,
+				userAgent,
+			});
+		} catch (error) {
+			console.warn("[signup] Failed to send notification", error);
+		}
 
 		return c.redirect("/thanks", 303);
 	});

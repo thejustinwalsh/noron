@@ -304,6 +304,31 @@ Environment=PUBLIC_URL=https://noron.tjw.dev
 sudo systemctl restart bench-web
 ```
 
+### Public signup funnel
+
+Leave the signup funnel disabled on the Orange Pi appliance. That deployment should keep `/`
+redirecting to `/dashboard/`.
+
+For the future hosted public deployment, enable the landing page and Cloudflare email notifications
+with a systemd override:
+
+```bash
+sudo systemctl edit bench-web
+```
+
+```ini
+[Service]
+Environment=NORON_PUBLIC_SIGNUP=1
+Environment=CLOUDFLARE_ACCOUNT_ID=...
+Environment=CLOUDFLARE_API_TOKEN=...
+Environment="SIGNUP_NOTIFY_FROM=Noron <signup@your-domain.example>"
+Environment=SIGNUP_NOTIFY_TO=you@example.com
+```
+
+```bash
+sudo systemctl restart bench-web
+```
+
 ### DNS (Cloudflare manages this)
 
 Cloudflare Tunnel automatically handles DNS — the tunnel creates a CNAME for `noron.tjw.dev` pointing to your tunnel. No manual DNS records needed.

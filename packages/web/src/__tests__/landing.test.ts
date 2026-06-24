@@ -72,6 +72,61 @@ describe("landingRoutes", () => {
 		expect(row.user_agent).toBe("bun-test");
 	});
 
+	test("notifies after storing a valid signup application", async () => {
+		const db = createTestDb();
+		const notifications: unknown[] = [];
+		const app = landingRoutes(db, {
+			notifySignup: async (application) => {
+				notifications.push(application);
+			},
+		});
+		const form = new URLSearchParams({
+			email: "founder@example.com",
+			project_type: "internal",
+			use_case: "We want stable internal benchmark runs.",
+		});
+
+		const res = await app.request("/signup", {
+			method: "POST",
+			body: form,
+			headers: { "content-type": "application/x-www-form-urlencoded" },
+		});
+
+		expect(res.status).toBe(303);
+		expect(notifications).toHaveLength(1);
+		expect(notifications[0]).toMatchObject({
+			email: "founder@example.com",
+			projectType: "internal",
+			useCase: "We want stable internal benchmark runs.",
+		});
+	});
+
+	test("still accepts signup when notification fails", async () => {
+		const db = createTestDb();
+		const app = landingRoutes(db, {
+			notifySignup: async () => {
+				throw new Error("mail unavailable");
+			},
+		});
+		const form = new URLSearchParams({
+			email: "founder@example.com",
+			project_type: "commercial",
+			use_case: "We want to evaluate commercial benchmark infrastructure.",
+		});
+
+		const res = await app.request("/signup", {
+			method: "POST",
+			body: form,
+			headers: { "content-type": "application/x-www-form-urlencoded" },
+		});
+
+		expect(res.status).toBe(303);
+		const count = db.query("SELECT COUNT(*) as count FROM signup_applications").get() as {
+			count: number;
+		};
+		expect(count.count).toBe(1);
+	});
+
 	test("rejects invalid applications", async () => {
 		const db = createTestDb();
 		const app = landingRoutes(db);

@@ -15,6 +15,8 @@ import { updateRoutes } from "./routes/update";
 import { recordViolation, violationRoutes } from "./routes/violations";
 import { workflowRoutes } from "./routes/workflows";
 import { validateWsConnection, wsStatusHandler } from "./routes/ws-status";
+import { createSignupNotifierFromEnv } from "./signup-notify";
+import { isPublicSignupEnabled } from "./site-mode";
 import { checkForUpdate } from "./update-check";
 import { ow, purgeOldWorkflowRuns, setGate, setWorkflowDb } from "./workflows";
 // Import workflows so they register with OpenWorkflow
@@ -28,6 +30,8 @@ const app = new Hono();
 // Initialize database
 const dbPath = process.env.DATABASE_PATH ?? "./bench.db";
 const db = initDb(dbPath);
+const notifySignup = createSignupNotifierFromEnv(process.env);
+const publicSignupEnabled = isPublicSignupEnabled(process.env);
 
 // Initialize OpenWorkflow — share DB reference with workflows
 setWorkflowDb(db);
@@ -215,7 +219,11 @@ app.on("POST", ["/api/runners"], runnerCreateRateLimit);
 app.on("POST", ["/api/runners/*/callback"], runnerCallbackRateLimit);
 
 // Routes
-app.route("/", landingRoutes(db));
+if (publicSignupEnabled) {
+	app.route("/", landingRoutes(db, { notifySignup }));
+} else {
+	app.get("/", (c) => c.redirect("/dashboard/"));
+}
 app.route("/invite", inviteRoutes(db));
 app.route("/auth", authRoutes(db));
 app.route("/api", statusRoutes(db));
