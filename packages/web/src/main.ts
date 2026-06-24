@@ -9,6 +9,7 @@ import { createRateLimiter } from "./rate-limit";
 import { adminRoutes } from "./routes/admin";
 import { authRoutes } from "./routes/auth";
 import { inviteRoutes } from "./routes/invite";
+import { landingRoutes } from "./routes/landing";
 import { statusRoutes } from "./routes/status";
 import { updateRoutes } from "./routes/update";
 import { recordViolation, violationRoutes } from "./routes/violations";
@@ -197,24 +198,24 @@ app.use(
 // SPA fallback — serve index.html for client-side routing
 app.get("/dashboard/*", serveStatic({ path: `${dashboardDir}/index.html` }));
 
-// Redirect root to dashboard
-app.get("/", (c) => c.redirect("/dashboard/"));
-
 // Static files
 app.use("/static/*", serveStatic({ root: "./public" }));
 
 // Rate limiting — protect auth/invite/runner endpoints from brute-force and spam
 const inviteRateLimit = createRateLimiter({ windowMs: 60_000, maxRequests: 10 });
 const authRateLimit = createRateLimiter({ windowMs: 60_000, maxRequests: 20 });
+const signupRateLimit = createRateLimiter({ windowMs: 60_000, maxRequests: 5 });
 const runnerCreateRateLimit = createRateLimiter({ windowMs: 60_000, maxRequests: 5 });
 const runnerCallbackRateLimit = createRateLimiter({ windowMs: 60_000, maxRequests: 10 });
 
 app.use("/invite/*", inviteRateLimit);
 app.use("/auth/*", authRateLimit);
+app.use("/signup", signupRateLimit);
 app.on("POST", ["/api/runners"], runnerCreateRateLimit);
 app.on("POST", ["/api/runners/*/callback"], runnerCallbackRateLimit);
 
 // Routes
+app.route("/", landingRoutes(db));
 app.route("/invite", inviteRoutes(db));
 app.route("/auth", authRoutes(db));
 app.route("/api", statusRoutes(db));

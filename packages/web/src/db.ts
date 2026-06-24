@@ -189,6 +189,24 @@ export function initDb(path: string): Database {
 	`);
 	db.exec("CREATE INDEX IF NOT EXISTS idx_audit_logs_created ON audit_logs(created_at)");
 
+	db.exec(`
+		CREATE TABLE IF NOT EXISTS signup_applications (
+			id TEXT PRIMARY KEY,
+			email TEXT NOT NULL,
+			name TEXT,
+			company TEXT,
+			project_type TEXT NOT NULL,
+			github_url TEXT,
+			use_case TEXT NOT NULL,
+			created_at INTEGER NOT NULL,
+			ip TEXT,
+			user_agent TEXT
+		)
+	`);
+	db.exec(
+		"CREATE INDEX IF NOT EXISTS idx_signup_applications_created ON signup_applications(created_at)",
+	);
+
 	// Generate a bootstrap invite on first run so the first user can register
 	const inviteCount = db.query("SELECT COUNT(*) as count FROM invites").get() as { count: number };
 	if (inviteCount.count === 0) {
