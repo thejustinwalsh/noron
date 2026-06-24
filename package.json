@@ -4,7 +4,7 @@
 	"private": true,
 	"packageManager": "bun@1.3.5",
 	"repository": "thejustinwalsh/noron",
-	"license": "MIT",
+	"license": "BUSL-1.1",
 	"workspaces": ["packages/*", "dev"],
 	"scripts": {
 		"build": "turbo run build",
