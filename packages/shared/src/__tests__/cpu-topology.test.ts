@@ -87,18 +87,37 @@ describe("core allocation strategy", () => {
 });
 
 describe("detectCpuTopology", () => {
-	test("returns null coreCapacities when sysfs is unavailable", () => {
+	test("returns null coreCapacities only when sysfs capacities are unavailable", () => {
 		const topology = detectCpuTopology();
-		// On macOS/CI, cpu_capacity sysfs files won't exist
-		expect(topology.coreCapacities).toBeNull();
+		if (topology.coreCapacities === null) {
+			expect(topology.coreCapacities).toBeNull();
+			return;
+		}
+
+		expect(topology.coreCapacities.size).toBe(topology.onlineCores.length);
+		for (const core of topology.onlineCores) {
+			expect(topology.coreCapacities.has(core)).toBe(true);
+		}
 	});
 
-	test("falls back to core 0 housekeeping when capacities unavailable", () => {
+	test("recommends housekeeping and isolated cores for detected topology", () => {
 		const topology = detectCpuTopology();
-		expect(topology.coreCapacities).toBeNull();
-		expect(topology.recommendedHousekeeping).toBe(topology.onlineCores[0] ?? 0);
+		if (topology.coreCapacities === null) {
+			expect(topology.recommendedHousekeeping).toBe(topology.onlineCores[0] ?? 0);
+			expect(topology.recommendedIsolated).toEqual(
+				topology.onlineCores.filter((c) => c !== topology.recommendedHousekeeping),
+			);
+			return;
+		}
+
+		const values = [...topology.coreCapacities.values()];
+		const minCap = Math.min(...values);
+		const maxCap = Math.max(...values);
+		expect(topology.coreCapacities.get(topology.recommendedHousekeeping)).toBe(minCap);
 		expect(topology.recommendedIsolated).toEqual(
-			topology.onlineCores.filter((c) => c !== topology.recommendedHousekeeping),
+			topology.onlineCores.filter(
+				(c) => topology.coreCapacities?.get(c) === maxCap && c !== topology.recommendedHousekeeping,
+			),
 		);
 	});
 
