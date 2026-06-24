@@ -22,13 +22,14 @@ function createTestDb(): Database {
 }
 
 describe("landingRoutes", () => {
-	test("renders open source approval language", async () => {
+	test("renders self-hosting and approval language", async () => {
 		const app = landingRoutes(createTestDb());
 		const res = await app.request("/");
 		const body = await res.text();
 
 		expect(res.status).toBe(200);
-		expect(body).toContain("Free access for open source projects is available by approval");
+		expect(body).toContain("Self-host Noron on Armbian-based single-board computers");
+		expect(body).toContain("open source projects is available by approval");
 		expect(body).toContain("Submitting this form does not grant a license");
 	});
 

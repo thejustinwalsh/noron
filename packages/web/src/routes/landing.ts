@@ -232,9 +232,10 @@ export function landingRoutes(db: Database): Hono {
 									</div>
 								</div>
 								<p class="copy-block">
-									Free access for open source projects is available by approval. Commercial use,
-									hosted benchmarking, managed services, CI performance services, and customer-facing
-									offerings require a separate commercial license.
+									Self-host Noron on Armbian-based single-board computers for personal use or
+									internal benchmarking. Hosted benchmarking, managed services, SaaS, consulting, and
+									customer-facing offerings require a separate commercial license. Free access for
+									open source projects is available by approval.
 								</p>
 							</div>
 
@@ -273,8 +274,8 @@ export function landingRoutes(db: Database): Hono {
 
 								<button type="submit">Request access</button>
 								<div class="note">
-									Submitting this form does not grant a license. Open source approvals and commercial
-									licenses are issued explicitly.
+									Submitting this form does not grant a license. Open source approvals and
+									commercial licenses are issued explicitly.
 								</div>
 							</form>
 						</section>
@@ -290,7 +291,7 @@ export function landingRoutes(db: Database): Hono {
 							</div>
 							<div class="band">
 								<h3>Commercially protected</h3>
-								<p>Source is visible, but production service use needs explicit permission.</p>
+								<p>Self-hosting on Armbian boards is welcome; service businesses need permission.</p>
 							</div>
 						</section>
 					</main>

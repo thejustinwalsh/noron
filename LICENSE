@@ -4,7 +4,13 @@ Licensor: Justin Walsh and Noron contributors
 
 Licensed Work: Noron
 
-Additional Use Grant: None
+Additional Use Grant: You may make production use of the Licensed Work without
+a separate commercial license only when self-hosting it on Armbian-based
+single-board computers for your own personal use or your organization's own
+internal benchmarking use. This grant does not permit use of the Licensed Work
+to provide a hosted service, managed service, software-as-a-service,
+benchmarking service, CI performance service, consulting service, appliance
+service, or other offering to third parties, whether paid or unpaid.
 
 Change Date: 2030-06-24
 

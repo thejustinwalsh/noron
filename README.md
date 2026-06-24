@@ -573,7 +573,9 @@ More cores = more isolation options. The appliance reserves 1 core for OS/daemon
 
 Noron is licensed under the [Business Source License 1.1](LICENSE).
 
-Production use, commercial use, hosted or managed service use, SaaS use, and
-operation of benchmarking infrastructure for a third party require a separate
-commercial license. Each version converts to the MIT License on the Change Date
-listed in the license file.
+Self-hosted use on Armbian-based single-board computers is allowed for personal
+use and internal benchmarking. Hosted or managed services, SaaS use, consulting
+services, customer-facing benchmarking, and operation of benchmarking
+infrastructure for a third party require a separate commercial license. Each
+version converts to the MIT License on the Change Date listed in the license
+file.
